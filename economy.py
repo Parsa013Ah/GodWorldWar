@@ -241,3 +241,90 @@ class Economy:
             return {'success': True, 'message': 'انتقال منابع موفق بود'}
         else:
             return {'success': False, 'message': 'خطا در انتقال منابع'}
+import logging
+from config import Config
+
+logger = logging.getLogger(__name__)
+
+class Economy:
+    def __init__(self, database):
+        self.db = database
+    
+    def calculate_income(self, user_id):
+        """Calculate player income from buildings"""
+        buildings = self.db.get_player_buildings(user_id)
+        total_income = 0
+        
+        for building_type, quantity in buildings.items():
+            if building_type == 'user_id':
+                continue
+            
+            building_config = Config.BUILDINGS.get(building_type, {})
+            income_per_cycle = building_config.get('income_per_cycle', 0)
+            total_income += income_per_cycle * quantity
+        
+        return total_income
+    
+    def calculate_population_increase(self, user_id):
+        """Calculate population increase from wheat farms"""
+        buildings = self.db.get_player_buildings(user_id)
+        wheat_farms = buildings.get('wheat_farm', 0)
+        
+        return wheat_farms * 10000  # 10k per farm per cycle
+    
+    def calculate_soldier_increase(self, user_id):
+        """Calculate soldier increase from military bases"""
+        buildings = self.db.get_player_buildings(user_id)
+        military_bases = buildings.get('military_base', 0)
+        
+        return military_bases * 5000  # 5k soldiers per base per cycle
+    
+    def distribute_mine_resources(self, user_id):
+        """Distribute resources from mines"""
+        buildings = self.db.get_player_buildings(user_id)
+        
+        for building_type, quantity in buildings.items():
+            if building_type == 'user_id':
+                continue
+            
+            building_config = Config.BUILDINGS.get(building_type, {})
+            resource_production = building_config.get('resource_production')
+            
+            if resource_production:
+                resource_type, amount_per_building = resource_production
+                total_amount = amount_per_building * quantity
+                
+                if total_amount > 0:
+                    self.db.add_resources(user_id, resource_type, total_amount)
+    
+    def can_afford_building(self, user_id, building_type):
+        """Check if player can afford building"""
+        player = self.db.get_player(user_id)
+        building_cost = Config.get_building_cost(building_type)
+        
+        return player['money'] >= building_cost
+    
+    def can_afford_weapon(self, user_id, weapon_type):
+        """Check if player can afford weapon"""
+        player = self.db.get_player(user_id)
+        weapon_config = Config.WEAPONS.get(weapon_type, {})
+        
+        # Check money
+        weapon_cost = weapon_config.get('cost', 0)
+        if player['money'] < weapon_cost:
+            return False, "پول کافی ندارید"
+        
+        # Check resources
+        required_resources = weapon_config.get('resources', {})
+        current_resources = self.db.get_player_resources(user_id)
+        
+        for resource, amount in required_resources.items():
+            if current_resources.get(resource, 0) < amount:
+                return False, f"منابع کافی ندارید: {resource}"
+        
+        # Check weapon factory requirement
+        buildings = self.db.get_player_buildings(user_id)
+        if buildings.get('weapon_factory', 0) == 0:
+            return False, "نیاز به کارخانه اسلحه دارید"
+        
+        return True, "قابل تولید"

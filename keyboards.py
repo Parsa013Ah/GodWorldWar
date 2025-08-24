@@ -234,3 +234,135 @@ class Keyboards:
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from config import Config
+
+class Keyboards:
+    def country_selection_keyboard(self):
+        """Create country selection keyboard"""
+        keyboard = []
+        row = []
+        
+        for country_code, country_name in Config.COUNTRIES.items():
+            flag = Config.COUNTRY_FLAGS.get(country_code, '🏳')
+            button = InlineKeyboardButton(
+                f"{flag} {country_name}",
+                callback_data=f"select_country_{country_code}"
+            )
+            row.append(button)
+            
+            if len(row) == 2:
+                keyboard.append(row)
+                row = []
+        
+        if row:
+            keyboard.append(row)
+        
+        return InlineKeyboardMarkup(keyboard)
+    
+    def main_menu_keyboard(self):
+        """Create main menu keyboard"""
+        keyboard = [
+            [
+                InlineKeyboardButton("💰 اقتصاد", callback_data="economy"),
+                InlineKeyboardButton("⚔️ نظامی", callback_data="military")
+            ],
+            [
+                InlineKeyboardButton("🤝 دیپلماسی", callback_data="diplomacy"),
+                InlineKeyboardButton("📊 منابع", callback_data="resources")
+            ]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+    
+    def economy_menu_keyboard(self):
+        """Create economy menu keyboard"""
+        keyboard = [
+            [InlineKeyboardButton("🏗 ساخت و ساز", callback_data="buildings")],
+            [InlineKeyboardButton("🔙 بازگشت", callback_data="main_menu")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+    
+    def military_menu_keyboard(self):
+        """Create military menu keyboard"""
+        keyboard = [
+            [InlineKeyboardButton("🔫 تولید تسلیحات", callback_data="weapons")],
+            [InlineKeyboardButton("🔙 بازگشت", callback_data="main_menu")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+    
+    def diplomacy_menu_keyboard(self, current_user_id):
+        """Create diplomacy menu keyboard"""
+        keyboard = [
+            [InlineKeyboardButton("📬 ارسال منابع", callback_data="send_resources")],
+            [InlineKeyboardButton("📢 بیانیه رسمی", callback_data="official_statement")],
+            [InlineKeyboardButton("🔙 بازگشت", callback_data="main_menu")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+    
+    def buildings_menu_keyboard(self):
+        """Create buildings menu keyboard"""
+        keyboard = [
+            [
+                InlineKeyboardButton("⛏ معدن آهن", callback_data="build_iron_mine"),
+                InlineKeyboardButton("⛏ معدن مس", callback_data="build_copper_mine")
+            ],
+            [
+                InlineKeyboardButton("🛢 معدن نفت", callback_data="build_oil_mine"),
+                InlineKeyboardButton("⛽ معدن گاز", callback_data="build_gas_mine")
+            ],
+            [
+                InlineKeyboardButton("🔗 معدن آلومینیوم", callback_data="build_aluminum_mine"),
+                InlineKeyboardButton("🏆 معدن طلا", callback_data="build_gold_mine")
+            ],
+            [
+                InlineKeyboardButton("☢️ معدن اورانیوم", callback_data="build_uranium_mine"),
+                InlineKeyboardButton("🔋 معدن لیتیوم", callback_data="build_lithium_mine")
+            ],
+            [
+                InlineKeyboardButton("⚫ معدن زغال", callback_data="build_coal_mine"),
+                InlineKeyboardButton("🥈 معدن نقره", callback_data="build_silver_mine")
+            ],
+            [
+                InlineKeyboardButton("🏭 کارخانه اسلحه", callback_data="build_weapon_factory"),
+                InlineKeyboardButton("🏭 پالایشگاه", callback_data="build_refinery")
+            ],
+            [
+                InlineKeyboardButton("⚡ نیروگاه", callback_data="build_power_plant"),
+                InlineKeyboardButton("🌾 مزرعه گندم", callback_data="build_wheat_farm")
+            ],
+            [
+                InlineKeyboardButton("🪖 پادگان", callback_data="build_military_base"),
+                InlineKeyboardButton("🏘 مسکن", callback_data="build_housing")
+            ],
+            [InlineKeyboardButton("🔙 بازگشت", callback_data="economy")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+    
+    def weapons_menu_keyboard(self):
+        """Create weapons menu keyboard"""
+        keyboard = [
+            [
+                InlineKeyboardButton("🔫 تفنگ", callback_data="produce_rifle"),
+                InlineKeyboardButton("🚗 تانک", callback_data="produce_tank")
+            ],
+            [
+                InlineKeyboardButton("✈️ جنگنده", callback_data="produce_fighter_jet"),
+                InlineKeyboardButton("🚁 پهپاد", callback_data="produce_drone")
+            ],
+            [
+                InlineKeyboardButton("🚀 موشک", callback_data="produce_missile"),
+                InlineKeyboardButton("🚢 کشتی جنگی", callback_data="produce_warship")
+            ],
+            [
+                InlineKeyboardButton("🛡 پدافند هوایی", callback_data="produce_air_defense"),
+                InlineKeyboardButton("🚀 سپر موشکی", callback_data="produce_missile_shield")
+            ],
+            [InlineKeyboardButton("💻 سپر سایبری", callback_data="produce_cyber_shield")],
+            [InlineKeyboardButton("🔙 بازگشت", callback_data="military")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+    
+    def back_to_main_keyboard(self):
+        """Create back to main menu keyboard"""
+        keyboard = [[InlineKeyboardButton("🔙 بازگشت به منوی اصلی", callback_data="main_menu")]]
+        return InlineKeyboardMarkup(keyboard)

@@ -361,3 +361,108 @@ class CombatSystem:
         # This would save detailed battle information to database
         # Implementation depends on your wars table structure
         pass
+import random
+import logging
+from config import Config
+
+logger = logging.getLogger(__name__)
+
+class CombatSystem:
+    def __init__(self, database):
+        self.db = database
+    
+    def calculate_attack_power(self, user_id):
+        """Calculate total attack power"""
+        weapons = self.db.get_player_weapons(user_id)
+        total_power = 0
+        
+        for weapon_type, quantity in weapons.items():
+            if weapon_type == 'user_id':
+                continue
+            weapon_config = Config.WEAPONS.get(weapon_type, {})
+            power = weapon_config.get('power', 0)
+            total_power += power * quantity
+        
+        return total_power
+    
+    def calculate_defense_power(self, user_id):
+        """Calculate total defense power"""
+        weapons = self.db.get_player_weapons(user_id)
+        buildings = self.db.get_player_buildings(user_id)
+        
+        defense_power = 0
+        
+        # Defense weapons
+        for weapon_type, quantity in weapons.items():
+            if weapon_type == 'user_id':
+                continue
+            weapon_config = Config.WEAPONS.get(weapon_type, {})
+            if weapon_config.get('type') == 'defense':
+                power = weapon_config.get('power', 0)
+                defense_power += power * quantity
+        
+        # Base defense from military bases
+        military_bases = buildings.get('military_base', 0)
+        defense_power += military_bases * 100
+        
+        return defense_power
+    
+    def can_attack(self, attacker_id, defender_id):
+        """Check if attacker can attack defender"""
+        attacker = self.db.get_player(attacker_id)
+        defender = self.db.get_player(defender_id)
+        
+        if not attacker or not defender:
+            return False, "بازیکن پیدا نشد"
+        
+        # Check if countries are neighbors or have long range weapons
+        attacker_country = attacker['country_code']
+        defender_country = defender['country_code']
+        
+        are_neighbors = Config.are_countries_neighbors(attacker_country, defender_country)
+        
+        if are_neighbors:
+            return True, "کشورهای همسایه"
+        
+        # Check for long range weapons
+        weapons = self.db.get_player_weapons(attacker_id)
+        has_long_range = any(
+            Config.WEAPONS.get(weapon_type, {}).get('range', 0) >= 1000
+            for weapon_type, quantity in weapons.items()
+            if quantity > 0 and weapon_type != 'user_id'
+        )
+        
+        if has_long_range:
+            return True, "دارای سلاح برد بلند"
+        
+        return False, "فاصله زیاد و عدم وجود سلاح برد بلند"
+    
+    def simulate_battle(self, attacker_id, defender_id):
+        """Simulate a battle between two players"""
+        attack_power = self.calculate_attack_power(attacker_id)
+        defense_power = self.calculate_defense_power(defender_id)
+        
+        # Apply randomness
+        attack_multiplier = random.uniform(0.8, 1.2)
+        defense_multiplier = random.uniform(0.8, 1.2)
+        
+        final_attack = attack_power * attack_multiplier
+        final_defense = defense_power * defense_multiplier
+        
+        # Determine winner
+        if final_attack > final_defense:
+            damage = final_attack - final_defense
+            return {
+                'winner': 'attacker',
+                'damage': int(damage),
+                'attack_power': int(final_attack),
+                'defense_power': int(final_defense)
+            }
+        else:
+            damage = final_defense - final_attack
+            return {
+                'winner': 'defender',
+                'damage': int(damage),
+                'attack_power': int(final_attack),
+                'defense_power': int(final_defense)
+            }

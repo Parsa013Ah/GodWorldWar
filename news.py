@@ -193,6 +193,13 @@ class NewsChannel:
         message = "🏆 رتبه‌بندی هفتگی کشورها\n\n"
         
         for i, country in enumerate(rankings[:10], 1):
+            message += f"{i}. {country['country_name']} - ${country['money']:,}\n"
+        
+        message += f"\n📅 {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        
+        await self.send_news(message)
+        
+        for i, country in enumerate(rankings[:10], 1):
             if i == 1:
                 medal = "🥇"
             elif i == 2:

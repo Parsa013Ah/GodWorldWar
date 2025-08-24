@@ -280,3 +280,78 @@ class AdminPanel:
             self.admin_ids.remove(user_id)
             return True
         return False
+import logging
+from config import Config
+
+logger = logging.getLogger(__name__)
+
+class AdminPanel:
+    def __init__(self, database):
+        self.db = database
+        self.admin_ids = Config.ADMIN_CONFIG['default_admin_ids']
+    
+    def is_admin(self, user_id):
+        """Check if user is admin"""
+        return user_id in self.admin_ids
+    
+    async def handle_admin_action(self, query, context):
+        """Handle admin actions"""
+        user_id = query.from_user.id
+        
+        if not self.is_admin(user_id):
+            await query.edit_message_text("❌ شما دسترسی ادمین ندارید!")
+            return
+        
+        action = query.data.replace("admin_", "")
+        
+        if action == "stats":
+            await self.show_game_stats(query)
+        elif action == "reset":
+            await self.confirm_reset(query)
+        elif action == "logs":
+            await self.show_admin_logs(query)
+        else:
+            await query.edit_message_text("❌ دستور ادمین نامعتبر!")
+    
+    async def show_game_stats(self, query):
+        """Show game statistics"""
+        players = self.db.get_all_players()
+        total_players = len(players)
+        
+        stats_text = f"""📊 آمار بازی
+
+👥 تعداد بازیکنان: {total_players}
+🏛 کشورهای فعال: {total_players}
+🌍 کشورهای باقی‌مانده: {len(Config.COUNTRIES) - total_players}
+
+آخرین بازیکنان:"""
+        
+        for player in players[-5:]:
+            stats_text += f"\n• {player['country_name']} - {player['username']}"
+        
+        await query.edit_message_text(stats_text)
+    
+    async def show_admin_logs(self, query):
+        """Show admin logs"""
+        logs = self.db.get_admin_logs(20)
+        
+        logs_text = "📋 گزارش عملیات ادمین:\n\n"
+        
+        if not logs:
+            logs_text += "هیچ گزارشی موجود نیست."
+        else:
+            for log in logs:
+                logs_text += f"• {log['action']} - {log['created_at']}\n"
+        
+        await query.edit_message_text(logs_text)
+    
+    async def confirm_reset(self, query):
+        """Confirm game reset"""
+        await query.edit_message_text(
+            "⚠️ آیا مطمئن هستید که می‌خواهید تمام داده‌های بازی را پاک کنید؟\n"
+            "این عمل غیرقابل بازگشت است!"
+        )
+    
+    def setup_handlers(self, application):
+        """Setup admin command handlers"""
+        pass
