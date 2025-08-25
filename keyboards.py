@@ -535,15 +535,15 @@ class Keyboards:
                 InlineKeyboardButton("👥 مدیریت بازیکنان", callback_data="admin_players")
             ],
             [
-                InlineKeyboardButton("🎁 هدیه به کشورها", callback_data="admin_give_items"),
-                InlineKeyboardButton("📋 لاگ‌ها", callback_data="admin_logs")
-            ],
-            [
-                InlineKeyboardButton("♾️ منابع بینهایت", callback_data="admin_infinite_resources"),
+                InlineKeyboardButton("📋 لاگ‌ها", callback_data="admin_logs"),
                 InlineKeyboardButton("🔄 ریست بازی", callback_data="admin_reset")
             ],
             [
+                InlineKeyboardButton("♾️ منابع بینهایت", callback_data="admin_infinite_resources"),
                 InlineKeyboardButton("🏴 ریست کشور", callback_data="admin_country_reset")
+            ],
+            [
+                InlineKeyboardButton("🎁 هدیه به کشورها", callback_data="admin_give_items")
             ],
             [
                 InlineKeyboardButton("🔙 منوی اصلی", callback_data="main_menu")
@@ -563,7 +563,7 @@ class Keyboards:
             )
             keyboard.append([button])
 
-        keyboard.append([InlineKeyboardButton("🔙 پنل ادمین", callback_data="admin_players")])
+        keyboard.append([InlineKeyboardButton("🔙 پنل ادمین", callback_data="admin_panel")])
         return InlineKeyboardMarkup(keyboard)
 
     def admin_player_actions_keyboard(self, user_id):

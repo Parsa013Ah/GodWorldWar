@@ -59,7 +59,7 @@ class AdminPanel:
             await query.edit_message_text("❌ دستور نامعتبر!")
             return
 
-    async def show_admin_panel(self, query, context):
+    async def show_admin_panel(self, query):
         """Show main admin panel"""
         admin_text = """👑 پنل مدیریت DragonRP
 
@@ -70,7 +70,7 @@ class AdminPanel:
         keyboard = self.keyboards.admin_panel_keyboard()
         await query.edit_message_text(admin_text, reply_markup=keyboard)
 
-    async def show_game_stats(self, query, context):
+    async def show_game_stats(self, query):
         """Show game statistics"""
         players = self.db.get_all_players()
         total_players = len(players)
@@ -105,7 +105,7 @@ class AdminPanel:
 
         await query.edit_message_text(stats_text, reply_markup=keyboard)
 
-    async def show_players_management(self, query, context):
+    async def show_players_management(self, query):
         """Show players management"""
         players = self.db.get_all_players()
 
@@ -197,7 +197,7 @@ class AdminPanel:
         else:
             await query.edit_message_text("❌ خطا در حذف بازیکن!")
 
-    async def show_admin_logs(self, query, context):
+    async def show_admin_logs(self, query):
         """Show admin logs"""
         logs = self.db.get_admin_logs(20)
 
@@ -227,7 +227,7 @@ class AdminPanel:
 
         await query.edit_message_text(logs_text, reply_markup=keyboard)
 
-    async def show_reset_confirmation(self, query, context):
+    async def show_reset_confirmation(self, query):
         """Show reset confirmation"""
         warning_text = """⚠️ هشدار: ریست کامل بازی
 
@@ -250,7 +250,7 @@ class AdminPanel:
 
         await query.edit_message_text(warning_text, reply_markup=keyboard)
 
-    async def reset_game_data(self, query, context):
+    async def reset_game_data(self, query):
         """Reset all game data"""
         user_id = query.from_user.id
 
@@ -497,7 +497,7 @@ class AdminPanel:
         await query.edit_message_text(f"⚠️ کشور {country_name} جریمه شد!\n\nتمام منابع، تسلیحات و ساختمان‌های این کشور نصف شدند.")
 
 
-    async def show_country_reset_menu(self, query, context):
+    async def show_country_reset_menu(self, query):
         """Show menu to select country for reset"""
         players = self.db.get_all_players()
 
