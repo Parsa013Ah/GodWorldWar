@@ -1,0 +1,84 @@
+~/workspace$ python test_bot.py
+2025-08-25 12:12:30,050 - __main__ - INFO - 🚀 Starting comprehensive bot tests...
+2025-08-25 12:12:30,050 - __main__ - INFO - 
+==================================================
+2025-08-25 12:12:30,050 - __main__ - INFO - Testing: Database Initialization
+2025-08-25 12:12:30,050 - __main__ - INFO - ==================================================
+2025-08-25 12:12:30,052 - database - INFO - Database initialized successfully
+2025-08-25 12:12:30,053 - __main__ - INFO - ✅ PASS - Database Initialization: Database tables created successfully
+2025-08-25 12:12:30,053 - __main__ - INFO - 
+==================================================
+2025-08-25 12:12:30,053 - __main__ - INFO - Testing: Player Creation
+2025-08-25 12:12:30,053 - __main__ - INFO - ==================================================
+2025-08-25 12:12:30,053 - database - ERROR - Country IR already taken
+2025-08-25 12:12:30,053 - __main__ - INFO - ❌ FAIL - Player Creation - test_user1: Failed to create player
+2025-08-25 12:12:30,116 - database - INFO - Player created: test_user2 - ترکیه
+2025-08-25 12:12:30,117 - __main__ - INFO - ✅ PASS - Player Creation - test_user2: Player created successfully
+2025-08-25 12:12:30,118 - database - ERROR - Country US already taken
+2025-08-25 12:12:30,118 - __main__ - INFO - ❌ FAIL - Player Creation - test_user3: Failed to create player
+2025-08-25 12:12:30,118 - __main__ - INFO - 
+==================================================
+2025-08-25 12:12:30,119 - __main__ - INFO - Testing: Building Construction
+2025-08-25 12:12:30,119 - __main__ - INFO - ==================================================
+2025-08-25 12:12:30,120 - __main__ - INFO - ❌ FAIL - Building Construction - iron_mine: 'NoneType' object is not subscriptable
+2025-08-25 12:12:30,121 - __main__ - INFO - ❌ FAIL - Building Construction - weapon_factory: 'NoneType' object is not subscriptable
+2025-08-25 12:12:30,122 - __main__ - INFO - ❌ FAIL - Building Construction - wheat_farm: 'NoneType' object is not subscriptable
+2025-08-25 12:12:30,122 - __main__ - INFO - ❌ FAIL - Building Construction - military_base: 'NoneType' object is not subscriptable
+2025-08-25 12:12:30,122 - __main__ - INFO - 
+==================================================
+2025-08-25 12:12:30,122 - __main__ - INFO - Testing: Weapon Production
+2025-08-25 12:12:30,122 - __main__ - INFO - ==================================================
+2025-08-25 12:12:30,124 - __main__ - INFO - ❌ FAIL - Weapon Production - rifle: بازیکن یافت نشد!
+2025-08-25 12:12:30,126 - __main__ - INFO - ❌ FAIL - Weapon Production - tank: بازیکن یافت نشد!
+2025-08-25 12:12:30,126 - __main__ - INFO - ❌ FAIL - Weapon Production - drone: بازیکن یافت نشد!
+2025-08-25 12:12:30,126 - __main__ - INFO - 
+==================================================
+2025-08-25 12:12:30,127 - __main__ - INFO - Testing: Economy Calculations
+2025-08-25 12:12:30,127 - __main__ - INFO - ==================================================
+2025-08-25 12:12:30,127 - __main__ - INFO - ✅ PASS - Economy - Income Calculation: Income calculated: $0
+2025-08-25 12:12:30,128 - __main__ - INFO - ✅ PASS - Economy - Population Increase: Population increase: 0
+2025-08-25 12:12:30,128 - __main__ - INFO - ✅ PASS - Economy - Soldier Increase: Soldier increase: 0
+2025-08-25 12:12:30,128 - __main__ - INFO - 
+==================================================
+2025-08-25 12:12:30,128 - __main__ - INFO - Testing: Convoy System
+2025-08-25 12:12:30,129 - __main__ - INFO - ==================================================
+2025-08-25 12:12:30,162 - __main__ - INFO - ❌ FAIL - Convoy System: 'success'
+2025-08-25 12:12:30,163 - __main__ - INFO - 
+==================================================
+2025-08-25 12:12:30,163 - __main__ - INFO - Testing: Marketplace
+2025-08-25 12:12:30,163 - __main__ - INFO - ==================================================
+2025-08-25 12:12:30,163 - __main__ - INFO - ❌ FAIL - Marketplace - Create Listing: موجودی کافی ندارید!
+2025-08-25 12:12:30,163 - __main__ - INFO - 
+==================================================
+2025-08-25 12:12:30,163 - __main__ - INFO - Testing: Admin Functions
+2025-08-25 12:12:30,163 - __main__ - INFO - ==================================================
+2025-08-25 12:12:30,185 - __main__ - INFO - ✅ PASS - Admin - Give Resources: 100 طلا به ترکیه اضافه شد
+2025-08-25 12:12:30,205 - __main__ - INFO - ✅ PASS - Admin - Give Money: $50,000 به ترکیه اضافه شد
+2025-08-25 12:12:30,224 - __main__ - INFO - ✅ PASS - Admin - Give Weapons: 10 تفنگ جنگی به ترکیه اضافه شد
+2025-08-25 12:12:30,224 - __main__ - INFO - 
+==================================================
+2025-08-25 12:12:30,224 - __main__ - INFO - Testing: Combat System
+2025-08-25 12:12:30,224 - __main__ - INFO - ==================================================
+2025-08-25 12:12:30,232 - __main__ - INFO - ❌ FAIL - Combat - Get Targets: No available targets found
+2025-08-25 12:12:30,232 - __main__ - INFO - 
+==================================================
+2025-08-25 12:12:30,232 - __main__ - INFO - Testing: Alliance System
+2025-08-25 12:12:30,232 - __main__ - INFO - ==================================================
+2025-08-25 12:12:30,255 - __main__ - INFO - ✅ PASS - Alliance - Create: اتحاد "Test Alliance" با موفقیت تشکیل شد!
+2025-08-25 12:12:30,280 - __main__ - INFO - ✅ PASS - Alliance - Invite: دعوت‌نامه ارسال شد!
+2025-08-25 12:12:30,281 - __main__ - INFO - ❌ FAIL - Alliance - Get Invitations: No invitations found
+2025-08-25 12:12:30,281 - __main__ - INFO - 
+==================================================
+2025-08-25 12:12:30,281 - __main__ - INFO - Testing: First Build Tracking
+2025-08-25 12:12:30,281 - __main__ - INFO - ==================================================
+2025-08-25 12:12:30,282 - __main__ - INFO - ❌ FAIL - First Build Tracking: 'NoneType' object is not subscriptable
+2025-08-25 12:12:30,282 - __main__ - INFO - 
+==================================================
+2025-08-25 12:12:30,282 - __main__ - INFO - TEST SUMMARY
+2025-08-25 12:12:30,283 - __main__ - INFO - ==================================================
+2025-08-25 12:12:30,283 - __main__ - INFO - Total Tests: 11
+2025-08-25 12:12:30,283 - __main__ - INFO - Passed: 3
+2025-08-25 12:12:30,283 - __main__ - INFO - Failed: 8
+2025-08-25 12:12:30,283 - __main__ - INFO - Success Rate: 27.3%
+2025-08-25 12:12:30,283 - __main__ - WARNING - ⚠️  8 tests failed. Check logs above.
+~/workspace$ 
