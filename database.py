@@ -395,29 +395,29 @@ class Database:
     def update_player_money(self, user_id, new_amount):
         """Update player money"""
         try:
-            cursor = self.conn.cursor()
-            cursor.execute("""
-                UPDATE players SET money = ? WHERE user_id = ?
-            """, (new_amount, user_id))
-            self.conn.commit()
-            cursor.close()
-            logger.info(f"Updated player {user_id} money to {new_amount}")
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE players SET money = ? WHERE user_id = ?
+                """, (new_amount, user_id))
+                conn.commit()
+                logger.info(f"Updated player {user_id} money to {new_amount}")
+                return True
         except Exception as e:
             logger.error(f"Error updating player money: {e}")
             return False
-        return True
 
     def update_player_population(self, user_id, new_population):
         """Update player population"""
         try:
-            cursor = self.conn.cursor()
-            cursor.execute(
-                "UPDATE players SET population = ? WHERE user_id = ?",
-                (new_population, user_id)
-            )
-            self.conn.commit()
-            cursor.close()
-            return True
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE players SET population = ? WHERE user_id = ?",
+                    (new_population, user_id)
+                )
+                conn.commit()
+                return True
         except Exception as e:
             logger.error(f"Error updating player population: {e}")
             return False
@@ -535,6 +535,18 @@ class Database:
             cursor.execute(f'''
                 UPDATE resources 
                 SET {resource_type} = {resource_type} + ? 
+                WHERE user_id = ?
+            ''', (quantity, user_id))
+            conn.commit()
+            cursor.close()
+
+    def subtract_resources(self, user_id, resource_type, quantity):
+        """Subtract resources from player"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(f'''
+                UPDATE resources 
+                SET {resource_type} = {resource_type} - ? 
                 WHERE user_id = ?
             ''', (quantity, user_id))
             conn.commit()

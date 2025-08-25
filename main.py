@@ -148,7 +148,7 @@ class DragonRPBot:
             elif data == "intercept_convoys":
                 await self.show_convoy_interception_menu(query, context)
             elif data.startswith("send_to_"):
-                await self.handle_resource_transfer_target(query, context)
+                await self.handle_resource_transfer_transport_select(query, context)
             elif data.startswith("transfer_"):
                 await self.handle_resource_transfer(query, context)
             elif data.startswith("use_transport_"):

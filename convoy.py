@@ -207,7 +207,7 @@ class ConvoySystem:
             'supply_ship': 35,
             'stealth_transport': 12
         }
-        
+
         return transport_times.get(transport_type, 30)
 
     def calculate_convoy_security_with_transport(self, sender_id, resources_value, transport_type):
@@ -305,7 +305,7 @@ class ConvoySystem:
         # Calculate escort bonus
         escort_bonus = 0
         escorter_weapons = self.db.get_player_weapons(escorter_id)
-        
+
         for weapon, count in escort_weapons.items():
             available = escorter_weapons.get(weapon, 0)
             if available >= count:

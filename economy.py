@@ -31,8 +31,18 @@ class Economy:
         """Calculate soldier increase from military bases"""
         buildings = self.db.get_player_buildings(user_id)
         military_bases = buildings.get('military_base', 0)
+        return military_bases * 5000  # Each base produces 5000 soldiers per cycle
 
-        return military_bases * 5000  # Each base trains 5,000 soldiers
+    def update_player_income(self, user_id, new_money, new_population, new_soldiers):
+        """Update player income data"""
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE players 
+                SET money = ?, population = ?, soldiers = ?
+                WHERE user_id = ?
+            ''', (new_money, new_population, new_soldiers, user_id))
+            conn.commit()
 
     def distribute_mine_resources(self, user_id):
         """Distribute resources from mines"""
