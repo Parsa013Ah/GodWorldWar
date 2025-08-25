@@ -393,26 +393,30 @@ class Database:
             return dict(result) if result else {}
 
     def update_player_money(self, user_id, new_money):
-        """Update player's money"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                UPDATE players 
-                SET money = ?
-                WHERE user_id = ?
-            ''', (new_money, user_id))
-            conn.commit()
+        """Update player money"""
+        try:
+            self.cursor.execute(
+                "UPDATE players SET money = ? WHERE user_id = ?",
+                (new_money, user_id)
+            )
+            self.conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Error updating player money: {e}")
+            return False
 
-    def update_player_income(self, user_id, new_money, new_population, new_soldiers):
-        """Update player's money, population and soldiers after income cycle"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                UPDATE players 
-                SET money = ?, population = ?, soldiers = ?
-                WHERE user_id = ?
-            ''', (new_money, new_population, new_soldiers, user_id))
-            conn.commit()
+    def update_player_population(self, user_id, new_population):
+        """Update player population"""
+        try:
+            self.cursor.execute(
+                "UPDATE players SET population = ? WHERE user_id = ?",
+                (new_population, user_id)
+            )
+            self.conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Error updating player population: {e}")
+            return False
 
     def update_player_soldiers(self, user_id, new_soldiers):
         """Update player's soldiers count"""
@@ -423,17 +427,6 @@ class Database:
                 SET soldiers = ?
                 WHERE user_id = ?
             ''', (new_soldiers, user_id))
-            conn.commit()
-
-    def update_player_population(self, user_id, new_population):
-        """Update player's population"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                UPDATE players 
-                SET population = ?
-                WHERE user_id = ?
-            ''', (new_population, user_id))
             conn.commit()
 
     def update_resource(self, user_id, resource_type, new_amount):

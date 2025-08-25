@@ -1,6 +1,6 @@
 """
 DragonRP Game Configuration
-Contains all game constants, costs, and specifications
+Contains all game constants, and specifications
 """
 
 class Config:
@@ -48,104 +48,26 @@ class Config:
         'AF': '🇦🇫', 'IQ': '🇮🇶', 'IN': '🇮🇳', 'AU': '🇦🇺'
     }
 
-    # Buildings configuration
+    # Building costs and stats (Updated with provided prices)
     BUILDINGS = {
-        'iron_mine': {
-        'name': 'معدن آهن',
-        'cost': 80000,
-        'production': {'iron': 1000},
-        'income': 20000,
-        'emoji': '⛏'
-    },
-    'copper_mine': {
-        'name': 'معدن مس',
-        'cost': 100000,
-        'production': {'copper': 800},
-        'income': 25000,
-        'emoji': '⛏'
-    },
-    'oil_mine': {
-        'name': 'معدن نفت',
-        'cost': 120000,
-        'production': {'oil': 600},
-        'income': 30000,
-        'emoji': '🛢'
-    },
-    'gas_mine': {
-        'name': 'معدن گاز',
-        'cost': 110000,
-        'production': {'gas': 700},
-        'income': 27500,
-        'emoji': '⛽'
-    },
-    'aluminum_mine': {
-        'name': 'معدن آلومینیوم',
-        'cost': 90000,
-        'production': {'aluminum': 500},
-        'income': 22500,
-        'emoji': '🔗'
-    },
-    'gold_mine': {
-        'name': 'معدن طلا',
-        'cost': 150000,
-        'production': {'gold': 200},
-        'income': 37500,
-        'emoji': '🏆'
-    },
-    'uranium_mine': {
-        'name': 'معدن اورانیوم',
-        'cost': 690000,
-        'production': {'uranium': 12},
-        'income': 172500,
-        'emoji': '☢️'
-    },
-    'lithium_mine': {
-        'name': 'معدن لیتیوم',
-        'cost': 180000,
-        'production': {'lithium': 300},
-        'income': 45000,
-        'emoji': '🔋'
-    },
-    'coal_mine': {
-        'name': 'معدن زغال‌سنگ',
-        'cost': 85000,
-        'production': {'coal': 1200},
-        'income': 21250,
-        'emoji': '⚫'
-    },
-    'silver_mine': {
-        'name': 'معدن نقره',
-        'cost': 140000,
-        'production': {'silver': 400},
-        'income': 35000,
-        'emoji': '🥈'
-    },
-    'nitro_mine': {
-        'name': 'معدن نیتر',
-        'cost': 95000,
-        'production': {'nitro': 600},
-        'income': 23750,
-        'emoji': '💥'
-    },
-    'sulfur_mine': {
-        'name': 'معدن گوگرد',
-        'cost': 75000,
-        'production': {'sulfur': 900},
-        'income': 18750,
-        'emoji': '🌫'
-    },
-    'titanium_mine': {
-        'name': 'معدن تیتانیوم',
-        'cost': 250000,
-        'production': {'titanium': 18},
-        'income': 62500,
-        'emoji': '🛡'
-    },
-        'weapon_factory': {'name': 'کارخانه اسلحه', 'cost': 15000, 'requirements': ['power_plant']},
-        'refinery': {'name': 'پالایشگاه', 'cost': 10000},
-        'power_plant': {'name': 'نیروگاه', 'cost': 9000},
-        'wheat_farm': {'name': 'مزرعه گندم', 'cost': 5000, 'population_increase': 10000},
-        'military_base': {'name': 'پادگان', 'cost': 5000, 'soldier_production': 5000},
+        'iron_mine': {'name': 'معدن آهن', 'cost': 80000, 'production': {'iron': 1000}},
+        'copper_mine': {'name': 'معدن مس', 'cost': 100000, 'production': {'copper': 800}},
+        'oil_mine': {'name': 'معدن نفت', 'cost': 120000, 'production': {'oil': 600}},
+        'gas_mine': {'name': 'معدن گاز', 'cost': 110000, 'production': {'gas': 700}},
+        'aluminum_mine': {'name': 'معدن آلومینیوم', 'cost': 90000, 'production': {'aluminum': 500}},
+        'gold_mine': {'name': 'معدن طلا', 'cost': 150000, 'production': {'gold': 200}},
+        'uranium_mine': {'name': 'معدن اورانیوم', 'cost': 690000, 'production': {'uranium': 12}},
+        'lithium_mine': {'name': 'معدن لیتیوم', 'cost': 180000, 'production': {'lithium': 300}},
+        'coal_mine': {'name': 'معدن زغال‌سنگ', 'cost': 85000, 'production': {'coal': 1200}},
+        'silver_mine': {'name': 'معدن نقره', 'cost': 140000, 'production': {'silver': 400}},
+        'nitro_mine': {'name': 'معدن نیتر', 'cost': 95000, 'production': {'nitro': 600}},
+        'sulfur_mine': {'name': 'معدن گوگرد', 'cost': 75000, 'production': {'sulfur': 900}},
+        'titanium_mine': {'name': 'معدن تیتانیوم', 'cost': 250000, 'production': {'titanium': 18}},
+        'weapon_factory': {'name': 'کارخانه اسلحه', 'cost': 15000, 'production': {}},
+        'refinery': {'name': 'پالایشگاه نفت', 'cost': 10000, 'production': {}},
+        'power_plant': {'name': 'نیروگاه برق', 'cost': 9000, 'production': {}},
+        'wheat_farm': {'name': 'مزرعه گندم', 'cost': 5000, 'population_bonus': 10000},
+        'military_base': {'name': 'پادگان آموزشی', 'cost': 5000, 'soldier_bonus': 5000},
         'housing': {'name': 'مسکن', 'cost': 5000, 'capacity': 10000}
     }
 

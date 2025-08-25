@@ -69,6 +69,11 @@ class BotTester:
         """Test building construction"""
         user_id = self.test_users[0]['user_id']
         
+        # Give player enough money first
+        player = self.db.get_player(user_id)
+        if player:
+            self.db.update_player_money(user_id, player['money'] + 500000)
+        
         # Test all building types
         buildings_to_test = ['iron_mine', 'weapon_factory', 'wheat_farm', 'military_base']
         success_count = 0
@@ -76,11 +81,12 @@ class BotTester:
         for building in buildings_to_test:
             try:
                 result = self.game_logic.build_structure(user_id, building)
-                if result['success']:
+                if result and result.get('success', False):
                     success_count += 1
-                    self.log_test(f"Building Construction - {building}", True, result['message'])
+                    self.log_test(f"Building Construction - {building}", True, result.get('message', 'Built successfully'))
                 else:
-                    self.log_test(f"Building Construction - {building}", False, result['message'])
+                    message = result.get('message', 'Unknown error') if result else 'No result returned'
+                    self.log_test(f"Building Construction - {building}", False, message)
             except Exception as e:
                 self.log_test(f"Building Construction - {building}", False, str(e))
         
@@ -137,11 +143,17 @@ class BotTester:
         receiver_id = self.test_users[1]['user_id']
         
         try:
+            # Give sender some money first
+            sender = self.db.get_player(sender_id)
+            if sender:
+                self.db.update_player_money(sender_id, sender['money'] + 10000)
+                self.db.add_resources(sender_id, 'iron', 1000)
+            
             # Create convoy
             resources = {'money': 1000, 'iron': 500}
             result = self.convoy.create_convoy(sender_id, receiver_id, resources)
             
-            if result['success']:
+            if result.get('success', False):
                 convoy_id = result['convoy_id']
                 self.log_test("Convoy Creation", True, f"Convoy created with ID: {convoy_id}")
                 
@@ -153,7 +165,7 @@ class BotTester:
                 else:
                     return self.log_test("Convoy Retrieval", False, "Failed to retrieve convoy details")
             else:
-                return self.log_test("Convoy Creation", False, result['message'])
+                return self.log_test("Convoy Creation", False, result.get('message', 'Unknown error'))
                 
         except Exception as e:
             return self.log_test("Convoy System", False, str(e))
@@ -306,26 +318,29 @@ class BotTester:
         try:
             # Give user money for building
             player = self.db.get_player(user_id)
-            self.db.update_player_money(user_id, player['money'] + 200000)
-            
-            # Test first build
-            is_first = self.db.check_first_build(user_id, 'iron_mine')
-            self.log_test("First Build Check - Before", is_first, f"Is first build: {is_first}")
-            
-            if is_first:
-                # Record first build
-                self.db.record_first_build(user_id, 'iron_mine')
-                self.log_test("First Build Record", True, "First build recorded")
+            if player:
+                self.db.update_player_money(user_id, player['money'] + 200000)
                 
-                # Check again
-                is_still_first = self.db.check_first_build(user_id, 'iron_mine')
-                if not is_still_first:
-                    self.log_test("First Build Check - After", True, f"Is first build after recording: {is_still_first}")
-                    return True
+                # Test first build
+                is_first = self.db.check_first_build(user_id, 'iron_mine')
+                self.log_test("First Build Check - Before", is_first, f"Is first build: {is_first}")
+                
+                if is_first:
+                    # Record first build
+                    self.db.record_first_build(user_id, 'iron_mine')
+                    self.log_test("First Build Record", True, "First build recorded")
+                    
+                    # Check again
+                    is_still_first = self.db.check_first_build(user_id, 'iron_mine')
+                    if not is_still_first:
+                        self.log_test("First Build Check - After", True, f"Is first build after recording: {is_still_first}")
+                        return True
+                    else:
+                        return self.log_test("First Build Check - After", False, "Still showing as first build")
                 else:
-                    return self.log_test("First Build Check - After", False, "Still showing as first build")
+                    return self.log_test("First Build Check - Before", False, "Should be first build but isn't")
             else:
-                return self.log_test("First Build Check - Before", False, "Should be first build but isn't")
+                return self.log_test("First Build Tracking", False, "Player not found")
                 
         except Exception as e:
             return self.log_test("First Build Tracking", False, str(e))
