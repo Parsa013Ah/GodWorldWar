@@ -47,7 +47,7 @@ class DragonRPBot:
         """Handle /start command"""
         user_id = update.effective_user.id
         username = update.effective_user.username or update.effective_user.first_name
-        
+
         # Log user info for admin setup
         logger.info(f"User started bot - ID: {user_id}, Username: {username}")
 
@@ -417,15 +417,15 @@ class DragonRPBot:
 
         keyboard = self.keyboards.weapons_menu_keyboard()
         await query.edit_message_text(menu_text, reply_markup=keyboard)
-    
+
     async def show_weapon_category(self, query, context):
         """Show weapons in specific category"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
         resources = self.db.get_player_resources(user_id)
-        
+
         category = query.data.replace("weapon_cat_", "")
-        
+
         category_names = {
             'basic': 'سلاح‌های پایه',
             'defense': 'سیستم‌های دفاعی',
@@ -434,7 +434,7 @@ class DragonRPBot:
             'special_missiles': 'موشک‌های مخصوص',
             'advanced_jets': 'جت‌های پیشرفته'
         }
-        
+
         menu_text = f"""🔫 {category_names.get(category, 'سلاح‌ها')} - {player['country_name']}
 
 💰 پول: ${player['money']:,}
@@ -768,7 +768,7 @@ class DragonRPBot:
         """Handle convoy interception actions"""
         user_id = query.from_user.id
         action_data = query.data.replace("convoy_", "")
-        
+
         if action_data.startswith("stop_"):
             convoy_id = int(action_data.replace("stop_", ""))
             result = self.convoy.attempt_convoy_interception(user_id, convoy_id, "stop")
@@ -778,37 +778,37 @@ class DragonRPBot:
         else:
             await query.edit_message_text("❌ دستور نامعتبر!")
             return
-        
+
         await query.edit_message_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
-    
+
     async def show_alliance_menu(self, query, context):
         """Show alliance menu"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
         alliance = self.alliance.get_player_alliance(user_id)
-        
+
         if alliance:
             menu_text = f"""🤝 اتحاد - {player['country_name']}
-            
+
 🏛 اتحاد: {alliance['alliance_name']}
 👑 نقش: {alliance['role']}
 
 انتخاب کنید:"""
         else:
             menu_text = f"""🤝 اتحادها - {player['country_name']}
-            
+
 شما عضو هیچ اتحادی نیستید.
 
 انتخاب کنید:"""
-        
+
         keyboard = self.keyboards.alliance_menu_keyboard(alliance is not None)
         await query.edit_message_text(menu_text, reply_markup=keyboard)
-    
+
     async def handle_alliance_action(self, query, context):
         """Handle alliance actions"""
         user_id = query.from_user.id
         action = query.data.replace("alliance_", "")
-        
+
         if action == "create":
             await query.edit_message_text("نام اتحاد جدید را ارسال کنید:")
             context.user_data['awaiting_alliance_name'] = True
@@ -823,14 +823,14 @@ class DragonRPBot:
             await query.edit_message_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
         else:
             await query.edit_message_text("❌ دستور نامعتبر!")
-    
+
     async def show_marketplace_menu(self, query, context):
         """Show marketplace menu"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
-        
+
         menu_text = f"""🛒 فروشگاه - {player['country_name']}
-        
+
 💰 پول شما: ${player['money']:,}
 
 در فروشگاه می‌توانید:
@@ -839,15 +839,15 @@ class DragonRPBot:
 • امنیت بالاتر = احتمال تحویل بیشتر
 
 انتخاب کنید:"""
-        
+
         keyboard = self.keyboards.marketplace_menu_keyboard()
         await query.edit_message_text(menu_text, reply_markup=keyboard)
-    
+
     async def handle_marketplace_action(self, query, context):
         """Handle marketplace actions"""
         user_id = query.from_user.id
         action = query.data.replace("market_", "")
-        
+
         if action == "browse":
             await self.show_market_categories(query, context)
         elif action == "sell":
@@ -859,42 +859,42 @@ class DragonRPBot:
             await self.show_market_listings(query, context, category)
         else:
             await query.edit_message_text("❌ دستور نامعتبر!")
-    
+
     async def show_market_categories(self, query, context):
         """Show market categories for browsing"""
         menu_text = """🛒 دسته‌بندی کالاها
-        
+
 کدام دسته را می‌خواهید مرور کنید؟"""
-        
+
         keyboard = self.keyboards.market_categories_keyboard()
         await query.edit_message_text(menu_text, reply_markup=keyboard)
-    
+
     async def show_market_listings(self, query, context, category):
         """Show market listings for specific category"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
-        
+
         listings = self.marketplace.get_listings_by_category(category)
-        
+
         if not listings:
             await query.edit_message_text(
                 f"""🛒 فروشگاه - {category}
-                
+
 ❌ هیچ کالایی در این دسته یافت نشد!
-                
+
 💡 بعداً دوباره بررسی کنید."""
             )
             return
-        
+
         menu_text = f"""🛒 فروشگاه - {category}
-        
+
 💰 پول شما: ${player['money']:,}
-        
-📦 کالاهای موجود:"""
-        
+
+📦کالاهای موجود:"""
+
         from telegram import InlineKeyboardButton, InlineKeyboardMarkup
         keyboard = []
-        
+
         for listing in listings[:10]:  # Show first 10 listings
             seller_country = listing.get('seller_country', 'نامشخص')
             item_emoji = '📦'
@@ -907,32 +907,32 @@ class DragonRPBot:
                 from config import Config
                 resource_config = Config.RESOURCES.get(listing['item_type'], {})
                 item_emoji = resource_config.get('emoji', '📦')
-            
+
             menu_text += f"""
 {item_emoji} {listing['item_type']} x{listing['quantity']:,}
 💰 ${listing['price_per_unit']:,} per unit (Total: ${listing['total_price']:,})
 🏴 Seller: {seller_country}
 🛡 Security: {listing['security_level']}%"""
-            
+
             button_text = f"{item_emoji} Buy {listing['item_type']} - ${listing['total_price']:,}"
             keyboard.append([InlineKeyboardButton(button_text, callback_data=f"buy_{listing['id']}")])
-        
+
         keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="market_browse")])
         reply_markup = InlineKeyboardMarkup(keyboard)
-        
+
         await query.edit_message_text(menu_text, reply_markup=reply_markup)
-    
+
     async def show_sell_categories(self, query, context):
         """Show selling categories"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
-        
+
         menu_text = f"""💰 فروش کالا - {player['country_name']}
-        
+
 💰 پول شما: ${player['money']:,}
-        
+
 کدام نوع کالا را می‌خواهید بفروشید؟"""
-        
+
         from telegram import InlineKeyboardButton, InlineKeyboardMarkup
         keyboard = [
             [
@@ -943,40 +943,40 @@ class DragonRPBot:
                 InlineKeyboardButton("🔙 بازگشت", callback_data="marketplace")
             ]
         ]
-        
+
         await query.edit_message_text(menu_text, reply_markup=InlineKeyboardMarkup(keyboard))
-    
+
     async def show_my_listings(self, query, context):
         """Show player's marketplace listings"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
-        
+
         listings = self.marketplace.get_player_listings(user_id)
-        
+
         if not listings:
             await query.edit_message_text(
                 f"""📋 آگهی‌های من - {player['country_name']}
-                
+
 ❌ شما هیچ آگهی فروشی ندارید!
-                
+
 💡 از بخش "فروش کالا" آگهی جدید ثبت کنید."""
             )
             return
-        
+
         menu_text = f"""📋 آگهی‌های من - {player['country_name']}
-        
+
 💰 پول شما: ${player['money']:,}
-        
+
 📦 آگهی‌های شما:"""
-        
+
         from telegram import InlineKeyboardButton, InlineKeyboardMarkup
         keyboard = []
-        
+
         for listing in listings:
             status_emoji = {
                 'active': '🟢', 'sold_out': '🔴', 'cancelled': '⚫'
             }.get(listing['status'], '🔘')
-            
+
             item_emoji = '📦'
             if listing['item_category'] == 'weapon':
                 item_emoji = {
@@ -987,22 +987,22 @@ class DragonRPBot:
                 from config import Config
                 resource_config = Config.RESOURCES.get(listing['item_type'], {})
                 item_emoji = resource_config.get('emoji', '📦')
-            
+
             menu_text += f"""
 {status_emoji} {item_emoji} {listing['item_type']} x{listing['quantity']:,}
 💰 ${listing['price_per_unit']:,}/unit (Total: ${listing['total_price']:,})
 🛡 Security: {listing['security_level']}%
 📅 {listing['created_at'][:10]}"""
-            
+
             if listing['status'] == 'active':
                 keyboard.append([InlineKeyboardButton(f"❌ Cancel {listing['item_type']}", callback_data=f"remove_{listing['id']}")])
-        
+
         keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="marketplace")])
         reply_markup = InlineKeyboardMarkup(keyboard)
-        
+
         await query.edit_message_text(menu_text, reply_markup=reply_markup)
 
-    async def show_propose_peace(self, query, context):
+    async def propose_peace(self, query, context):
         """Show propose peace menu"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
@@ -1025,44 +1025,44 @@ class DragonRPBot:
         user_id = query.from_user.id
         all_countries = self.db.get_all_countries()
         other_countries = [c for c in all_countries if c['user_id'] != user_id]
-        
+
         if not other_countries:
             await query.edit_message_text("❌ هیچ بازیکن دیگری برای دعوت یافت نشد!")
             return
-        
+
         menu_text = "👥 دعوت به اتحاد\n\nکدام بازیکن را می‌خواهید دعوت کنید؟\n\n"
-        
+
         for country in other_countries[:10]:  # محدود به 10 کشور
             menu_text += f"🏴 {country['country_name']} - {country['username']}\n"
-        
+
         keyboard = []
         for country in other_countries[:10]:
             keyboard.append([InlineKeyboardButton(
                 f"{country['country_name']}", 
                 callback_data=f"invite_{country['user_id']}"
             )])
-        
+
         keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="alliances")])
-        
+
         await query.edit_message_text(menu_text, reply_markup=InlineKeyboardMarkup(keyboard))
 
     async def show_alliance_members(self, query, context):
         """Show alliance members"""
         user_id = query.from_user.id
         alliance = self.alliance.get_player_alliance(user_id)
-        
+
         if not alliance:
             await query.edit_message_text("❌ شما عضو هیچ اتحادی نیستید!")
             return
-        
+
         members = self.alliance.get_alliance_members(alliance['alliance_id'])
-        
+
         menu_text = f"👥 اعضای اتحاد {alliance['alliance_name']}\n\n"
-        
+
         for member in members:
             role_emoji = "👑" if member['role'] == 'leader' else "⚔️" if member['role'] == 'officer' else "👤"
             menu_text += f"{role_emoji} {member['country_name']} - {member['username']}\n"
-        
+
         keyboard = [[InlineKeyboardButton("🔙 بازگشت", callback_data="alliances")]]
         await query.edit_message_text(menu_text, reply_markup=InlineKeyboardMarkup(keyboard))
 
@@ -1070,13 +1070,13 @@ class DragonRPBot:
         """Show pending alliance invitations"""
         user_id = query.from_user.id
         invitations = self.alliance.get_pending_invitations(user_id)
-        
+
         if not invitations:
             await query.edit_message_text("📋 شما هیچ دعوت‌نامه‌ای ندارید!")
             return
-        
+
         menu_text = "📋 دعوت‌نامه‌های اتحاد\n\n"
-        
+
         keyboard = []
         for inv in invitations:
             menu_text += f"🤝 {inv['alliance_name']} از {inv['inviter_country']}\n"
@@ -1084,20 +1084,20 @@ class DragonRPBot:
                 InlineKeyboardButton(f"✅ پذیرش {inv['alliance_name']}", callback_data=f"accept_inv_{inv['id']}"),
                 InlineKeyboardButton(f"❌ رد", callback_data=f"reject_inv_{inv['id']}")
             ])
-        
+
         keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="alliances")])
         await query.edit_message_text(menu_text, reply_markup=InlineKeyboardMarkup(keyboard))
 
     async def show_market_listings(self, query, context, category):
         """Show market listings for category"""
         listings = self.marketplace.get_listings_by_category(category)
-        
+
         if not listings:
             await query.edit_message_text("❌ در این دسته کالایی برای فروش وجود ندارد!")
             return
-        
+
         menu_text = f"🛒 کالاهای {category}\n\n"
-        
+
         keyboard = []
         for listing in listings[:10]:
             price_text = f"${listing['price']:,}"
@@ -1106,14 +1106,14 @@ class DragonRPBot:
                 f"خرید {listing['item_name']} - {price_text}", 
                 callback_data=f"buy_{listing['id']}"
             )])
-        
+
         keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="market_browse")])
         await query.edit_message_text(menu_text, reply_markup=InlineKeyboardMarkup(keyboard))
 
     async def show_sell_categories(self, query, context):
         """Show categories for selling items"""
         menu_text = "💰 فروش کالا\n\nچه چیزی می‌خواهید بفروشید؟"
-        
+
         keyboard = [
             [
                 InlineKeyboardButton("⚔️ تسلیحات", callback_data="sell_cat_weapons"),
@@ -1123,20 +1123,20 @@ class DragonRPBot:
                 InlineKeyboardButton("🔙 بازگشت", callback_data="marketplace")
             ]
         ]
-        
+
         await query.edit_message_text(menu_text, reply_markup=InlineKeyboardMarkup(keyboard))
 
     async def show_my_listings(self, query, context):
         """Show user's market listings"""
         user_id = query.from_user.id
         listings = self.marketplace.get_player_listings(user_id)
-        
+
         if not listings:
             await query.edit_message_text("📋 شما هیچ کالایی برای فروش ندارید!")
             return
-        
+
         menu_text = "📋 آگهی‌های شما\n\n"
-        
+
         keyboard = []
         for listing in listings:
             menu_text += f"{listing['item_name']} - ${listing['price']:,} - {listing['status']}\n"
@@ -1145,7 +1145,7 @@ class DragonRPBot:
                     f"❌ حذف {listing['item_name']}", 
                     callback_data=f"remove_{listing['id']}"
                 )])
-        
+
         keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="marketplace")])
         await query.edit_message_text(menu_text, reply_markup=InlineKeyboardMarkup(keyboard))
 
@@ -1153,7 +1153,7 @@ class DragonRPBot:
         """Handle alliance invitation"""
         user_id = query.from_user.id
         invitee_id = int(query.data.replace("invite_", ""))
-        
+
         result = self.alliance.invite_to_alliance(user_id, invitee_id)
         await query.edit_message_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
 
@@ -1161,7 +1161,7 @@ class DragonRPBot:
         """Handle alliance invitation response"""
         user_id = query.from_user.id
         invitation_id = int(query.data.replace(f"{response}_inv_", ""))
-        
+
         result = self.alliance.respond_to_invitation(user_id, invitation_id, response)
         await query.edit_message_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
 
@@ -1169,31 +1169,31 @@ class DragonRPBot:
         """Handle marketplace purchase"""
         user_id = query.from_user.id
         listing_id = int(query.data.replace("buy_", ""))
-        
+
         result = self.marketplace.purchase_item(user_id, listing_id, 1)
-        
+
         if result['success']:
             # Send convoy news if applicable
             await self.news.send_marketplace_purchase(result)
-        
+
         await query.edit_message_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
 
     async def handle_sell_category(self, query, context):
         """Handle sell category selection"""
         user_id = query.from_user.id
         category = query.data.replace("sell_cat_", "")
-        
+
         # Show player's items for selling in this category
         player = self.db.get_player(user_id)
-        
+
         if category == "resources":
             resources = self.db.get_player_resources(user_id)
             items_text = f"""📊 فروش منابع - {player['country_name']}
-            
+
 💰 پول شما: ${player['money']:,}
 
 منابع قابل فروش:"""
-            
+
             sellable_resources = []
             for resource, amount in resources.items():
                 if resource != 'user_id' and amount >= 100:
@@ -1202,21 +1202,21 @@ class DragonRPBot:
                     resource_name = resource_config.get('name', resource)
                     resource_emoji = resource_config.get('emoji', '📦')
                     sellable_resources.append(f"{resource_emoji} {resource_name}: {amount:,}")
-            
+
             if sellable_resources:
                 items_text += "\n" + "\n".join(sellable_resources)
                 items_text += "\n\n💡 برای فروش، ابتدا مقدار و قیمت را تعیین کنید"
             else:
                 items_text += "\n❌ منابع کافی برای فروش ندارید!"
-                
+
         elif category == "weapons":
             weapons = self.db.get_player_weapons(user_id)
             items_text = f"""⚔️ فروش تسلیحات - {player['country_name']}
-            
+
 💰 پول شما: ${player['money']:,}
 
 تسلیحات قابل فروش:"""
-            
+
             sellable_weapons = []
             for weapon, amount in weapons.items():
                 if weapon != 'user_id' and amount >= 1:
@@ -1225,20 +1225,20 @@ class DragonRPBot:
                         'drone': '🚁', 'missile': '🚀', 'warship': '🚢'
                     }.get(weapon, '⚔️')
                     sellable_weapons.append(f"{weapon_emoji} {weapon}: {amount:,}")
-            
+
             if sellable_weapons:
                 items_text += "\n" + "\n".join(sellable_weapons)
                 items_text += "\n\n💡 برای فروش، ابتدا مقدار و قیمت را تعیین کنید"
             else:
                 items_text += "\n❌ تسلیحات کافی برای فروش ندارید!"
-        
+
         await query.edit_message_text(items_text)
 
     async def handle_remove_listing(self, query, context):
         """Handle removing marketplace listing"""
         user_id = query.from_user.id
         listing_id = int(query.data.replace("remove_", ""))
-        
+
         result = self.marketplace.cancel_listing(user_id, listing_id)
         await query.edit_message_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
 
@@ -1341,12 +1341,15 @@ class DragonRPBot:
         if not self.admin.is_admin(user_id):
             await query.edit_message_text("❌ شما مجاز به این کار نیستید!")
             return
-        
+
         category = query.data.replace("admin_give_cat_", "")
-        
+
         if category == "money":
-            menu_text = "💰 هدیه پول به کشور\n\n❌ این بخش هنوز پیاده‌سازی نشده!"
-            keyboard = self.keyboards.admin_give_items_keyboard()
+            menu_text = """💰 هدیه پول به کشور
+
+انتخاب کنید که چه مقداری پول هدیه دهید:
+(پول به تمام کشورها اضافه می‌شود)"""
+            keyboard = self.keyboards.admin_give_money_keyboard()
         elif category == "resources":
             menu_text = """📦 هدیه منابع به کشور
 
@@ -1373,187 +1376,67 @@ class DragonRPBot:
             keyboard = self.keyboards.admin_give_items_keyboard()
 
         await query.edit_message_text(menu_text, reply_markup=keyboard)
-    
+
     async def handle_admin_give_item(self, query, context):
         """Handle admin giving items"""
         user_id = query.from_user.id
         if not self.admin.is_admin(user_id):
             await query.edit_message_text("❌ شما مجاز به این کار نیستید!")
             return
-        
+
         # Parse the callback data
         data_parts = query.data.split("_")
         if len(data_parts) < 4:
             await query.edit_message_text("❌ فرمت نامعتبر!")
             return
-        
-        item_type = data_parts[2]  # e.g., "iron", "rifle", etc.
-        try:
-            amount = int(data_parts[3])
-        except ValueError:
-            await query.edit_message_text("❌ مقدار نامعتبر!")
-            return
-        
-        # Get all players
-        players = self.db.get_all_players()
-        if not players:
-            await query.edit_message_text("❌ هیچ بازیکنی وجود ندارد!")
-            return
-        
-        # Give to all players
-        success_count = 0
-        error_count = 0
-        
-        for player in players:
-            try:
-                result = None
-                
-                # Check if it's a resource
-                if item_type in ['iron', 'copper', 'oil', 'aluminum', 'gold', 'uranium', 'lithium', 'coal', 'nitro', 'sulfur', 'titanium']:
-                    self.db.add_resources(player['user_id'], item_type, amount)
-                    success_count += 1
-                    
-                # Check if it's a weapon
-                elif item_type in ['rifle', 'tank', 'fighter', 'jet', 'drone', 'simple', 'bomb', 'nuclear', 'ballistic', 'missile', 'f22']:
-                    weapon_map = {
-                        'rifle': 'rifle',
-                        'tank': 'tank', 
-                        'fighter': 'fighter_jet',
-                        'jet': 'fighter_jet',
-                        'drone': 'drone',
-                        'simple': 'simple_bomb',
-                        'bomb': 'simple_bomb',
-                        'nuclear': 'nuclear_bomb',
-                        'ballistic': 'ballistic_missile',
-                        'missile': 'simple_missile',
-                        'f22': 'f22'
-                    }
-                    weapon_name = weapon_map.get(item_type, item_type)
-                    self.db.add_weapon(player['user_id'], weapon_name, amount)
-                    success_count += 1
-                    
-                else:
-                    logger.error(f"Unknown item type: {item_type}")
-                    error_count += 1
-                    continue
-                    
-            except Exception as e:
-                logger.error(f"Error giving {item_type} to {player['country_name']}: {e}")
-                error_count += 1
-        
-        # Create result message
-        if success_count > 0:
-            result_text = f"✅ آیتم با موفقیت به {success_count} کشور هدیه داده شد!\n\n"
-            result_text += f"📦 آیتم: {item_type}\n"
-            result_text += f"🔢 مقدار: {amount:,}"
-            
-            if error_count > 0:
-                result_text += f"\n\n⚠️ {error_count} خطا رخ داد"
-        else:
-            result_text = f"❌ خطا در هدیه دادن آیتم!\n\n"
-            result_text += f"📦 آیتم: {item_type}\n"
-            result_text += f"🔢 مقدار: {amount:,}\n"
-            result_text += f"❌ تعداد خطاها: {error_count}"
-        
-        await query.edit_message_text(
-            result_text,
-            reply_markup=self.keyboards.admin_give_items_keyboard()
-        )
 
-    async def post_init(self, application):
-        """Post initialization hook"""
-        await self.start_scheduler()
-    
-    async def show_admin_give_items(self, query, context):
-        """Show admin give items menu"""
-        user_id = query.from_user.id
-        if not self.admin.is_admin(user_id):
-            await query.edit_message_text("❌ شما مجاز به این کار نیستید!")
-            return
-        
-        menu_text = """🎁 پنل هدیه دادن آیتم‌ها
-
-انتخاب کنید که چه نوع آیتمی به کشورها هدیه دهید:
-
-💰 پول - افزایش بودجه کشور
-📦 منابع - مواد اولیه و منابع طبیعی  
-⚔️ سلاح‌ها - تجهیزات نظامی
-🏗 ساختمان‌ها - زیرساخت‌های تولیدی
-👥 جمعیت - افزایش نیروی کار
-🪖 سرباز - نیروی نظامی
-
-انتخاب کنید:"""
-
-        keyboard = self.keyboards.admin_give_items_keyboard()
-        await query.edit_message_text(menu_text, reply_markup=keyboard)
-    
-    async def show_admin_give_category(self, query, context):
-        """Show admin give category"""
-        user_id = query.from_user.id
-        if not self.admin.is_admin(user_id):
-            await query.edit_message_text("❌ شما مجاز به این کار نیستید!")
-            return
-        
-        category = query.data.replace("admin_give_cat_", "")
-        
-        if category == "money":
-            menu_text = "💰 هدیه پول به کشور\n\n❌ این بخش هنوز پیاده‌سازی نشده!"
-            keyboard = self.keyboards.admin_give_items_keyboard()
-        elif category == "resources":
-            menu_text = """📦 هدیه منابع به کشور
-
-انتخاب کنید که چه مقدار از کدام منبع هدیه دهید:
-(آیتم‌ها به تمام کشورها اضافه می‌شود)"""
-            keyboard = self.keyboards.admin_give_resources_keyboard()
-        elif category == "weapons":
-            menu_text = """⚔️ هدیه سلاح‌ها به کشور
-
-انتخاب کنید که چه مقدار از کدام سلاح هدیه دهید:
-(آیتم‌ها به تمام کشورها اضافه می‌شود)"""
-            keyboard = self.keyboards.admin_give_weapons_keyboard()
-        elif category == "buildings":
-            menu_text = "🏗 هدیه ساختمان به کشور\n\n❌ این بخش هنوز پیاده‌سازی نشده!"
-            keyboard = self.keyboards.admin_give_items_keyboard()
-        elif category == "population":
-            menu_text = "👥 هدیه جمعیت به کشور\n\n❌ این بخش هنوز پیاده‌سازی نشده!"
-            keyboard = self.keyboards.admin_give_items_keyboard()
-        elif category == "soldiers":
-            menu_text = "🪖 هدیه سرباز به کشور\n\n❌ این بخش هنوز پیاده‌سازی نشده!"
-            keyboard = self.keyboards.admin_give_items_keyboard()
-        else:
-            menu_text = "❌ دسته نامعتبر!"
-            keyboard = self.keyboards.admin_give_items_keyboard()
-
-        await query.edit_message_text(menu_text, reply_markup=keyboard)
-    
-    async def handle_admin_give_item(self, query, context):
-        """Handle admin giving items"""
-        user_id = query.from_user.id
-        if not self.admin.is_admin(user_id):
-            await query.edit_message_text("❌ شما مجاز به این کار نیستید!")
-            return
-        
-        # Parse the callback data
-        data_parts = query.data.split("_")
-        if len(data_parts) < 4:
-            await query.edit_message_text("❌ فرمت نامعتبر!")
-            return
-        
         item_type = data_parts[2]  # e.g., "iron", "rifle", etc.
         amount = int(data_parts[3])
         
-        # Get all players
+        # Handle money gifting
+        if item_type == "money":
+            players = self.db.get_all_players()
+            if not players:
+                await query.edit_message_text("❌ هیچ بازیکنی وجود ندارد!")
+                return
+            
+            success_count = 0
+            for player in players:
+                try:
+                    result = self.admin.give_money_to_player(player['user_id'], amount)
+                    if result['success']:
+                        success_count += 1
+                except Exception as e:
+                    logger.error(f"Error giving money to {player['country_name']}: {e}")
+
+            await query.edit_message_text(
+                f"✅ پول با موفقیت به {success_count} کشور هدیه داده شد!\n\n"
+                f"💰 مقدار: {amount:,}",
+                reply_markup=self.keyboards.admin_give_items_keyboard()
+            )
+            return
+
+
+        # Give to all players for resources and weapons
         players = self.db.get_all_players()
         if not players:
             await query.edit_message_text("❌ هیچ بازیکنی وجود ندارد!")
             return
-        
-        # Give to all players
+
         success_count = 0
+        error_count = 0
+
         for player in players:
             try:
+                result = None
+
+                # Check if it's a resource
                 if item_type in ['iron', 'copper', 'oil', 'aluminum', 'gold', 'uranium', 'lithium', 'coal', 'nitro', 'sulfur', 'titanium']:
                     result = self.admin.give_resources_to_player(player['user_id'], item_type, amount)
+                    if result['success']:
+                        success_count += 1
+
+                # Check if it's a weapon
                 elif item_type in ['rifle', 'tank', 'fighter', 'jet', 'drone', 'simple', 'bomb', 'nuclear', 'ballistic', 'missile', 'f22']:
                     weapon_map = {
                         'rifle': 'تفنگ',
@@ -1570,16 +1453,34 @@ class DragonRPBot:
                     }
                     weapon_name = weapon_map.get(item_type, item_type)
                     result = self.admin.give_weapons_to_player(player['user_id'], weapon_name, amount)
-                
-                if result['success']:
-                    success_count += 1
+                    if result['success']:
+                        success_count += 1
+
+                else:
+                    logger.error(f"Unknown item type: {item_type}")
+                    error_count += 1
+                    continue
+
             except Exception as e:
                 logger.error(f"Error giving {item_type} to {player['country_name']}: {e}")
-        
+                error_count += 1
+
+        # Create result message
+        if success_count > 0:
+            result_text = f"✅ آیتم با موفقیت به {success_count} کشور هدیه داده شد!\n\n"
+            result_text += f"📦 آیتم: {item_type}\n"
+            result_text += f"🔢 مقدار: {amount:,}"
+
+            if error_count > 0:
+                result_text += f"\n\n⚠️ {error_count} خطا رخ داد"
+        else:
+            result_text = f"❌ خطا در هدیه دادن آیتم!\n\n"
+            result_text += f"📦 آیتم: {item_type}\n"
+            result_text += f"🔢 مقدار: {amount:,}\n"
+            result_text += f"❌ تعداد خطاها: {error_count}"
+
         await query.edit_message_text(
-            f"✅ آیتم با موفقیت به {success_count} کشور هدیه داده شد!\n\n"
-            f"📦 آیتم: {item_type}\n"
-            f"🔢 مقدار: {amount:,}",
+            result_text,
             reply_markup=self.keyboards.admin_give_items_keyboard()
         )
 

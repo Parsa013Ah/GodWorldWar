@@ -324,6 +324,21 @@ class AdminPanel:
             'message': f"{amount:,} {weapon_name} به {player['country_name']} اضافه شد"
         }
     
+    def give_money_to_player(self, user_id, amount):
+        """Give money to a player"""
+        player = self.db.get_player(user_id)
+        if not player:
+            return {'success': False, 'message': 'بازیکن یافت نشد'}
+        
+        # Add money
+        new_money = player['money'] + amount
+        self.db.update_player_money(user_id, new_money)
+        
+        return {
+            'success': True,
+            'message': f"${amount:,} به {player['country_name']} اضافه شد"
+        }
+    
     def give_population_to_player(self, user_id, amount):
         """Give population to a player"""
         player = self.db.get_player(user_id)

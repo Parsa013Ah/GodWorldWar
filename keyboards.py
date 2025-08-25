@@ -138,11 +138,11 @@ class Keyboards:
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
-    
+
     def weapon_category_keyboard(self, category):
         """Create keyboard for specific weapon category"""
         keyboard = []
-        
+
         if category == "basic":
             keyboard = [
                 [
@@ -220,7 +220,7 @@ class Keyboards:
                     InlineKeyboardButton("✈️ Su-35S", callback_data="produce_su35s")
                 ]
             ]
-        
+
         keyboard.append([InlineKeyboardButton("🔙 منوی تسلیحات", callback_data="weapon_production")])
         return InlineKeyboardMarkup(keyboard)
 
@@ -385,7 +385,7 @@ class Keyboards:
             )
             keyboard.append([button])
 
-        keyboard.append([InlineKeyboardButton("🔙 پنل ادمین", callback_data="admin_panel")])
+        keyboard.append([InlineKeyboardButton("🔙 پنل ادمین", callback_data="admin_players")])
         return InlineKeyboardMarkup(keyboard)
 
     def admin_player_actions_keyboard(self, user_id):
@@ -404,7 +404,7 @@ class Keyboards:
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
-    
+
     def admin_give_items_keyboard(self):
         """Create admin give items category keyboard"""
         keyboard = [
@@ -425,7 +425,7 @@ class Keyboards:
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
-    
+
     def admin_give_resources_keyboard(self):
         """Create keyboard for giving resources"""
         keyboard = [
@@ -457,34 +457,74 @@ class Keyboards:
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
-    
+
     def admin_give_weapons_keyboard(self):
-        """Create keyboard for giving weapons"""
-        keyboard = [
-            [
-                InlineKeyboardButton("🔫 تفنگ (10)", callback_data="admin_give_rifle_10"),
-                InlineKeyboardButton("🚗 تانک (5)", callback_data="admin_give_tank_5")
-            ],
-            [
-                InlineKeyboardButton("✈️ جنگنده (3)", callback_data="admin_give_fighter_jet_3"),
-                InlineKeyboardButton("🚁 پهپاد (3)", callback_data="admin_give_drone_3")
-            ],
-            [
-                InlineKeyboardButton("💣 بمب ساده (5)", callback_data="admin_give_simple_bomb_5"),
-                InlineKeyboardButton("☢️ بمب هسته‌ای (1)", callback_data="admin_give_nuclear_bomb_1")
-            ],
-            [
-                InlineKeyboardButton("🚀 موشک ساده (3)", callback_data="admin_give_simple_missile_3"),
-                InlineKeyboardButton("🚀 موشک بالستیک (2)", callback_data="admin_give_ballistic_missile_2")
-            ],
-            [
-                InlineKeyboardButton("☢️ موشک هسته‌ای (1)", callback_data="admin_give_nuclear_missile_1"),
-                InlineKeyboardButton("✈️ F-22 (1)", callback_data="admin_give_f22_1")
-            ],
-            [
-                InlineKeyboardButton("🔙 انتخاب دسته", callback_data="admin_give_items")
-            ]
-        ]
+        """Create keyboard for admin weapon gifting"""
+        keyboard = []
+
+        # Basic weapons
+        keyboard.append([
+            InlineKeyboardButton("🔫 1000 تفنگ", callback_data="admin_give_rifle_1000"),
+            InlineKeyboardButton("🔫 5000 تفنگ", callback_data="admin_give_rifle_5000")
+        ])
+
+        keyboard.append([
+            InlineKeyboardButton("🚗 100 تانک", callback_data="admin_give_tank_100"),
+            InlineKeyboardButton("🚗 500 تانک", callback_data="admin_give_tank_500")
+        ])
+
+        # Aircraft
+        keyboard.append([
+            InlineKeyboardButton("✈️ 50 جنگنده", callback_data="admin_give_fighter_50"),
+            InlineKeyboardButton("🚁 100 پهپاد", callback_data="admin_give_drone_100")
+        ])
+
+        # Advanced weapons
+        keyboard.append([
+            InlineKeyboardButton("🚀 10 موشک", callback_data="admin_give_missile_10"),
+            InlineKeyboardButton("💣 5 بمب هسته‌ای", callback_data="admin_give_nuclear_5")
+        ])
+
+        # Special jets
+        keyboard.append([
+            InlineKeyboardButton("✈️ 1 F-22", callback_data="admin_give_f22_1"),
+            InlineKeyboardButton("🚀 5 موشک بالستیک", callback_data="admin_give_ballistic_5")
+        ])
+
+        keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="admin_give_items")])
+
+        return InlineKeyboardMarkup(keyboard)
+
+    def admin_give_money_keyboard(self):
+        """Create keyboard for admin money gifting"""
+        keyboard = []
+
+        # Small amounts
+        keyboard.append([
+            InlineKeyboardButton("💰 $10,000", callback_data="admin_give_money_10000"),
+            InlineKeyboardButton("💰 $50,000", callback_data="admin_give_money_50000")
+        ])
+
+        # Medium amounts  
+        keyboard.append([
+            InlineKeyboardButton("💰 $100,000", callback_data="admin_give_money_100000"),
+            InlineKeyboardButton("💰 $500,000", callback_data="admin_give_money_500000")
+        ])
+
+        # Large amounts
+        keyboard.append([
+            InlineKeyboardButton("💰 $1,000,000", callback_data="admin_give_money_1000000"),
+            InlineKeyboardButton("💰 $5,000,000", callback_data="admin_give_money_5000000")
+        ])
+
+        # Very large amounts
+        keyboard.append([
+            InlineKeyboardButton("💰 $10,000,000", callback_data="admin_give_money_10000000"),
+            InlineKeyboardButton("💰 $100,000,000", callback_data="admin_give_money_100000000")
+        ])
+
+        keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="admin_give_items")])
+
         return InlineKeyboardMarkup(keyboard)
 
     def convoy_action_keyboard(self, convoy_id):
