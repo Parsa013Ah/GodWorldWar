@@ -73,25 +73,33 @@ class Config:
 
     # Weapons configuration
     WEAPONS = {
-        # Basic weapons
-        'rifle': {'name': 'تفنگ', 'cost': 1000, 'power': 1, 'range': 50, 'resources': {'iron': 1}, 'category': 'basic'},
-        'tank': {'name': 'تانک', 'cost': 10000, 'power': 50, 'range': 300, 'resources': {'iron': 10, 'fuel': 5}, 'category': 'basic'},
-        'fighter_jet': {'name': 'جنگنده', 'cost': 25000, 'power': 100, 'range': 1000, 'resources': {'aluminum': 20, 'fuel': 10}, 'category': 'basic'},
-        'drone': {'name': 'پهپاد', 'cost': 20000, 'power': 80, 'range': 1500, 'resources': {'lithium': 15, 'fuel': 8}, 'category': 'basic'},
-        'warship': {'name': 'کشتی جنگی', 'cost': 40000, 'power': 120, 'range': 1000, 'resources': {'iron': 30, 'fuel': 15}, 'category': 'basic'},
-        'air_defense': {'name': 'پدافند هوایی', 'cost': 30000, 'power': 60, 'defense_type': 'air', 'resources': {'copper': 15, 'iron': 10}, 'category': 'defense'},
-        'missile_shield': {'name': 'سپر موشکی', 'cost': 35000, 'power': 80, 'defense_type': 'missile', 'resources': {'uranium': 3, 'iron': 20}, 'category': 'defense'},
-        'cyber_shield': {'name': 'سپر سایبری', 'cost': 20000, 'power': 40, 'defense_type': 'cyber', 'resources': {'lithium': 10, 'copper': 8}, 'category': 'defense'},
-        
+        # Basic military equipment
+        'rifle': {'name': 'تفنگ', 'cost': 1500, 'power': 5, 'range': 300, 'resources': {'iron': 5, 'copper': 2}, 'category': 'basic'},
+        'tank': {'name': 'تانک', 'cost': 850000, 'power': 1200, 'range': 500, 'resources': {'iron': 50, 'copper': 15, 'aluminum': 10}, 'category': 'ground'},
+        'fighter': {'name': 'جنگنده', 'cost': 2800000, 'power': 2400, 'range': 1500, 'resources': {'aluminum': 30, 'iron': 20, 'copper': 10}, 'category': 'air'},
+        'jet': {'name': 'جت جنگی', 'cost': 4500000, 'power': 3200, 'range': 2000, 'resources': {'aluminum': 40, 'iron': 25, 'copper': 15, 'titanium': 5}, 'category': 'air'},
+        'drone': {'name': 'پهپاد نظامی', 'cost': 180000, 'power': 800, 'range': 1000, 'resources': {'aluminum': 10, 'copper': 8, 'lithium': 5}, 'category': 'air'},
+
+        # Naval weapons
+        'warship': {'name': 'ناو جنگی', 'cost': 2500000, 'power': 3500, 'range': 1500, 'resources': {'iron': 100, 'aluminum': 50, 'copper': 30}, 'category': 'naval'},
+        'submarine': {'name': 'زیردریایی', 'cost': 4200000, 'power': 4800, 'range': 2000, 'resources': {'iron': 80, 'aluminum': 40, 'uranium': 5}, 'category': 'naval'},
+        'destroyer': {'name': 'ناوشکن', 'cost': 3800000, 'power': 5200, 'range': 1800, 'resources': {'iron': 90, 'aluminum': 45, 'copper': 25, 'titanium': 3}, 'category': 'naval'},
+        'aircraft_carrier': {'name': 'ناو هواپیمابر', 'cost': 12500000, 'power': 15000, 'range': 2500, 'resources': {'iron': 200, 'aluminum': 100, 'titanium': 20, 'uranium': 10}, 'category': 'naval'},
+
+        # Defense systems
+        'air_defense': {'name': 'پدافند هوایی', 'cost': 1800000, 'power': 3200, 'defense_type': 'air', 'resources': {'iron': 40, 'aluminum': 25, 'copper': 15}, 'category': 'defense'},
+        'missile_shield': {'name': 'سپر موشکی', 'cost': 2850000, 'power': 4500, 'defense_type': 'missile', 'resources': {'uranium': 3, 'iron': 20}, 'category': 'defense'},
+        'cyber_shield': {'name': 'سپر سایبری', 'cost': 1200000, 'power': 2800, 'defense_type': 'cyber', 'resources': {'lithium': 10, 'copper': 8}, 'category': 'defense'},
+
         # Bombs
         'simple_bomb': {'name': 'بمب ساده', 'cost': 2000, 'power': 60, 'range': 0, 'resources': {'nitro': 10, 'copper': 10, 'iron': 20, 'sulfur': 20}, 'category': 'bombs'},
         'nuclear_bomb': {'name': 'بمب هسته‌ای ساده', 'cost': 60000, 'power': 2000, 'range': 0, 'resources': {'iron': 30, 'uranium': 6, 'sulfur': 36}, 'category': 'bombs'},
-        
+
         # Basic missiles
         'simple_missile': {'name': 'موشک ساده', 'cost': 3000, 'power': 60, 'range': 500, 'resources': {'nitro': 10, 'copper': 10, 'iron': 20, 'sulfur': 20, 'coal': 10}, 'category': 'missiles'},
         'ballistic_missile': {'name': 'موشک بالستیک ساده', 'cost': 9000, 'power': 80, 'range': 2000, 'resources': {'nitro': 15, 'copper': 15, 'iron': 40, 'sulfur': 40, 'coal': 20}, 'category': 'missiles'},
         'nuclear_missile': {'name': 'موشک هسته‌ای ساده', 'cost': 9000, 'power': 2000, 'range': 2000, 'resources': {'nuclear_bomb': 1, 'ballistic_missile': 1, 'iron': 30, 'sulfur': 30}, 'category': 'missiles'},
-        
+
         # Special missiles
         'trident2_conventional': {'name': 'Trident 2 غیر هسته‌ای', 'cost': 0, 'power': 1000, 'range': 5000, 'resources': {'simple_bomb': 12, 'ballistic_missile': 1, 'coal': 140}, 'category': 'special_missiles'},
         'trident2_nuclear': {'name': 'Trident 2 هسته‌ای', 'cost': 190000, 'power': 30000, 'range': 5000, 'resources': {'nuclear_bomb': 12, 'ballistic_missile': 1, 'coal': 140}, 'category': 'special_missiles'},
@@ -101,7 +109,7 @@ class Config:
         'tomahawk_conventional': {'name': 'Tomahawk غیر هسته‌ای', 'cost': 12000, 'power': 700, 'range': 1500, 'resources': {'ballistic_missile': 1, 'simple_bomb': 1, 'iron': 10, 'sulfur': 120}, 'category': 'special_missiles'},
         'tomahawk_nuclear': {'name': 'Tomahawk هسته‌ای', 'cost': 18000, 'power': 3000, 'range': 1500, 'resources': {'nuclear_bomb': 1, 'ballistic_missile': 1, 'iron': 30, 'coal': 20}, 'category': 'special_missiles'},
         'kalibr_conventional': {'name': 'Kalibr غیر هسته‌ای', 'cost': 12000, 'power': 650, 'range': 1500, 'resources': {'ballistic_missile': 1, 'simple_bomb': 1, 'iron': 10, 'sulfur': 30}, 'category': 'special_missiles'},
-        
+
         # Advanced fighter jets
         'f22': {'name': 'F-22', 'cost': 20000, 'power': 980, 'range': 3000, 'resources': {'titanium': 9, 'iron': 15, 'aluminum': 30, 'copper': 9, 'gold': 3}, 'category': 'advanced_jets'},
         'f35': {'name': 'F-35', 'cost': 18000, 'power': 950, 'range': 2800, 'resources': {'titanium': 9, 'iron': 10, 'aluminum': 21, 'copper': 6, 'gold': 2}, 'category': 'advanced_jets'},
