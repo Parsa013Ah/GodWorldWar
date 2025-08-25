@@ -302,7 +302,7 @@ class Keyboards:
             keyboard = [
                 [
                     InlineKeyboardButton("👥 اعضای اتحاد", callback_data="alliance_members"),
-                    InlineKeyboardButton("📨 دعوت بازیکن", callback_data="alliance_invite")
+                    InlineKeyboardButton("📨 دعوت بازیکن", callback_data="alliance_invite_list") # Changed callback
                 ],
                 [
                     InlineKeyboardButton("📋 دعوت‌نامه‌ها", callback_data="alliance_invitations"),
@@ -783,3 +783,24 @@ class Keyboards:
             'amphibious_assault_ship': '🚢'
         }
         return emoji_map.get(weapon_key, '⚔️')
+
+    def alliance_invite_keyboard(self, all_players=None):
+        """Keyboard for alliance invite options"""
+        keyboard = []
+
+        if all_players:
+            # Show list of countries to invite
+            for player in all_players[:10]:  # Limit to 10 players
+                country_flag = Config.COUNTRY_FLAGS.get(player['country_code'], '🏳')
+                country_name = player['country_name']
+                keyboard.append([
+                    InlineKeyboardButton(
+                        f"{country_flag} {country_name}", 
+                        callback_data=f"alliance_invite_{player['user_id']}"
+                    )
+                ])
+        else:
+            keyboard.append([InlineKeyboardButton("📧 دعوت عضو جدید", callback_data="alliance_invite_list")])
+
+        keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="alliance_menu")])
+        return InlineKeyboardMarkup(keyboard)

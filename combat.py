@@ -129,9 +129,22 @@ class CombatSystem:
         weapons = self.db.get_player_weapons(user_id)
         total_power = 0
 
+        # Only offensive weapons count for attack
         for weapon_type, count in weapons.items():
             if weapon_type in Config.WEAPONS and count > 0:
-                weapon_power = Config.WEAPONS[weapon_type]['power']
+                weapon_info = Config.WEAPONS[weapon_type]
+                
+                # Skip transport and pure defense weapons
+                if weapon_info.get('category') in ['transport', 'defense']:
+                    continue
+                    
+                # Skip specific defensive weapons
+                if weapon_type in ['air_defense', 'missile_shield', 'cyber_shield', 
+                                  's500_defense', 'thaad_defense', 's400_defense',
+                                  'iron_dome', 'slq32_ew', 'phalanx_ciws']:
+                    continue
+                
+                weapon_power = weapon_info['power']
                 total_power += weapon_power * count
 
         return total_power

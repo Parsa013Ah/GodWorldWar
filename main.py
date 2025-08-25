@@ -178,7 +178,7 @@ class DragonRPBot:
             elif data.startswith("market_"):
                 await self.handle_marketplace_action(query, context)
             elif data.startswith("sell_resource_") or data.startswith("sell_weapon_"):
-                await self.handle_marketplace_action(query, context)
+                await self.handle_sell_item_dialog(query, context, data)
             elif data.startswith("invite_"):
                 await self.handle_alliance_invite(query, context)
             elif data.startswith("accept_inv_"):
@@ -201,8 +201,6 @@ class DragonRPBot:
                 await self.show_admin_give_category(query, context)
             elif data.startswith("penalty_money_") or data.startswith("penalty_resources_") or data.startswith("penalty_weapons_"):
                 await self.admin.handle_penalty_action(query, context, data)
-            elif data.startswith("admin_give_all_"):
-                await self.handle_admin_give_item(query, context)
             elif data.startswith("admin_"):
                 await self.admin.handle_admin_action(query, context)
             else:
