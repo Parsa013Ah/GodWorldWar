@@ -111,7 +111,7 @@ class ConvoySystem:
             else:  # steal
                 # Steal convoy resources
                 resources = json.loads(convoy['resources'])
-                self.db.update_convoy_status(convoy_id, 'stolen')
+                self.db.update_convoy_status(convoy['id'], 'stolen')
 
                 # Add resources to interceptor
                 for resource, amount in resources.items():
@@ -332,7 +332,7 @@ class ConvoySystem:
         escort_bonus = 0
         escorter_weapons = self.db.get_player_weapons(escorter_id)
 
-        for weapon, count in escort_weapons.items():
+        for weapon, count in escorter_weapons.items():
             available = escorter_weapons.get(weapon, 0)
             if available >= count:
                 if weapon == 'fighter_jet':

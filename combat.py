@@ -142,7 +142,7 @@ class CombatSystem:
         defense_power = 0
 
         # Defense weapons
-        defense_weapons = ['air_defense', 'missile_shield', 'cyber_shield', 's500_defense', 
+        defense_weapons = ['air_defense', 'missile_shield', 'cyber_shield', 's500_defense',
                           'thaad_defense', 's400_defense', 'iron_dome', 'slq32_ew', 'phalanx_ciws']
 
         for weapon_type in defense_weapons:
