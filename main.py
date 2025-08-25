@@ -1335,6 +1335,10 @@ class DragonRPBot:
         self.scheduler.start()
         logger.info("Scheduler started")
 
+    async def post_init(self, application):
+        """Post initialization callback"""
+        await self.start_scheduler()
+
     async def show_admin_give_category(self, query, context):
         """Show admin give category"""
         user_id = query.from_user.id
