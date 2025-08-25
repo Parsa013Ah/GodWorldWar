@@ -178,21 +178,16 @@ class ConvoySystem:
         if not self.validate_sender_resources(sender_id, resources):
             return {'success': False, 'message': 'منابع کافی برای ارسال ندارید!'}
 
-        # Validate sender has the transport equipment
+        # Check if selected transport is available
         if transport_type != 'none':
             weapons = self.db.get_player_weapons(sender_id)
-            if weapons.get(transport_type, 0) < 1:
-                transport_names = {
-                    'armored_truck': 'کامیون زرهی',
-                    'cargo_helicopter': 'هلیکوپتر باری',
-                    'cargo_plane': 'هواپیمای باری',
-                    'logistics_drone': 'پهپاد لجستیک',
-                    'heavy_transport': 'ترابری سنگین',
-                    'supply_ship': 'کشتی تدارکات',
-                    'stealth_transport': 'ترابری پنهان‌کار'
+            available_count = weapons.get(transport_type, 0)
+            if available_count < 1:
+                return {
+                    'success': False,
+                    'message': f'وسیله حمل‌ونقل {transport_type} در دسترس نیست! شما {available_count} عدد دارید.'
                 }
-                transport_name = transport_names.get(transport_type, transport_type)
-                return {'success': False, 'message': f'شما {transport_name} ندارید!'}
+            # Don't consume the transport vehicle - it can be reused
 
         # Consume resources from sender
         if not self.consume_sender_resources(sender_id, resources):
@@ -202,7 +197,7 @@ class ConvoySystem:
         travel_time = self.calculate_convoy_travel_time_with_transport(sender_id, transport_type)
 
         # Calculate convoy security with transport bonus
-        total_value = sum(amount * Config.RESOURCES.get(res_type, {}).get('market_value', 10) 
+        total_value = sum(amount * Config.RESOURCES.get(res_type, {}).get('market_value', 10)
                          for res_type, amount in resources.items() if res_type != 'money')
         if 'money' in resources:
             total_value += resources['money']
@@ -227,7 +222,7 @@ class ConvoySystem:
             weapons = self.db.get_player_weapons(sender_id)
             if weapons.get(transport_type, 0) < 1:
                 return 30  # Default time if transport not available
-        
+
         transport_times = {
             'none': 30,
             'armored_truck': 25,
@@ -367,7 +362,7 @@ class ConvoySystem:
         """Validate that sender has enough resources"""
         current_resources = self.db.get_player_resources(sender_id)
         player = self.db.get_player(sender_id)
-        
+
         for resource, amount in resources.items():
             if resource == 'money':
                 if player['money'] < amount:
@@ -381,18 +376,18 @@ class ConvoySystem:
         """Remove resources from sender when creating convoy"""
         try:
             player = self.db.get_player(sender_id)
-            
+
             # Handle money separately
             if 'money' in resources:
                 money_amount = resources['money']
                 new_money = player['money'] - money_amount
                 self.db.update_player_money(sender_id, new_money)
-            
+
             # Handle other resources
             other_resources = {k: v for k, v in resources.items() if k != 'money'}
             if other_resources:
                 return self.db.consume_resources(sender_id, other_resources)
-            
+
             return True
         except Exception as e:
             logger.error(f"Error consuming sender resources: {e}")
@@ -402,7 +397,7 @@ class ConvoySystem:
         """Process all convoys that have arrived at their destination"""
         arrived_convoys = self.db.get_arrived_convoys()
         results = []
-        
+
         for convoy in arrived_convoys:
             try:
                 result = self.deliver_convoy(convoy)
@@ -411,7 +406,7 @@ class ConvoySystem:
                 logger.error(f"Error processing convoy {convoy['id']}: {e}")
                 # Mark convoy as failed
                 self.db.update_convoy_status(convoy['id'], 'failed')
-        
+
         return results
 
     def deliver_convoy(self, convoy):
@@ -421,37 +416,37 @@ class ConvoySystem:
         sender_id = convoy['sender_id']
         resources = json.loads(convoy['resources'])
         security_level = convoy['security_level']
-        
+
         # Calculate delivery success chance based on security
         success_chance = min(security_level + 10, 95)
-        
+
         if random.randint(1, 100) <= success_chance:
             # Successful delivery
             try:
                 # Add resources to receiver
                 player = self.db.get_player(receiver_id)
-                
+
                 # Handle money separately
                 if 'money' in resources:
                     money_amount = resources['money']
                     new_money = player['money'] + money_amount
                     self.db.update_player_money(receiver_id, new_money)
-                
+
                 # Handle other resources
                 for resource, amount in resources.items():
                     if resource != 'money':
                         self.db.add_resources(receiver_id, resource, amount)
-                
+
                 # Mark convoy as delivered
                 self.db.update_convoy_status(convoy_id, 'delivered')
-                
+
                 return {
                     'convoy_id': convoy_id,
                     'success': True,
                     'message': 'محموله با موفقیت تحویل شد!',
                     'resources': resources
                 }
-                
+
             except Exception as e:
                 logger.error(f"Error delivering convoy {convoy_id}: {e}")
                 self.db.update_convoy_status(convoy_id, 'failed')

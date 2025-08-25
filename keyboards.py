@@ -227,7 +227,7 @@ class Keyboards:
         elif category == "transport":
             keyboard = [
                 [
-                    InlineKeyboardButton("🚛 کامیون زرهی", callback_data="select_weapon_armored_truck"),
+                    InlineKeyboardButton("🚛کامیون زرهی", callback_data="select_weapon_armored_truck"),
                     InlineKeyboardButton("🚁 هلیکوپتر باری", callback_data="select_weapon_cargo_helicopter")
                 ],
                 [

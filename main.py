@@ -739,6 +739,18 @@ class DragonRPBot:
         attack_type = data_parts[3]
 
         available_weapons = self.db.get_player_weapons(user_id)
+        
+        # Check if player has any weapons
+        has_weapons = any(count > 0 for weapon, count in available_weapons.items() if weapon != 'user_id')
+        
+        if not has_weapons:
+            keyboard = self.keyboards.back_to_military_keyboard()
+            await query.edit_message_text(
+                "❌ شما هیچ تسلیحاتی برای حمله ندارید!\n\n"
+                "ابتدا از بخش تسلیحات، سلاح‌هایی تولید کنید.",
+                reply_markup=keyboard
+            )
+            return
 
         menu_text = f"⚔️ انتخاب تسلیحات برای حمله {attack_type}\n\nتسلیحات خود را انتخاب کنید:"
 
@@ -751,12 +763,24 @@ class DragonRPBot:
         data_parts = query.data.split("_")
         target_id = int(data_parts[2])
         attack_type = data_parts[3]
+        weapon_selection = data_parts[4] if len(data_parts) > 4 else "all"
 
         attacker = self.db.get_player(user_id)
         target = self.db.get_player(target_id)
 
         if not target:
             await query.edit_message_text("❌ کشور هدف یافت نشد!")
+            return
+
+        # Check if attacker has any weapons
+        available_weapons = self.db.get_player_weapons(user_id)
+        has_weapons = any(count > 0 for weapon, count in available_weapons.items() if weapon != 'user_id')
+        
+        if not has_weapons:
+            await query.edit_message_text(
+                "❌ شما هیچ تسلیحاتی برای حمله ندارید!\n\n"
+                "ابتدا از بخش تسلیحات، سلاح‌هایی تولید کنید."
+            )
             return
 
         # Execute attack
