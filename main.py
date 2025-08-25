@@ -149,7 +149,7 @@ class DragonRPBot:
                 await self.handle_remove_listing(query, context)
             elif data.startswith("admin_give_cat_"):
                 await self.show_admin_give_category(query, context)
-            elif data.startswith("admin_give_"):
+            elif data.startswith("admin_give_all_"):
                 await self.handle_admin_give_item(query, context)
             elif data.startswith("admin_"):
                 await self.admin.handle_admin_action(query, context)
@@ -432,27 +432,59 @@ class DragonRPBot:
             'bombs': 'بمب‌ها',
             'missiles': 'موشک‌های ساده',
             'special_missiles': 'موشک‌های مخصوص',
-            'advanced_jets': 'جت‌های پیشرفته'
+            'advanced_jets': 'جت‌های پیشرفته',
+            'naval': 'تسلیحات دریایی'
         }
 
-        menu_text = f"""🔫 {category_names.get(category, 'سلاح‌ها')} - {player['country_name']}
+        category_name = category_names.get(category, category)
+        weapons_in_category = [
+            weapon for weapon, config in Config.WEAPONS.items()
+            if config.get('category') == category
+        ]
 
-💰 پول: ${player['money']:,}
+        menu_text = f"""🔫 {category_name}
 
-📊 منابع کلیدی:
-🔩 آهن: {resources['iron']:,}
-🥉 مس: {resources['copper']:,}
-🔗 آلومینیوم: {resources['aluminum']:,}
-🏆 طلا: {resources['gold']:,}
-☢️ اورانیوم: {resources['uranium']:,}
-🛡 تیتانیوم: {resources['titanium']:,}
-💥 نیتر: {resources['nitro']:,}
-🌫 گوگرد: {resources['sulfur']:,}
-⚫ زغال‌سنگ: {resources['coal']:,}
+💰 پول شما: ${player['money']:,}
 
-انتخاب کنید:"""
+🔧 برای تولید به کارخانه اسلحه نیاز دارید!
 
-        keyboard = self.keyboards.weapon_category_keyboard(category)
+🎯 سلاح‌های موجود:"""
+
+        # Resource name mapping
+        resource_names = {
+            'iron': '🔩 آهن',
+            'copper': '🥉 مس', 
+            'aluminum': '🔗 آلومینیوم',
+            'titanium': '🛡 تیتانیوم',
+            'uranium': '☢️ اورانیوم',
+            'lithium': '🔋 لیتیوم',
+            'coal': '⚫ زغال‌سنگ',
+            'nitro': '💥 نیتر',
+            'sulfur': '🌫 گوگرد',
+            'gold': '🏆 طلا'
+        }
+
+        for weapon in weapons_in_category[:6]:  # نمایش حداکثر 6 سلاح برای فضای بیشتر
+            config = Config.WEAPONS[weapon]
+            materials_text = ""
+
+            # Show required materials
+            if 'resources' in config:
+                materials = []
+                for resource, amount in config['resources'].items():
+                    if resource in resource_names:
+                        materials.append(f"{resource_names[resource]}: {amount:,}")
+                    elif resource in Config.WEAPONS:
+                        # If it's another weapon requirement
+                        weapon_name = Config.WEAPONS[resource]['name']
+                        materials.append(f"🔫 {weapon_name}: {amount}")
+
+                if materials:
+                    materials_text = f"\n   📋 مواد: {' | '.join(materials)}"
+
+            menu_text += f"\n• {config['name']}: ${config['cost']:,}{materials_text}"
+
+        keyboard = self.keyboards.weapon_category_keyboard(category, weapons_in_category)
         await query.edit_message_text(menu_text, reply_markup=keyboard)
 
     async def handle_weapon_production(self, query, context):
@@ -1388,22 +1420,31 @@ class DragonRPBot:
             await query.edit_message_text("❌ شما مجاز به این کار نیستید!")
             return
 
-        # Parse the callback data
+        # Parse data: admin_give_all_to_iron_1000
         data_parts = query.data.split("_")
-        if len(data_parts) < 4:
-            await query.edit_message_text("❌ فرمت نامعتبر!")
+        if len(data_parts) < 5:
+            await query.edit_message_text("❌ فرمت دستور نامعتبر!")
             return
 
-        item_type = data_parts[2]  # e.g., "iron", "rifle", etc.
-        amount = int(data_parts[3])
-        
+        # Skip 'to' part: [admin, give, all, to, iron, 1000]
+        if data_parts[3] != "to":
+            await query.edit_message_text("❌ فرمت دستور نامعتبر!")
+            return
+
+        item_type = data_parts[4]  # e.g., "iron", "rifle", etc.
+        try:
+            amount = int(data_parts[5])
+        except (ValueError, IndexError):
+            await query.edit_message_text("❌ مقدار نامعتبر!")
+            return
+
         # Handle money gifting
         if item_type == "money":
             players = self.db.get_all_players()
             if not players:
                 await query.edit_message_text("❌ هیچ بازیکنی وجود ندارد!")
                 return
-            
+
             success_count = 0
             for player in players:
                 try:
@@ -1443,16 +1484,16 @@ class DragonRPBot:
                 # Check if it's a weapon
                 elif item_type in ['rifle', 'tank', 'fighter', 'jet', 'drone', 'simple', 'bomb', 'nuclear', 'ballistic', 'missile', 'f22']:
                     weapon_map = {
-                        'rifle': 'تفنگ',
-                        'tank': 'تانک', 
-                        'fighter': 'جنگنده',
-                        'jet': 'جنگنده',
-                        'drone': 'پهپاد',
-                        'simple': 'بمب ساده',
-                        'bomb': 'بمب ساده',
-                        'nuclear': 'بمب هسته‌ای ساده',
-                        'ballistic': 'موشک بالستیک ساده',
-                        'missile': 'موشک ساده',
+                        'rifle': 'rifle',
+                        'tank': 'tank', 
+                        'fighter': 'fighter_jet',
+                        'jet': 'fighter_jet',
+                        'drone': 'drone',
+                        'simple': 'bomb',
+                        'bomb': 'bomb',
+                        'nuclear': 'nuclear_bomb',
+                        'ballistic': 'missile',
+                        'missile': 'missile',
                         'f22': 'F-22'
                     }
                     weapon_name = weapon_map.get(item_type, item_type)

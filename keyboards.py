@@ -406,22 +406,46 @@ class Keyboards:
         return InlineKeyboardMarkup(keyboard)
 
     def admin_give_items_keyboard(self):
-        """Create admin give items category keyboard"""
+        """Create admin give items keyboard"""
         keyboard = [
             [
-                InlineKeyboardButton("💰 پول", callback_data="admin_give_cat_money"),
-                InlineKeyboardButton("📦 منابع", callback_data="admin_give_cat_resources")
+                InlineKeyboardButton("💰 پول", callback_data="admin_give_all_to_money_1000000"),
+                InlineKeyboardButton("🔩 آهن", callback_data="admin_give_all_to_iron_50000")
             ],
             [
-                InlineKeyboardButton("⚔️ سلاح‌ها", callback_data="admin_give_cat_weapons"),
-                InlineKeyboardButton("🏗 ساختمان‌ها", callback_data="admin_give_cat_buildings")
+                InlineKeyboardButton("🥉 مس", callback_data="admin_give_all_to_copper_30000"),
+                InlineKeyboardButton("🛢 نفت", callback_data="admin_give_all_to_oil_25000")
             ],
             [
-                InlineKeyboardButton("👥 جمعیت", callback_data="admin_give_cat_population"),
-                InlineKeyboardButton("🪖 سرباز", callback_data="admin_give_cat_soldiers")
+                InlineKeyboardButton("🔗 آلومینیوم", callback_data="admin_give_all_to_aluminum_20000"),
+                InlineKeyboardButton("🏆 طلا", callback_data="admin_give_all_to_gold_10000")
             ],
             [
-                InlineKeyboardButton("🔙 پنل ادمین", callback_data="admin_panel")
+                InlineKeyboardButton("☢️ اورانیوم", callback_data="admin_give_all_to_uranium_5000"),
+                InlineKeyboardButton("🔋 لیتیوم", callback_data="admin_give_all_to_lithium_8000")
+            ],
+            [
+                InlineKeyboardButton("⚫ زغال‌سنگ", callback_data="admin_give_all_to_coal_15000"),
+                InlineKeyboardButton("💥 نیتر", callback_data="admin_give_all_to_nitro_12000")
+            ],
+            [
+                InlineKeyboardButton("🌫 گوگرد", callback_data="admin_give_all_to_sulfur_10000"),
+                InlineKeyboardButton("🛡 تیتانیوم", callback_data="admin_give_all_to_titanium_3000")
+            ],
+            [
+                InlineKeyboardButton("🔫 تفنگ", callback_data="admin_give_all_to_rifle_1000"),
+                InlineKeyboardButton("🚗 تانک", callback_data="admin_give_all_to_tank_50")
+            ],
+            [
+                InlineKeyboardButton("✈️ جنگنده", callback_data="admin_give_all_to_fighter_20"),
+                InlineKeyboardButton("🚁 پهپاد", callback_data="admin_give_all_to_drone_30")
+            ],
+            [
+                InlineKeyboardButton("🚀 جت جنگی", callback_data="admin_give_all_to_jet_15"),
+                InlineKeyboardButton("🚢 ناو جنگی", callback_data="admin_give_all_to_warship_10")
+            ],
+            [
+                InlineKeyboardButton("🔙 بازگشت", callback_data="admin_menu")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
