@@ -1,7 +1,7 @@
 import logging
 import asyncio
 import os
-from telegram import Update, Bot
+from telegram import Update, Bot, InlineKeyboardButton
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -36,18 +36,18 @@ class DragonRPBot:
         self.countries = CountryManager(self.db)
         self.news = NewsChannel()
         self.scheduler = AsyncIOScheduler()
-        
+
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /start command"""
         user_id = update.effective_user.id
         username = update.effective_user.username or update.effective_user.first_name
-        
+
         # Check if user already has a country
         player = self.db.get_player(user_id)
         if player:
             await self.show_main_menu(update, context)
             return
-            
+
         # Show welcome message and country selection
         welcome_text = """🎮 خوش آمدید به جنگ جهانی - DragonRP!
 
@@ -55,22 +55,22 @@ class DragonRPBot:
 هدف: ساختن اقتصاد، تولید منابع، ایجاد ارتش و تسلط بر دیگر کشورها
 
 لطفاً کشور خود را انتخاب کنید:"""
-        
+
         keyboard = self.keyboards.country_selection_keyboard()
         await update.message.reply_text(welcome_text, reply_markup=keyboard)
-    
+
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle all callback queries"""
         query = update.callback_query
-        
+
         try:
             await query.answer()
         except Exception as e:
             logger.warning(f"Failed to answer callback query: {e}")
-        
+
         user_id = query.from_user.id
         data = query.data
-        
+
         try:
             if data.startswith("select_country_"):
                 await self.handle_country_selection(query, context)
@@ -118,22 +118,22 @@ class DragonRPBot:
                 await self.admin.handle_admin_action(query, context)
             else:
                 await query.edit_message_text("❌ دستور نامعتبر است!")
-                
+
         except Exception as e:
             logger.error(f"Error handling callback {data}: {e}")
             await query.edit_message_text("❌ خطایی رخ داد. لطفاً دوباره تلاش کنید.")
-    
+
     async def handle_country_selection(self, query, context):
         """Handle country selection"""
         user_id = query.from_user.id
         username = query.from_user.username or query.from_user.first_name
         country_code = query.data.replace("select_country_", "")
-        
+
         # Check if country is already taken
         if self.db.is_country_taken(country_code):
             await query.edit_message_text("❌ این کشور قبلاً انتخاب شده است. لطفاً کشور دیگری انتخاب کنید.")
             return
-        
+
         # Create new player
         success = self.db.create_player(user_id, username, country_code)
         if success:
@@ -144,35 +144,35 @@ class DragonRPBot:
                 f"پول اولیه: 100,000 دلار\n\n"
                 f"حالا می‌توانید شروع به ساختن اقتصاد خود کنید!"
             )
-            
+
             # Send news to channel
             await self.news.send_player_joined(country_name, username)
-            
+
             # Show main menu
             await asyncio.sleep(2)
             await self.show_main_menu_callback(query, context)
         else:
             await query.edit_message_text("❌ خطایی در ایجاد کشور رخ داد. لطفاً دوباره تلاش کنید.")
-    
+
     async def show_main_menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show main menu after /start"""
         user_id = update.effective_user.id
         player = self.db.get_player(user_id)
-        
+
         if not player:
             await update.message.reply_text("❌ ابتدا باید کشور خود را انتخاب کنید. /start")
             return
-        
+
         stats = self.game_logic.get_player_stats(user_id)
         if not stats:
             await update.message.reply_text("❌ خطا در دریافت اطلاعات بازیکن")
             return
-            
+
         menu_text = f"""🏛 {stats['country_name']} - پنل مدیریت
 
 👥 جمعیت: {stats['population']:,}
 💰 پول: ${stats['money']:,}
-⚔️ سربازان: {stats['soldiers']:,}
+⚔️سربازان: {stats['soldiers']:,}
 
 📊 منابع:
 🔩 آهن: {stats['resources'].get('iron', 0):,}
@@ -187,29 +187,29 @@ class DragonRPBot:
 🥈 نقره: {stats['resources'].get('silver', 0):,}
 
 انتخاب کنید:"""
-        
+
         keyboard = self.keyboards.main_menu_keyboard()
         await update.message.reply_text(menu_text, reply_markup=keyboard)
-    
+
     async def show_main_menu_callback(self, query, context):
         """Show main menu from callback"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
-        
+
         if not player:
             await query.edit_message_text("❌ ابتدا باید کشور خود را انتخاب کنید. /start")
             return
-        
+
         stats = self.game_logic.get_player_stats(user_id)
         if not stats:
             await query.edit_message_text("❌ خطا در دریافت اطلاعات بازیکن")
             return
-            
+
         menu_text = f"""🏛 {stats['country_name']} - پنل مدیریت
 
 👥 جمعیت: {stats['population']:,}
 💰 پول: ${stats['money']:,}
-⚔️ سربازان: {stats['soldiers']:,}
+⚔️سربازان: {stats['soldiers']:,}
 
 📊 منابع:
 🔩 آهن: {stats['resources'].get('iron', 0):,}
@@ -224,18 +224,18 @@ class DragonRPBot:
 🥈 نقره: {stats['resources'].get('silver', 0):,}
 
 انتخاب کنید:"""
-        
+
         keyboard = self.keyboards.main_menu_keyboard()
         await query.edit_message_text(menu_text, reply_markup=keyboard)
-    
+
     async def show_economy_menu(self, query, context):
         """Show economy management menu"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
-        
+
         buildings = self.db.get_player_buildings(user_id)
         income = self.economy.calculate_income(user_id)
-        
+
         menu_text = f"""📈 مدیریت اقتصاد - {player['country_name']}
 
 💰 درآمد هر 6 ساعت: ${income:,}
@@ -258,15 +258,15 @@ class DragonRPBot:
 🌾 مزرعه گندم: {buildings.get('wheat_farm', 0)}
 🪖 پادگان: {buildings.get('military_base', 0)}
 🏘 مسکن: {buildings.get('housing', 0)}"""
-        
+
         keyboard = self.keyboards.economy_menu_keyboard()
         await query.edit_message_text(menu_text, reply_markup=keyboard)
-    
+
     async def show_buildings_menu(self, query, context):
         """Show building construction menu"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
-        
+
         menu_text = f"""🏗 ساخت و ساز - {player['country_name']}
 
 💰 پول شما: ${player['money']:,}
@@ -292,39 +292,39 @@ class DragonRPBot:
 • مزرعه گندم - $50,000
 • پادگان آموزشی - $50,000
 • مسکن (10,000 نفر) - $50,000"""
-        
+
         keyboard = self.keyboards.buildings_menu_keyboard()
         await query.edit_message_text(menu_text, reply_markup=keyboard)
-    
+
     async def handle_building_construction(self, query, context):
         """Handle building construction"""
         user_id = query.from_user.id
         building_type = query.data.replace("build_", "")
-        
+
         result = self.game_logic.build_structure(user_id, building_type)
-        
+
         if result['success']:
             await query.edit_message_text(
                 f"✅ {result['message']}\n\n"
                 f"💰 پول باقی‌مانده: ${result['remaining_money']:,}"
             )
-            
+
             # Send news to channel
             player = self.db.get_player(user_id)
             await self.news.send_building_constructed(player['country_name'], result['building_name'])
         else:
             await query.edit_message_text(f"❌ {result['message']}")
-    
+
     async def show_military_menu(self, query, context):
         """Show military management menu"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
         weapons = self.db.get_player_weapons(user_id)
-        
+
         menu_text = f"""⚔️ مدیریت نظامی - {player['country_name']}
 
 👥 جمعیت: {player['population']:,}
-⚔️ سربازان: {player['soldiers']:,}
+⚔️سربازان: {player['soldiers']:,}
 
 🔫 تسلیحات موجود:
 🔫 تفنگ: {weapons.get('rifle', 0)}
@@ -338,16 +338,16 @@ class DragonRPBot:
 💻 سپر سایبری: {weapons.get('cyber_shield', 0)}
 
 انتخاب کنید:"""
-        
+
         keyboard = self.keyboards.military_menu_keyboard()
         await query.edit_message_text(menu_text, reply_markup=keyboard)
-    
+
     async def show_weapons_menu(self, query, context):
         """Show weapon production menu"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
         resources = self.db.get_player_resources(user_id)
-        
+
         menu_text = f"""🔫 تولید تسلیحات - {player['country_name']}
 
 💰 پول: ${player['money']:,}
@@ -373,113 +373,113 @@ class DragonRPBot:
 • پدافند هوایی - $30,000 + مس + آهن
 • سپر موشکی - $35,000 + اورانیوم + آهن
 • سپر سایبری - $20,000 + لیتیوم + مس"""
-        
+
         keyboard = self.keyboards.weapons_menu_keyboard()
         await query.edit_message_text(menu_text, reply_markup=keyboard)
-    
+
     async def handle_weapon_production(self, query, context):
         """Handle weapon production"""
         user_id = query.from_user.id
         weapon_type = query.data.replace("produce_", "")
-        
+
         result = self.game_logic.produce_weapon(user_id, weapon_type)
-        
+
         if result['success']:
             await query.edit_message_text(
                 f"✅ {result['message']}\n\n"
                 f"💰 پول باقی‌مانده: ${result['remaining_money']:,}"
             )
-            
+
             # Send news to channel
             player = self.db.get_player(user_id)
             await self.news.send_weapon_produced(player['country_name'], result['weapon_name'])
         else:
             await query.edit_message_text(f"❌ {result['message']}")
-    
+
     async def show_diplomacy_menu(self, query, context):
         """Show diplomacy menu"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
-        
+
         all_countries = self.db.get_all_countries()
         menu_text = f"""🤝 دیپلماسی - {player['country_name']}
 
 🌍 کشورهای موجود:
 """
-        
+
         for country in all_countries:
             if country['user_id'] != user_id:
                 menu_text += f"🏴 {country['country_name']} - {country['username']}\n"
-        
+
         menu_text += "\nانتخاب کنید:"
-        
+
         keyboard = self.keyboards.diplomacy_menu_keyboard(user_id)
         await query.edit_message_text(menu_text, reply_markup=keyboard)
-    
+
     async def show_attack_targets(self, query, context):
         """Show available attack targets"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
-        
+
         available_targets = self.combat.get_available_targets(user_id)
-        
+
         if not available_targets:
             await query.edit_message_text(
                 "⚔️ هیچ کشور قابل حمله‌ای یافت نشد!\n\n"
                 "💡 برای حمله به کشورهای دور، به تسلیحات دوربرد نیاز دارید."
             )
             return
-        
+
         menu_text = f"⚔️ انتخاب هدف حمله - {player['country_name']}\n\n"
         menu_text += "کشورهای قابل حمله:\n"
-        
+
         for target in available_targets:
             flag = Config.COUNTRY_FLAGS.get(target['country_code'], '🏳')
             menu_text += f"{flag} {target['country_name']}\n"
-        
+
         menu_text += "\nانتخاب کنید:"
-        
+
         keyboard = self.keyboards.attack_targets_keyboard(available_targets)
         await query.edit_message_text(menu_text, reply_markup=keyboard)
-    
+
     async def handle_attack(self, query, context):
         """Handle attack execution"""
         user_id = query.from_user.id
         target_id = int(query.data.replace("attack_", ""))
-        
+
         attacker = self.db.get_player(user_id)
         target = self.db.get_player(target_id)
-        
+
         if not target:
             await query.edit_message_text("❌ کشور هدف یافت نشد!")
             return
-        
+
         # Execute attack
         result = self.combat.execute_attack(user_id, target_id)
-        
+
         if not result['success'] and 'message' in result:
             await query.edit_message_text(f"❌ {result['message']}")
             return
-        
+
         # Format battle report
         battle_report = self.combat.format_battle_report(result)
-        
+
         await query.edit_message_text(battle_report)
-        
+
         # Send news to channel
         await self.news.send_war_report(result)
-    
+
     async def show_resources_menu(self, query, context):
         """Show resources overview menu"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
         resources = self.db.get_player_resources(user_id)
-        
+
         total_value = 0
         for resource, amount in resources.items():
             if resource != 'user_id' and isinstance(amount, int):
                 total_value += amount * 10
-                
+
         menu_text = f"""📊 منابع - {player['country_name']}
 
 🔩 آهن: {resources.get('iron', 0):,}
@@ -495,23 +495,23 @@ class DragonRPBot:
 ⛽ سوخت: {resources.get('fuel', 0):,}
 
 📊 ارزش کل منابع: ${total_value:,}"""
-        
+
         keyboard = self.keyboards.back_to_main_keyboard()
         await query.edit_message_text(menu_text, reply_markup=keyboard)
-        
+
     async def show_send_resources_menu(self, query, context):
         """Show resource transfer menu"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
         resources = self.db.get_player_resources(user_id)
-        
+
         all_countries = self.db.get_all_countries()
         other_countries = [c for c in all_countries if c['user_id'] != user_id]
-        
+
         if not other_countries:
             await query.edit_message_text("❌ هیچ کشور دیگری برای ارسال منابع یافت نشد!")
             return
-        
+
         menu_text = f"""📬 ارسال منابع - {player['country_name']}
 
 💰 پول شما: ${player['money']:,}
@@ -525,37 +525,37 @@ class DragonRPBot:
 🏆 طلا: {resources.get('gold', 0):,}
 
 کشور مقصد را انتخاب کنید:"""
-        
+
         keyboard = self.keyboards.send_resources_targets_keyboard(other_countries)
         await query.edit_message_text(menu_text, reply_markup=keyboard)
-    
+
     async def handle_official_statement(self, query, context):
         """Handle official statement"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
-        
+
         await query.edit_message_text(
             f"📢 بیانیه رسمی - {player['country_name']}\n\n"
             "لطفاً متن بیانیه خود را ارسال کنید (حداکثر 300 کاراکتر):"
         )
-        
+
         # Store state for message handler
         context.user_data['awaiting_statement'] = True
-    
+
     async def show_income_report(self, query, context):
         """Show detailed income report"""
         user_id = query.from_user.id
         report = self.economy.get_income_report(user_id)
-        
+
         keyboard = self.keyboards.back_to_main_keyboard()
         await query.edit_message_text(report, reply_markup=keyboard)
-    
+
     async def show_defense_status(self, query, context):
         """Show defense status"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
         weapons = self.db.get_player_weapons(user_id)
-        
+
         defense_text = f"""🛡 وضعیت دفاعی - {player['country_name']}
 
 🛡 تسلیحات دفاعی:
@@ -563,26 +563,26 @@ class DragonRPBot:
 🚀 سپر موشکی: {weapons.get('missile_shield', 0)}
 💻 سپر سایبری: {weapons.get('cyber_shield', 0)}
 
-⚔️ سربازان دفاعی: {player['soldiers']:,}
+⚔️سربازان دفاعی: {player['soldiers']:,}
 
 💡 برای بهبود دفاع، تسلیحات دفاعی بیشتری تولید کنید."""
-        
+
         keyboard = self.keyboards.back_to_main_keyboard()
         await query.edit_message_text(defense_text, reply_markup=keyboard)
-    
+
     async def show_military_power(self, query, context):
         """Show military power calculation"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
         weapons = self.db.get_player_weapons(user_id)
-        
+
         total_power = 0
         power_breakdown = f"""📊 قدرت نظامی - {player['country_name']}
 
-⚔️ سربازان: {player['soldiers']:,} × 1 = {player['soldiers']:,}
+⚔️سربازان: {player['soldiers']:,} × 1 = {player['soldiers']:,}
 """
         total_power += player['soldiers']
-        
+
         for weapon_type, count in weapons.items():
             if weapon_type != 'user_id' and count > 0:
                 weapon_config = Config.WEAPONS.get(weapon_type, {})
@@ -591,62 +591,62 @@ class DragonRPBot:
                 weapon_total = count * weapon_power
                 power_breakdown += f"{weapon_name}: {count} × {weapon_power} = {weapon_total:,}\n"
                 total_power += weapon_total
-        
+
         power_breakdown += f"\n🔥 قدرت کل: {total_power:,}"
-        
+
         keyboard = self.keyboards.back_to_main_keyboard()
         await query.edit_message_text(power_breakdown, reply_markup=keyboard)
-    
+
     async def handle_resource_transfer_target(self, query, context):
         """Handle resource transfer target selection"""
         user_id = query.from_user.id
         target_id = int(query.data.replace("send_to_", ""))
-        
+
         player = self.db.get_player(user_id)
         target = self.db.get_player(target_id)
         resources = self.db.get_player_resources(user_id)
-        
+
         menu_text = f"""📬 ارسال منابع به {target['country_name']}
 
 💰 پول شما: ${player['money']:,}
 
 منابع قابل ارسال:
 """
-        
+
         # Show available resources with transfer options
         transfer_options = []
         if player['money'] >= 10000:
             transfer_options.append(('money_10k', '💰 10,000 دلار'))
         if player['money'] >= 50000:
             transfer_options.append(('money_50k', '💰 50,000 دلار'))
-        
+
         for resource, amount in resources.items():
             if resource != 'user_id' and amount >= 1000:
                 resource_config = Config.RESOURCES.get(resource, {})
                 resource_name = resource_config.get('name', resource)
                 resource_emoji = resource_config.get('emoji', '📦')
                 transfer_options.append((f'{resource}_1k', f'{resource_emoji} 1,000 {resource_name}'))
-        
+
         if not transfer_options:
             await query.edit_message_text("❌ منابع کافی برای ارسال ندارید!")
             return
-        
+
         keyboard = self.keyboards.resource_transfer_keyboard(target_id, transfer_options)
         await query.edit_message_text(menu_text, reply_markup=keyboard)
-    
+
     async def handle_resource_transfer(self, query, context):
         """Handle actual resource transfer"""
         user_id = query.from_user.id
         data_parts = query.data.replace("transfer_", "").split("_")
         target_id = int(data_parts[0])
         transfer_type = "_".join(data_parts[1:])
-        
+
         player = self.db.get_player(user_id)
         target = self.db.get_player(target_id)
-        
+
         success = False
         transfer_description = ""
-        
+
         if transfer_type == "money_10k":
             if player['money'] >= 10000:
                 self.db.update_player_money(user_id, player['money'] - 10000)
@@ -669,17 +669,17 @@ class DragonRPBot:
                 resource_name = resource_config.get('name', resource_type)
                 transfer_description = f"1,000 {resource_name}"
                 success = True
-        
+
         if success:
             await query.edit_message_text(
                 f"✅ انتقال موفق!\n\n"
                 f"📤 {transfer_description} به {target['country_name']} ارسال شد."
             )
-            
+
             # Send news to channel
             await self.news.send_resource_transfer(
-                player['country_name'], 
-                target['country_name'], 
+                player['country_name'],
+                target['country_name'],
                 {transfer_type: transfer_description},
                 "فوری"
             )
@@ -690,7 +690,7 @@ class DragonRPBot:
         """Show propose peace menu"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
-        
+
         peace_text = f"""🕊 پیشنهاد صلح - {player['country_name']}
 
 این بخش به زودی فعال می‌شود...
@@ -700,70 +700,70 @@ class DragonRPBot:
 • مذاکرات دیپلماتیک
 • قراردادهای تجاری
 • اتحادهای نظامی"""
-        
+
         keyboard = self.keyboards.back_to_main_keyboard()
         await query.edit_message_text(peace_text, reply_markup=keyboard)
 
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle text messages"""
         user_id = update.effective_user.id
-        
+
         # Check if user is awaiting official statement
         if context.user_data.get('awaiting_statement'):
             message = update.message.text
             if len(message) > 300:
                 await update.message.reply_text("❌ متن بیانیه نباید بیش از 300 کاراکتر باشد.")
                 return
-            
+
             player = self.db.get_player(user_id)
             await self.news.send_official_statement(player['country_name'], message)
             await update.message.reply_text("✅ بیانیه رسمی شما منتشر شد.")
-            
+
             context.user_data['awaiting_statement'] = False
-            
+
             # Show main menu
             await asyncio.sleep(1)
             await self.show_main_menu(update, context)
-    
+
     async def income_cycle(self):
         """6-hour automated income cycle"""
         logger.info("Starting income cycle...")
-        
+
         players = self.db.get_all_players()
         for player in players:
             try:
                 # Calculate and distribute income
                 income = self.economy.calculate_income(player['user_id'])
                 new_money = player['money'] + income
-                
+
                 # Update population from farms
                 population_increase = self.economy.calculate_population_increase(player['user_id'])
                 new_population = player['population'] + population_increase
-                
+
                 # Convert population to soldiers from military bases
                 soldier_increase = self.economy.calculate_soldier_increase(player['user_id'])
                 new_soldiers = player['soldiers'] + soldier_increase
-                
+
                 # Update database
                 self.db.update_player_income(
-                    player['user_id'], 
-                    new_money, 
-                    new_population, 
+                    player['user_id'],
+                    new_money,
+                    new_population,
                     new_soldiers
                 )
-                
+
                 # Distribute mine resources
                 self.economy.distribute_mine_resources(player['user_id'])
-                
+
                 logger.info(f"Income distributed to {player['country_name']}: ${income}")
-                
+
             except Exception as e:
                 logger.error(f"Error in income cycle for player {player['user_id']}: {e}")
-        
+
         # Send global news about income cycle
         await self.news.send_income_cycle_complete()
         logger.info("Income cycle completed")
-    
+
     def setup_scheduler(self):
         """Setup the automated scheduler"""
         # 6-hour income cycle
@@ -775,43 +775,43 @@ class DragonRPBot:
             replace_existing=True
         )
         logger.info("Scheduler configured - 6-hour income cycle active")
-    
+
     async def start_scheduler(self):
         """Start the scheduler within async context"""
         self.scheduler.start()
         logger.info("Scheduler started")
-    
+
     async def post_init(self, application):
         """Post initialization hook"""
         await self.start_scheduler()
-    
+
     def run(self):
         """Run the bot"""
         logger.info("Starting DragonRP Bot...")
-        
+
         # Initialize database
         self.db.initialize()
-        
+
         # Set bot for news channel
         bot = Bot(token=self.token)
         self.news.set_bot(bot)
-        
+
         # Setup application
         application = Application.builder().token(self.token).post_init(self.post_init).build()
-        
+
         # Add handlers
         application.add_handler(CommandHandler("start", self.start))
         application.add_handler(CallbackQueryHandler(self.handle_callback))
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
-        
+
         # Setup scheduler (but don't start yet)
         self.setup_scheduler()
-        
+
         # Add admin handlers
         self.admin.setup_handlers(application)
-        
+
         logger.info("Bot is ready!")
-        
+
         # Start the bot
         application.run_polling(allowed_updates=Update.ALL_TYPES)
 

@@ -202,7 +202,7 @@ class Database:
         """Get all countries with players"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute('SELECT user_id, username, country_name FROM players ORDER BY country_name')
+            cursor.execute('SELECT user_id, username, country_name, country_code FROM players ORDER BY country_name')
             return [dict(row) for row in cursor.fetchall()]
 
     def is_country_taken(self, country_code):

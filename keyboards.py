@@ -180,7 +180,7 @@ class Keyboards:
         keyboard = []
         
         for country in countries:
-            flag = Config.COUNTRY_FLAGS.get(country['country_code'], '🏳')
+            flag = Config.COUNTRY_FLAGS.get(country.get('country_code'), '🏳')
             button = InlineKeyboardButton(
                 f"{flag} {country['country_name']}",
                 callback_data=f"send_to_{country['user_id']}"
