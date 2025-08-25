@@ -130,6 +130,18 @@ class DragonRPBot:
                 await self.show_marketplace_menu(query, context)
             elif data.startswith("market_"):
                 await self.handle_marketplace_action(query, context)
+            elif data.startswith("invite_"):
+                await self.handle_alliance_invite(query, context)
+            elif data.startswith("accept_inv_"):
+                await self.handle_invitation_response(query, context, "accept")
+            elif data.startswith("reject_inv_"):
+                await self.handle_invitation_response(query, context, "reject")
+            elif data.startswith("buy_"):
+                await self.handle_marketplace_purchase(query, context)
+            elif data.startswith("sell_cat_"):
+                await self.handle_sell_category(query, context)
+            elif data.startswith("remove_"):
+                await self.handle_remove_listing(query, context)
             elif data.startswith("admin_"):
                 await self.admin.handle_admin_action(query, context)
             else:
@@ -827,6 +839,180 @@ class DragonRPBot:
         keyboard = self.keyboards.back_to_main_keyboard()
         await query.edit_message_text(peace_text, reply_markup=keyboard)
 
+    async def show_alliance_invite_menu(self, query, context):
+        """Show alliance invite menu"""
+        user_id = query.from_user.id
+        all_countries = self.db.get_all_countries()
+        other_countries = [c for c in all_countries if c['user_id'] != user_id]
+        
+        if not other_countries:
+            await query.edit_message_text("❌ هیچ بازیکن دیگری برای دعوت یافت نشد!")
+            return
+        
+        menu_text = "👥 دعوت به اتحاد\n\nکدام بازیکن را می‌خواهید دعوت کنید؟\n\n"
+        
+        for country in other_countries[:10]:  # محدود به 10 کشور
+            menu_text += f"🏴 {country['country_name']} - {country['username']}\n"
+        
+        keyboard = []
+        for country in other_countries[:10]:
+            keyboard.append([InlineKeyboardButton(
+                f"{country['country_name']}", 
+                callback_data=f"invite_{country['user_id']}"
+            )])
+        
+        keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="alliances")])
+        
+        await query.edit_message_text(menu_text, reply_markup=InlineKeyboardMarkup(keyboard))
+
+    async def show_alliance_members(self, query, context):
+        """Show alliance members"""
+        user_id = query.from_user.id
+        alliance = self.alliance.get_player_alliance(user_id)
+        
+        if not alliance:
+            await query.edit_message_text("❌ شما عضو هیچ اتحادی نیستید!")
+            return
+        
+        members = self.alliance.get_alliance_members(alliance['alliance_id'])
+        
+        menu_text = f"👥 اعضای اتحاد {alliance['alliance_name']}\n\n"
+        
+        for member in members:
+            role_emoji = "👑" if member['role'] == 'leader' else "⚔️" if member['role'] == 'officer' else "👤"
+            menu_text += f"{role_emoji} {member['country_name']} - {member['username']}\n"
+        
+        keyboard = [[InlineKeyboardButton("🔙 بازگشت", callback_data="alliances")]]
+        await query.edit_message_text(menu_text, reply_markup=InlineKeyboardMarkup(keyboard))
+
+    async def show_alliance_invitations(self, query, context):
+        """Show pending alliance invitations"""
+        user_id = query.from_user.id
+        invitations = self.alliance.get_pending_invitations(user_id)
+        
+        if not invitations:
+            await query.edit_message_text("📋 شما هیچ دعوت‌نامه‌ای ندارید!")
+            return
+        
+        menu_text = "📋 دعوت‌نامه‌های اتحاد\n\n"
+        
+        keyboard = []
+        for inv in invitations:
+            menu_text += f"🤝 {inv['alliance_name']} از {inv['inviter_country']}\n"
+            keyboard.append([
+                InlineKeyboardButton(f"✅ پذیرش {inv['alliance_name']}", callback_data=f"accept_inv_{inv['id']}"),
+                InlineKeyboardButton(f"❌ رد", callback_data=f"reject_inv_{inv['id']}")
+            ])
+        
+        keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="alliances")])
+        await query.edit_message_text(menu_text, reply_markup=InlineKeyboardMarkup(keyboard))
+
+    async def show_market_listings(self, query, context, category):
+        """Show market listings for category"""
+        listings = self.marketplace.get_listings_by_category(category)
+        
+        if not listings:
+            await query.edit_message_text("❌ در این دسته کالایی برای فروش وجود ندارد!")
+            return
+        
+        menu_text = f"🛒 کالاهای {category}\n\n"
+        
+        keyboard = []
+        for listing in listings[:10]:
+            price_text = f"${listing['price']:,}"
+            menu_text += f"{listing['item_name']} - {price_text} - {listing['seller_country']}\n"
+            keyboard.append([InlineKeyboardButton(
+                f"خرید {listing['item_name']} - {price_text}", 
+                callback_data=f"buy_{listing['id']}"
+            )])
+        
+        keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="market_browse")])
+        await query.edit_message_text(menu_text, reply_markup=InlineKeyboardMarkup(keyboard))
+
+    async def show_sell_categories(self, query, context):
+        """Show categories for selling items"""
+        menu_text = "💰 فروش کالا\n\nچه چیزی می‌خواهید بفروشید؟"
+        
+        keyboard = [
+            [
+                InlineKeyboardButton("⚔️ تسلیحات", callback_data="sell_cat_weapons"),
+                InlineKeyboardButton("📊 منابع", callback_data="sell_cat_resources")
+            ],
+            [
+                InlineKeyboardButton("🔙 بازگشت", callback_data="marketplace")
+            ]
+        ]
+        
+        await query.edit_message_text(menu_text, reply_markup=InlineKeyboardMarkup(keyboard))
+
+    async def show_my_listings(self, query, context):
+        """Show user's market listings"""
+        user_id = query.from_user.id
+        listings = self.marketplace.get_player_listings(user_id)
+        
+        if not listings:
+            await query.edit_message_text("📋 شما هیچ کالایی برای فروش ندارید!")
+            return
+        
+        menu_text = "📋 آگهی‌های شما\n\n"
+        
+        keyboard = []
+        for listing in listings:
+            menu_text += f"{listing['item_name']} - ${listing['price']:,} - {listing['status']}\n"
+            if listing['status'] == 'active':
+                keyboard.append([InlineKeyboardButton(
+                    f"❌ حذف {listing['item_name']}", 
+                    callback_data=f"remove_{listing['id']}"
+                )])
+        
+        keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="marketplace")])
+        await query.edit_message_text(menu_text, reply_markup=InlineKeyboardMarkup(keyboard))
+
+    async def handle_alliance_invite(self, query, context):
+        """Handle alliance invitation"""
+        user_id = query.from_user.id
+        invitee_id = int(query.data.replace("invite_", ""))
+        
+        result = self.alliance.invite_to_alliance(user_id, invitee_id)
+        await query.edit_message_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
+
+    async def handle_invitation_response(self, query, context, response):
+        """Handle alliance invitation response"""
+        user_id = query.from_user.id
+        invitation_id = int(query.data.replace(f"{response}_inv_", ""))
+        
+        result = self.alliance.respond_to_invitation(user_id, invitation_id, response)
+        await query.edit_message_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
+
+    async def handle_marketplace_purchase(self, query, context):
+        """Handle marketplace purchase"""
+        user_id = query.from_user.id
+        listing_id = int(query.data.replace("buy_", ""))
+        
+        result = self.marketplace.purchase_item(user_id, listing_id)
+        
+        if result['success']:
+            # Send convoy news if applicable
+            await self.news.send_marketplace_purchase(result)
+        
+        await query.edit_message_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
+
+    async def handle_sell_category(self, query, context):
+        """Handle sell category selection"""
+        user_id = query.from_user.id
+        category = query.data.replace("sell_cat_", "")
+        
+        # This would show items player can sell in this category
+        await query.edit_message_text("این بخش به زودی کامل می‌شود...")
+
+    async def handle_remove_listing(self, query, context):
+        """Handle removing marketplace listing"""
+        user_id = query.from_user.id
+        listing_id = int(query.data.replace("remove_", ""))
+        
+        result = self.marketplace.remove_listing(user_id, listing_id)
+        await query.edit_message_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
+
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle text messages"""
         user_id = update.effective_user.id
@@ -843,6 +1029,22 @@ class DragonRPBot:
             await update.message.reply_text("✅ بیانیه رسمی شما منتشر شد.")
 
             context.user_data['awaiting_statement'] = False
+
+            # Show main menu
+            await asyncio.sleep(1)
+            await self.show_main_menu(update, context)
+
+        # Check if user is creating alliance
+        elif context.user_data.get('awaiting_alliance_name'):
+            alliance_name = update.message.text
+            if len(alliance_name) > 50:
+                await update.message.reply_text("❌ نام اتحاد نباید بیش از 50 کاراکتر باشد.")
+                return
+
+            result = self.alliance.create_alliance(user_id, alliance_name)
+            await update.message.reply_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
+
+            context.user_data['awaiting_alliance_name'] = False
 
             # Show main menu
             await asyncio.sleep(1)

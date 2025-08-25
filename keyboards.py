@@ -4,11 +4,11 @@ from config import Config
 class Keyboards:
     def __init__(self):
         pass
-    
+
     def country_selection_keyboard(self):
         """Create country selection keyboard"""
         keyboard = []
-        
+
         # Create buttons for all countries in rows of 2
         countries = list(Config.COUNTRIES.items())
         for i in range(0, len(countries), 2):
@@ -21,9 +21,9 @@ class Keyboards:
                 )
                 row.append(button)
             keyboard.append(row)
-        
+
         return InlineKeyboardMarkup(keyboard)
-    
+
     def main_menu_keyboard(self, is_admin=False):
         """Create main menu keyboard"""
         keyboard = [
@@ -39,14 +39,14 @@ class Keyboards:
                 InlineKeyboardButton("📢 بیانیه رسمی", callback_data="official_statement")
             ]
         ]
-        
+
         if is_admin:
             keyboard.append([
                 InlineKeyboardButton("👑 پنل ادمین", callback_data="admin_panel")
             ])
-        
+
         return InlineKeyboardMarkup(keyboard)
-    
+
     def economy_menu_keyboard(self):
         """Create economy menu keyboard"""
         keyboard = [
@@ -59,7 +59,7 @@ class Keyboards:
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
-    
+
     def buildings_menu_keyboard(self):
         """Create buildings menu keyboard"""
         keyboard = [
@@ -100,7 +100,7 @@ class Keyboards:
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
-    
+
     def military_menu_keyboard(self):
         """Create military menu keyboard"""
         keyboard = [
@@ -117,7 +117,7 @@ class Keyboards:
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
-    
+
     def weapons_menu_keyboard(self):
         """Create weapons production menu keyboard"""
         keyboard = [
@@ -145,7 +145,7 @@ class Keyboards:
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
-    
+
     def diplomacy_menu_keyboard(self, user_id):
         """Create diplomacy menu keyboard"""
         keyboard = [
@@ -166,7 +166,7 @@ class Keyboards:
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
-    
+
     def alliance_menu_keyboard(self, has_alliance=False):
         """Create alliance menu keyboard"""
         if has_alliance:
@@ -193,9 +193,9 @@ class Keyboards:
                     InlineKeyboardButton("🔙 بازگشت", callback_data="diplomacy")
                 ]
             ]
-        
+
         return InlineKeyboardMarkup(keyboard)
-    
+
     def marketplace_menu_keyboard(self):
         """Create marketplace menu keyboard"""
         keyboard = [
@@ -212,16 +212,15 @@ class Keyboards:
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
-    
+
     def market_categories_keyboard(self):
         """Create market categories keyboard"""
         keyboard = [
             [
-                InlineKeyboardButton("⚔️ تسلیحات", callback_data="market_cat_weapon"),
-                InlineKeyboardButton("📦 منابع", callback_data="market_cat_resource")
+                InlineKeyboardButton("⚔️ تسلیحات", callback_data="market_cat_weapons"),
+                InlineKeyboardButton("📊 منابع", callback_data="market_cat_resources")
             ],
             [
-                InlineKeyboardButton("💰 پول", callback_data="market_cat_money"),
                 InlineKeyboardButton("🔙 بازگشت", callback_data="marketplace")
             ]
         ]
@@ -245,7 +244,7 @@ class Keyboards:
     def send_resources_targets_keyboard(self, countries):
         """Create send resources targets keyboard"""
         keyboard = []
-        
+
         for country in countries:
             flag = Config.COUNTRY_FLAGS.get(country.get('country_code'), '🏳')
             button = InlineKeyboardButton(
@@ -253,21 +252,21 @@ class Keyboards:
                 callback_data=f"send_to_{country['user_id']}"
             )
             keyboard.append([button])
-        
+
         keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="diplomacy")])
         return InlineKeyboardMarkup(keyboard)
-    
+
     def resource_transfer_keyboard(self, target_id, transfer_options):
         """Create resource transfer options keyboard"""
         keyboard = []
-        
+
         for option_code, option_text in transfer_options:
             button = InlineKeyboardButton(
                 option_text,
                 callback_data=f"transfer_{target_id}_{option_code}"
             )
             keyboard.append([button])
-        
+
         keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="send_resources")])
         return InlineKeyboardMarkup(keyboard)
 
@@ -277,7 +276,7 @@ class Keyboards:
             [InlineKeyboardButton("🔙 منوی اصلی", callback_data="main_menu")]
         ]
         return InlineKeyboardMarkup(keyboard)
-    
+
     def admin_panel_keyboard(self):
         """Create admin panel keyboard"""
         keyboard = [
@@ -294,11 +293,11 @@ class Keyboards:
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
-    
+
     def admin_players_keyboard(self, players):
         """Create admin players management keyboard"""
         keyboard = []
-        
+
         for player in players[:10]:  # Show max 10 players
             flag = Config.COUNTRY_FLAGS.get(player['country_code'], '🏳')
             button = InlineKeyboardButton(
@@ -306,10 +305,10 @@ class Keyboards:
                 callback_data=f"admin_player_{player['user_id']}"
             )
             keyboard.append([button])
-        
+
         keyboard.append([InlineKeyboardButton("🔙 پنل ادمین", callback_data="admin_panel")])
         return InlineKeyboardMarkup(keyboard)
-    
+
     def admin_player_actions_keyboard(self, user_id):
         """Create admin actions keyboard for specific player"""
         keyboard = [
@@ -322,6 +321,16 @@ class Keyboards:
             ],
             [
                 InlineKeyboardButton("🔙 بازگشت", callback_data="admin_players")
+            ]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def convoy_action_keyboard(self, convoy_id):
+        """Create convoy action keyboard for news channel"""
+        keyboard = [
+            [
+                InlineKeyboardButton("⛔ توقف محموله", callback_data=f"convoy_stop_{convoy_id}"),
+                InlineKeyboardButton("💰 سرقت محموله", callback_data=f"convoy_steal_{convoy_id}")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)

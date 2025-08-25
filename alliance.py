@@ -153,7 +153,7 @@ class AllianceSystem:
                 
                 return {
                     'success': True,
-                    'message': f'شما با موفقیت به اتحاد "{invitation['alliance_name']}" پیوستید!'
+                    'message': f'شما با موفقیت به اتحاد "{invitation["alliance_name"]}" پیوستید!'
                 }
             else:
                 # Reject invitation
