@@ -144,6 +144,10 @@ class DragonRPBot:
                 await self.handle_sell_category(query, context)
             elif data.startswith("remove_"):
                 await self.handle_remove_listing(query, context)
+            elif data.startswith("admin_give_cat_"):
+                await self.show_admin_give_category(query, context)
+            elif data.startswith("admin_give_"):
+                await self.handle_admin_give_item(query, context)
             elif data.startswith("admin_"):
                 await self.admin.handle_admin_action(query, context)
             else:
@@ -1327,6 +1331,101 @@ class DragonRPBot:
         """Start the scheduler within async context"""
         self.scheduler.start()
         logger.info("Scheduler started")
+
+    async def show_admin_give_category(self, query, context):
+        """Show admin give category"""
+        user_id = query.from_user.id
+        if not self.admin.is_admin(user_id):
+            await query.edit_message_text("❌ شما مجاز به این کار نیستید!")
+            return
+        
+        category = query.data.replace("admin_give_cat_", "")
+        
+        if category == "money":
+            menu_text = "💰 هدیه پول به کشور\n\n❌ این بخش هنوز پیاده‌سازی نشده!"
+            keyboard = self.keyboards.admin_give_items_keyboard()
+        elif category == "resources":
+            menu_text = """📦 هدیه منابع به کشور
+
+انتخاب کنید که چه مقدار از کدام منبع هدیه دهید:
+(آیتم‌ها به تمام کشورها اضافه می‌شود)"""
+            keyboard = self.keyboards.admin_give_resources_keyboard()
+        elif category == "weapons":
+            menu_text = """⚔️ هدیه سلاح‌ها به کشور
+
+انتخاب کنید که چه مقدار از کدام سلاح هدیه دهید:
+(آیتم‌ها به تمام کشورها اضافه می‌شود)"""
+            keyboard = self.keyboards.admin_give_weapons_keyboard()
+        elif category == "buildings":
+            menu_text = "🏗 هدیه ساختمان به کشور\n\n❌ این بخش هنوز پیاده‌سازی نشده!"
+            keyboard = self.keyboards.admin_give_items_keyboard()
+        elif category == "population":
+            menu_text = "👥 هدیه جمعیت به کشور\n\n❌ این بخش هنوز پیاده‌سازی نشده!"
+            keyboard = self.keyboards.admin_give_items_keyboard()
+        elif category == "soldiers":
+            menu_text = "🪖 هدیه سرباز به کشور\n\n❌ این بخش هنوز پیاده‌سازی نشده!"
+            keyboard = self.keyboards.admin_give_items_keyboard()
+        else:
+            menu_text = "❌ دسته نامعتبر!"
+            keyboard = self.keyboards.admin_give_items_keyboard()
+
+        await query.edit_message_text(menu_text, reply_markup=keyboard)
+    
+    async def handle_admin_give_item(self, query, context):
+        """Handle admin giving items"""
+        user_id = query.from_user.id
+        if not self.admin.is_admin(user_id):
+            await query.edit_message_text("❌ شما مجاز به این کار نیستید!")
+            return
+        
+        # Parse the callback data
+        data_parts = query.data.split("_")
+        if len(data_parts) < 4:
+            await query.edit_message_text("❌ فرمت نامعتبر!")
+            return
+        
+        item_type = data_parts[2]  # e.g., "iron", "rifle", etc.
+        amount = int(data_parts[3])
+        
+        # Get all players
+        players = self.db.get_all_players()
+        if not players:
+            await query.edit_message_text("❌ هیچ بازیکنی وجود ندارد!")
+            return
+        
+        # Give to all players
+        success_count = 0
+        for player in players:
+            try:
+                if item_type in ['iron', 'copper', 'oil', 'aluminum', 'gold', 'uranium', 'lithium', 'coal', 'nitro', 'sulfur', 'titanium']:
+                    self.db.add_resources(player['user_id'], item_type, amount)
+                    success_count += 1
+                elif item_type in ['rifle', 'tank', 'fighter', 'jet', 'drone', 'simple', 'bomb', 'nuclear', 'ballistic', 'missile', 'f22']:
+                    weapon_map = {
+                        'rifle': 'rifle',
+                        'tank': 'tank', 
+                        'fighter': 'fighter_jet',
+                        'jet': 'fighter_jet',
+                        'drone': 'drone',
+                        'simple': 'simple_bomb',
+                        'bomb': 'simple_bomb',
+                        'nuclear': 'nuclear_bomb',
+                        'ballistic': 'ballistic_missile',
+                        'missile': 'simple_missile',
+                        'f22': 'f22'
+                    }
+                    weapon_name = weapon_map.get(item_type, item_type)
+                    self.db.add_weapon(player['user_id'], weapon_name, amount)
+                    success_count += 1
+            except Exception as e:
+                logger.error(f"Error giving {item_type} to {player['country_name']}: {e}")
+        
+        await query.edit_message_text(
+            f"✅ آیتم با موفقیت به {success_count} کشور هدیه داده شد!\n\n"
+            f"📦 آیتم: {item_type}\n"
+            f"🔢 مقدار: {amount:,}",
+            reply_markup=self.keyboards.admin_give_items_keyboard()
+        )
 
     async def post_init(self, application):
         """Post initialization hook"""
