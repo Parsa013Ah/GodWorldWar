@@ -31,56 +31,43 @@ class GameLogic:
         }
 
     def build_structure(self, user_id, building_type, quantity=1):
-        """Build structures for player"""
+        """Build a structure"""
         player = self.db.get_player(user_id)
+        if not player:
+            return {'success': False, 'message': 'بازیکن یافت نشد!'}
+
         building_config = Config.BUILDINGS.get(building_type)
-
         if not building_config:
-            return {'success': False, 'message': 'نوع ساختمان نامعتبر است'}
-
-        if quantity <= 0:
-            return {'success': False, 'message': 'تعداد باید بیشتر از صفر باشد!'}
+            return {'success': False, 'message': 'نوع ساختمان نامعتبر!'}
 
         total_cost = building_config['cost'] * quantity
-        building_name = building_config['name']
 
         if player['money'] < total_cost:
             return {
                 'success': False,
-                'message': f'پول کافی ندارید! نیاز: ${total_cost:,} برای {quantity} عدد، موجود: ${player["money"]:,}'
+                'message': f"پول کافی ندارید! نیاز: ${total_cost:,}, موجودی: ${player['money']:,}"
             }
 
-        # Check requirements
-        requirements = building_config.get('requirements', [])
-        if requirements:
-            buildings = self.db.get_player_buildings(user_id)
-            for req in requirements:
-                if buildings.get(req, 0) == 0:
-                    req_name = Config.BUILDINGS.get(req, {}).get('name', req)
-                    return {
-                        'success': False,
-                        'message': f'ابتدا باید {req_name} بسازید'
-                    }
-
-        # Check if this is first build
-        is_first_build = self.db.check_first_build(user_id, building_type)
-
-        # Build the structures
-        for _ in range(quantity):
-            self.db.add_building(user_id, building_type)
-
-        # Record first build
-        if is_first_build:
-            self.db.record_first_build(user_id, building_type)
-
-        # Update player money
+        # Deduct money and add building
         new_money = player['money'] - total_cost
         self.db.update_player_money(user_id, new_money)
 
+        # Add building to database
+        buildings = self.db.get_player_buildings(user_id)
+        if buildings is None:
+            buildings = {}
+        current_count = buildings.get(building_type, 0)
+        self.db.set_player_building(user_id, building_type, current_count + quantity)
+
+        # Check if first build for news
+        is_first_build = self.db.check_first_build(user_id, building_type)
+        if is_first_build:
+            self.db.record_first_build(user_id, building_type)
+
         return {
             'success': True,
-            'message': f'✅ {quantity}x {building_name} با موفقیت ساخته شد!',
-            'building_name': building_name,
+            'message': f"✅ {quantity} {building_config['name']} با موفقیت ساخته شد!",
+            'building_name': building_config['name'],
             'remaining_money': new_money,
             'is_first_build': is_first_build
         }
@@ -327,7 +314,7 @@ class GameLogic:
 
         # Update defender's soldiers
         new_soldiers = max(0, defender['soldiers'] - soldier_losses)
-        self.db.update_player_income(defender_id, defender['money'], defender['population'], new_soldiers)
+        self.db.update_player_income(attacker_id, defender['money'], defender['population'], new_soldiers)
 
     def _apply_failed_attack_consequences(self, attacker_id, damage):
         """Apply consequences of failed attack"""

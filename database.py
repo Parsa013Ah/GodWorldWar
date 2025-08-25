@@ -392,27 +392,31 @@ class Database:
             result = cursor.fetchone()
             return dict(result) if result else {}
 
-    def update_player_money(self, user_id, new_money):
+    def update_player_money(self, user_id, new_amount):
         """Update player money"""
         try:
-            self.cursor.execute(
-                "UPDATE players SET money = ? WHERE user_id = ?",
-                (new_money, user_id)
-            )
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                UPDATE players SET money = ? WHERE user_id = ?
+            """, (new_amount, user_id))
             self.conn.commit()
-            return True
+            cursor.close()
+            logger.info(f"Updated player {user_id} money to {new_amount}")
         except Exception as e:
             logger.error(f"Error updating player money: {e}")
             return False
+        return True
 
     def update_player_population(self, user_id, new_population):
         """Update player population"""
         try:
-            self.cursor.execute(
+            cursor = self.conn.cursor()
+            cursor.execute(
                 "UPDATE players SET population = ? WHERE user_id = ?",
                 (new_population, user_id)
             )
             self.conn.commit()
+            cursor.close()
             return True
         except Exception as e:
             logger.error(f"Error updating player population: {e}")
@@ -428,6 +432,7 @@ class Database:
                 WHERE user_id = ?
             ''', (new_soldiers, user_id))
             conn.commit()
+            cursor.close()
 
     def update_resource(self, user_id, resource_type, new_amount):
         """Update specific resource amount"""
@@ -439,6 +444,7 @@ class Database:
                 WHERE user_id = ?
             ''', (new_amount, user_id))
             conn.commit()
+            cursor.close()
 
     def update_building_count(self, user_id, building_type, new_count):
         """Update building count"""
@@ -450,6 +456,7 @@ class Database:
                 WHERE user_id = ?
             ''', (new_count, user_id))
             conn.commit()
+            cursor.close()
 
     def add_building(self, user_id, building_type):
         """Add a building to player"""
@@ -461,6 +468,7 @@ class Database:
                 WHERE user_id = ?
             ''', (user_id,))
             conn.commit()
+            cursor.close()
 
     def add_weapon(self, user_id, weapon_type, quantity=1):
         """Add weapons to player"""
@@ -518,6 +526,7 @@ class Database:
                 WHERE user_id = ?
             ''', (quantity, user_id))
             conn.commit()
+            cursor.close()
 
     def add_resources(self, user_id, resource_type, quantity):
         """Add resources to player"""
@@ -529,6 +538,7 @@ class Database:
                 WHERE user_id = ?
             ''', (quantity, user_id))
             conn.commit()
+            cursor.close()
 
     def consume_resources(self, user_id, resources_needed):
         """Consume resources from player"""
@@ -550,6 +560,7 @@ class Database:
                 ''', (amount, user_id))
 
             conn.commit()
+            cursor.close()
             return True
 
     def log_admin_action(self, admin_id, action, target_id=None, details=None):
@@ -561,6 +572,7 @@ class Database:
                 VALUES (?, ?, ?, ?)
             ''', (admin_id, action, target_id, details))
             conn.commit()
+            cursor.close()
 
     def get_admin_logs(self, limit=50):
         """Get admin logs"""
@@ -589,6 +601,7 @@ class Database:
             cursor.execute('DELETE FROM market_transactions WHERE buyer_id = ? OR seller_id = ?', (user_id, user_id))
 
             conn.commit()
+            cursor.close()
             return True
 
     def update_weapon_count(self, user_id, weapon_type, new_count):
@@ -601,6 +614,7 @@ class Database:
                 WHERE user_id = ?
             ''', (new_count, user_id))
             conn.commit()
+            cursor.close()
 
     def get_active_convoys(self):
         """Get all active convoys in transit"""
@@ -618,6 +632,7 @@ class Database:
                 ORDER BY c.created_at DESC
             ''')
             results = cursor.fetchall()
+            cursor.close()
             return [dict(row) for row in results] if results else []
 
     def create_convoy(self, sender_id, receiver_id, resources, travel_minutes=30, security_level=50):
@@ -636,6 +651,7 @@ class Database:
 
             convoy_id = cursor.lastrowid
             conn.commit()
+            cursor.close()
             return convoy_id
 
     def get_convoy(self, convoy_id):
@@ -644,6 +660,7 @@ class Database:
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM convoys WHERE id = ?', (convoy_id,))
             result = cursor.fetchone()
+            cursor.close()
             return dict(result) if result else None
 
     def update_convoy_status(self, convoy_id, new_status):
@@ -652,6 +669,7 @@ class Database:
             cursor = conn.cursor()
             cursor.execute('UPDATE convoys SET status = ? WHERE id = ?', (new_status, convoy_id))
             conn.commit()
+            cursor.close()
 
     def update_convoy_arrival(self, convoy_id, new_arrival_time, new_status):
         """Update convoy arrival time and status"""
@@ -663,6 +681,7 @@ class Database:
                 WHERE id = ?
             ''', (new_arrival_time, new_status, convoy_id))
             conn.commit()
+            cursor.close()
 
     def create_pending_attack(self, attack_data):
         """Create a new pending attack"""
@@ -680,6 +699,7 @@ class Database:
                 attack_data['status']
             ))
             conn.commit()
+            cursor.close()
             return cursor.lastrowid
 
     def get_pending_attack(self, attack_id):
@@ -688,6 +708,7 @@ class Database:
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM pending_attacks WHERE id = ?', (attack_id,))
             result = cursor.fetchone()
+            cursor.close()
             return dict(result) if result else None
 
     def get_pending_attacks_due(self):
@@ -708,6 +729,7 @@ class Database:
             cursor = conn.cursor()
             cursor.execute('UPDATE pending_attacks SET status = ? WHERE id = ?', (new_status, attack_id))
             conn.commit()
+            cursor.close()
 
     def reset_all_data(self):
         """Reset all game data (admin function)"""
@@ -722,6 +744,7 @@ class Database:
                 cursor.execute(f'DROP TABLE IF EXISTS {table}')
 
             conn.commit()
+            cursor.close()
 
         # Reinitialize database
         self.initialize()
@@ -746,6 +769,7 @@ class Database:
                 VALUES (?, ?)
             ''', (user_id, item_type))
             conn.commit()
+            cursor.close()
 
     def check_first_build(self, user_id, item_type):
         """Check if this is user's first build of this item type"""
@@ -766,3 +790,30 @@ class Database:
                 VALUES (?, ?)
             ''', (user_id, item_type))
             conn.commit()
+            cursor.close()
+
+    def clear_test_data(self):
+        """Clear test data from database"""
+        try:
+            cursor = self.conn.cursor()
+            # Delete test players
+            cursor.execute("DELETE FROM players WHERE user_id IN (123456, 123457, 123458)")
+            cursor.execute("DELETE FROM buildings WHERE user_id IN (123456, 123457, 123458)")
+            cursor.execute("DELETE FROM resources WHERE user_id IN (123456, 123457, 123458)")
+            cursor.execute("DELETE FROM weapons WHERE user_id IN (123456, 123457, 123458)")
+            cursor.execute("DELETE FROM convoys WHERE sender_id IN (123456, 123457, 123458) OR receiver_id IN (123456, 123457, 123458)")
+            # The original code had 'marketplace' which is not a table name, corrected to 'marketplace_listings'
+            cursor.execute("DELETE FROM marketplace_listings WHERE seller_id IN (123456, 123457, 123458)")
+            # The original code had 'alliances' and 'alliance_members' which are not defined in the initialize method, assuming they exist or should be handled.
+            # For now, commented out as they are not in the provided initialize schema.
+            # cursor.execute("DELETE FROM alliances WHERE leader_id IN (123456, 123457, 123458)")
+            # cursor.execute("DELETE FROM alliance_members WHERE user_id IN (123456, 123457, 123458)")
+            # The original code had 'first_builds' which is not a table name, corrected to 'build_tracking'
+            cursor.execute("DELETE FROM build_tracking WHERE builder_id IN (123456, 123457, 123458)")
+            self.conn.commit()
+            cursor.close()
+            logger.info("Test data cleared successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Error clearing test data: {e}")
+            return False

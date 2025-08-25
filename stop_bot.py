@@ -3,6 +3,7 @@
 import os
 import signal
 import psutil
+from database import Database
 
 def stop_all_bot_instances():
     """Stop all running bot instances"""
@@ -21,6 +22,23 @@ def stop_all_bot_instances():
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             pass
 
+def cleanup_test_data():
+    """Clean up test data from database"""
+    try:
+        db = Database()
+        db.initialize()
+        result = db.clear_test_data()
+        if result:
+            print("✅ Test data cleaned successfully")
+        else:
+            print("❌ Failed to clean test data")
+    except Exception as e:
+        print(f"❌ Error cleaning test data: {e}")
+
 if __name__ == "__main__":
-    stop_all_bot_instances()
-    print("All bot instances stopped")
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "--clean-test":
+        cleanup_test_data()
+    else:
+        stop_all_bot_instances()
+        print("All bot instances stopped")

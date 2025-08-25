@@ -349,6 +349,10 @@ class BotTester:
         """Run all tests"""
         logger.info("🚀 Starting comprehensive bot tests...")
         
+        # Clear any existing test data first
+        logger.info("🧹 Clearing existing test data...")
+        self.db.clear_test_data()
+        
         tests = [
             ("Database Initialization", self.test_database_initialization),
             ("Player Creation", self.test_player_creation),
