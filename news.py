@@ -12,7 +12,7 @@ class NewsChannel:
     def __init__(self):
         self.channel_id = Config.BOT_CONFIG['news_channel']
         self.bot = None
-        
+
         # Message templates for variety
         self.player_joined_templates = [
             "🎮 بازیکن جدید!\n\n{flag} <b>{country}</b> توسط {username} تصرف شد!\n\nجمعیت اولیه: 1,000,000 نفر\nسرمایه اولیه: $100,000\n\nخوش آمدید به جنگ جهانی! 🌍",
@@ -26,7 +26,7 @@ class NewsChannel:
             "💫 ستاره‌ای جدید در افق!\n\n{flag} <b>{country}</b> زیر نظر {username} درخشان شد!\n\n✨ شروع باشکوه:\n• 1,000,000 شهروند\n• $100,000 سرمایه\n\nآینده‌ای روشن در انتظار! 🌅",
             "🌊 موج تغییر!\n\n{flag} <b>{country}</b> با رهبری {username} متحول شد!\n\n⚡ قدرت نوین:\n📊 مردم: 1M\n💰 بودجه: $100K\n\nتحول بزرگ شروع شد! 🚀"
         ]
-        
+
         self.building_templates = [
             "🏗 توسعه عظیم زیرساخت!\n\n{flag} <b>{country}</b> یک {emoji} <b>{building}</b> مدرن احداث کرد!\n\n📈 اقتصاد قدرتمندتر شد!\n💰 درآمد آینده افزایش یافت!\n🌟 پیشرفت چشمگیر!",
             "🔨 سرمایه‌گذاری بزرگ!\n\n{flag} <b>{country}</b> با ساخت {emoji} <b>{building}</b> اقتصاد خود را تقویت کرد!\n\n📊 ظرفیت تولید افزایش یافت\n⚡ کارایی بهبود پیدا کرد\n💎 آینده‌ای درخشان!",
@@ -34,7 +34,7 @@ class NewsChannel:
             "⚡ پروژه ملی کامل شد!\n\n{flag} <b>{country}</b> موفق به تکمیل {emoji} <b>{building}</b> شد!\n\n🎯 هدف‌گذاری موفق\n💪 اقتصاد مقاوم\n🏆 پیشرفت قابل توجه",
             "🌟 دستاورد جدید!\n\n{flag} کشور <b>{country}</b> با افتتاح {emoji} <b>{building}</b> گامی بزرگ برداشت!\n\n🔥 توسعه سریع\n📊 بهره‌وری بالا\n💰 سودآوری مطمئن"
         ]
-        
+
         self.weapon_templates = {
             'basic': [
                 "⚔️ تقویت ارتش\n\n{flag} <b>{country}</b> یک {emoji} <b>{weapon}</b> جدید تولید کرد!\n\n💪 قدرت نظامی افزایش یافت!\n🛡 آمادگی دفاعی بالا رفت!",
@@ -57,7 +57,7 @@ class NewsChannel:
                 "🌟 تکنولوژی هوایی!\n\n{flag} <b>{country}</b> به فناوری پیشرفته دست یافت!\n\n✈️ {emoji} <b>{weapon}</b> تحویل شد\n🔥 قابلیت استلث\n💪 قدرت رزمی بالا"
             ]
         }
-        
+
         self.war_templates = {
             'victory': [
                 "🏆 پیروزی قاطع!\n\n{attacker_flag} <b>{attacker}</b> ⚔️ {defender_flag} <b>{defender}</b>\n\n🔥 نیروی حمله: {attack_power:,}\n🛡 نیروی دفاع: {defense_power:,}\n\n✨ حمله موفقیت‌آمیز بود!",
@@ -90,28 +90,26 @@ class NewsChannel:
             return False
 
     async def send_convoy_news(self, message, keyboard=None):
-        """Send convoy news with action buttons"""
-        if not self.bot:
-            logger.error("Bot not set for news channel")
-            return False
-
+        """Send convoy news with optional keyboard"""
         try:
-            await self.bot.send_message(
-                chat_id=self.channel_id, 
-                text=message, 
-                parse_mode='HTML',
-                reply_markup=keyboard
-            )
-            logger.info(f"🚚 Convoy news sent to {self.channel_id}")
-            return True
-        except TelegramError as e:
-            logger.error(f"Failed to send convoy news to channel: {e}")
-            return False
+            formatted_message = f"🚚 <b>محموله در حرکت!</b>\n\n{message}\n\n💡 <i>این محموله قابل رهگیری است!</i>"
+
+            if keyboard:
+                await self.bot.send_message(
+                    chat_id=self.channel_id,
+                    text=formatted_message,
+                    parse_mode='HTML',
+                    reply_markup=keyboard
+                )
+            else:
+                await self.send_text_message(formatted_message)
+        except Exception as e:
+            logger.error(f"Failed to send convoy news: {e}")
 
     async def send_player_joined(self, country_name, username):
         """Send player joined news"""
         country_flag = self.get_country_flag(country_name)
-        
+
         # Select random template
         template = random.choice(self.player_joined_templates)
         message = template.format(
@@ -119,11 +117,11 @@ class NewsChannel:
             country=country_name,
             username=username
         )
-        
+
         message += "\n\n───────────────"
         await self.send_news(message)
 
-    async def send_building_constructed(self, country_name, building_name):
+    async def send_building_constructed(self, country_name, building_name, quantity=1):
         """Send building construction news"""
         country_flag = self.get_country_flag(country_name)
 
@@ -134,9 +132,9 @@ class NewsChannel:
             'weapon_factory': '🏭', 'refinery': '🏭', 'power_plant': '⚡',
             'wheat_farm': '🌾', 'military_base': '🪖', 'housing': '🏘'
         }
-        
+
         building_emoji = building_emojis.get(building_name.replace(' ', '_').lower(), '🏗')
-        
+
         # Select random template
         template = random.choice(self.building_templates)
         message = template.format(
@@ -145,11 +143,11 @@ class NewsChannel:
             emoji=building_emoji,
             building=building_name
         )
-        
+
         message += "\n\n───────────────"
         await self.send_news(message)
 
-    async def send_weapon_produced(self, country_name, weapon_name):
+    async def send_weapon_produced(self, country_name, weapon_name, quantity=1):
         """Send weapon production news"""
         country_flag = self.get_country_flag(country_name)
 
@@ -164,9 +162,9 @@ class NewsChannel:
             'F-22': '✈️', 'F-35': '✈️', 'Su-57': '✈️', 'J-20': '✈️',
             'F-15EX': '✈️', 'Su-35S': '✈️'
         }
-        
+
         weapon_emoji = weapon_emojis.get(weapon_name, '⚔️')
-        
+
         # Determine weapon category and select appropriate template
         if 'هسته‌ای' in weapon_name:
             template = random.choice(self.weapon_templates['nuclear'])
@@ -176,14 +174,14 @@ class NewsChannel:
             template = random.choice(self.weapon_templates['aircraft'])
         else:
             template = random.choice(self.weapon_templates['basic'])
-            
+
         message = template.format(
             flag=country_flag,
             country=country_name,
             emoji=weapon_emoji,
             weapon=weapon_name
         )
-        
+
         message += "\n\n───────────────"
         await self.send_news(message)
 
@@ -197,7 +195,7 @@ class NewsChannel:
             template = random.choice(self.war_templates['victory'])
         else:
             template = random.choice(self.war_templates['defeat'])
-            
+
         message = template.format(
             attacker_flag=attacker_flag,
             attacker=battle_result['attacker_country'],
@@ -226,7 +224,7 @@ class NewsChannel:
 
         message = f"""📢 بیانیه رسمی
 
-{country_flag} کشور: <b>{country_name}</b>
+{country_flag}کشور: <b>{country_name}</b>
 📅 {current_time}
 
 "{statement}"

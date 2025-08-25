@@ -115,8 +115,12 @@ class DragonRPBot:
                 await self.show_attack_targets(query, context)
             elif data == "attack_menu":
                 await self.show_attack_targets(query, context)
-            elif data.startswith("attack_"):
-                await self.handle_attack(query, context)
+            elif data.startswith("select_target_"):
+                await self.show_attack_type_selection(query, context)
+            elif data.startswith("attack_type_"):
+                await self.show_weapon_selection_for_attack(query, context)
+            elif data.startswith("execute_attack_"):
+                await self.handle_attack_execution(query, context)
             elif data == "send_resources":
                 await self.show_send_resources_menu(query, context)
             elif data == "official_statement":
@@ -600,7 +604,7 @@ class DragonRPBot:
                 
                 # Send news to channel
                 player = self.db.get_player(user_id)
-                await self.news.send_weapon_produced(player['country_name'], result['weapon_name'])
+                await self.news.send_weapon_produced(player['country_name'], result['weapon_name'], quantity)
             else:
                 await query.edit_message_text(f"❌ {result['message']}")
                 
@@ -615,7 +619,7 @@ class DragonRPBot:
                 
                 # Send news to channel
                 player = self.db.get_player(user_id)
-                await self.news.send_building_constructed(player['country_name'], result['building_name'])
+                await self.news.send_building_constructed(player['country_name'], result['building_name'], quantity)
             else:
                 await query.edit_message_text(f"❌ {result['message']}")
 
@@ -671,10 +675,41 @@ class DragonRPBot:
         keyboard = self.keyboards.attack_targets_keyboard(available_targets)
         await query.edit_message_text(menu_text, reply_markup=keyboard)
 
-    async def handle_attack(self, query, context):
-        """Handle attack execution"""
+    async def show_attack_type_selection(self, query, context):
+        """Show attack type selection menu"""
         user_id = query.from_user.id
-        target_id = int(query.data.replace("attack_", ""))
+        target_id = int(query.data.replace("select_target_", ""))
+        
+        target = self.db.get_player(target_id)
+        if not target:
+            await query.edit_message_text("❌ کشور هدف یافت نشد!")
+            return
+            
+        menu_text = f"⚔️ نوع حمله به {target['country_name']}\n\nنوع حمله را انتخاب کنید:"
+        
+        keyboard = self.keyboards.attack_type_selection_keyboard(target_id)
+        await query.edit_message_text(menu_text, reply_markup=keyboard)
+    
+    async def show_weapon_selection_for_attack(self, query, context):
+        """Show weapon selection for attack"""
+        user_id = query.from_user.id
+        data_parts = query.data.split("_")
+        target_id = int(data_parts[2])
+        attack_type = data_parts[3]
+        
+        available_weapons = self.db.get_player_weapons(user_id)
+        
+        menu_text = f"⚔️ انتخاب تسلیحات برای حمله {attack_type}\n\nتسلیحات خود را انتخاب کنید:"
+        
+        keyboard = self.keyboards.weapon_selection_keyboard(target_id, attack_type, available_weapons)
+        await query.edit_message_text(menu_text, reply_markup=keyboard)
+    
+    async def handle_attack_execution(self, query, context):
+        """Handle actual attack execution"""
+        user_id = query.from_user.id
+        data_parts = query.data.split("_")
+        target_id = int(data_parts[2])
+        attack_type = data_parts[3]
 
         attacker = self.db.get_player(user_id)
         target = self.db.get_player(target_id)
@@ -684,19 +719,29 @@ class DragonRPBot:
             return
 
         # Execute attack
-        result = self.combat.schedule_delayed_attack(user_id, target_id)
+        result = self.combat.schedule_delayed_attack(user_id, target_id, attack_type)
 
-        if not result['success'] and 'message' in result:
+        if not result['success']:
             await query.edit_message_text(f"❌ {result['message']}")
             return
 
-        # Format battle report
-        battle_report = self.combat.format_battle_report(result)
+        await query.edit_message_text(f"✅ {result['message']}")
 
-        await query.edit_message_text(battle_report)
+        # Send news to channel about attack preparation
+        attacker_flag = Config.COUNTRY_FLAGS.get(attacker['country_code'], '🏳')
+        target_flag = Config.COUNTRY_FLAGS.get(target['country_code'], '🏳')
+        
+        attack_news = f"""⚔️ آماده‌سازی حمله!
 
-        # Send news to channel
-        await self.news.send_war_report(result)
+🔥 {attacker_flag} <b>{attacker['country_name']}</b> 
+🎯 {target_flag} <b>{target['country_name']}</b>
+
+⏱ زمان رسیدن: {result['travel_time']} دقیقه
+🔥 نوع حمله: {attack_type}
+
+💀 جنگ در راه است..."""
+
+        await self.news.send_text_message(attack_news)
 
     async def show_resources_menu(self, query, context):
         """Show resources overview menu"""
@@ -936,16 +981,12 @@ class DragonRPBot:
             sender_flag = Config.COUNTRY_FLAGS.get(player['country_code'], '🏳')
             receiver_flag = Config.COUNTRY_FLAGS.get(target['country_code'], '🏳')
             
-            convoy_message = f"""🚚 محموله در حرکت!
-
-📤 {sender_flag} <b>{player['country_name']}</b> 
+            convoy_message = f"""📤 {sender_flag} <b>{player['country_name']}</b> 
 📥 {receiver_flag} <b>{target['country_name']}</b>
 
 📦 محتویات: {transfer_description}
 ⏱ زمان رسیدن: {convoy_result['travel_time']} دقیقه
-🛡 امنیت: {convoy_result['security_level']}%
-
-💡 این محموله قابل رهگیری است!"""
+🛡 امنیت: {convoy_result['security_level']}%"""
 
             # Create keyboard for convoy actions
             convoy_keyboard = self.convoy.create_convoy_news_keyboard(
