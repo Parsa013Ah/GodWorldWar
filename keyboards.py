@@ -24,7 +24,7 @@ class Keyboards:
         
         return InlineKeyboardMarkup(keyboard)
     
-    def main_menu_keyboard(self):
+    def main_menu_keyboard(self, is_admin=False):
         """Create main menu keyboard"""
         keyboard = [
             [
@@ -37,11 +37,14 @@ class Keyboards:
             ],
             [
                 InlineKeyboardButton("📢 بیانیه رسمی", callback_data="official_statement")
-            ],
-            [
-                InlineKeyboardButton("👑 پنل ادمین", callback_data="admin_panel")
             ]
         ]
+        
+        if is_admin:
+            keyboard.append([
+                InlineKeyboardButton("👑 پنل ادمین", callback_data="admin_panel")
+            ])
+        
         return InlineKeyboardMarkup(keyboard)
     
     def economy_menu_keyboard(self):
@@ -151,11 +154,75 @@ class Keyboards:
                 InlineKeyboardButton("📬 ارسال منابع", callback_data="send_resources")
             ],
             [
-                InlineKeyboardButton("🤝 پیشنهاد صلح", callback_data="propose_peace"),
+                InlineKeyboardButton("🤝 اتحادها", callback_data="alliances"),
+                InlineKeyboardButton("🛒 فروشگاه", callback_data="marketplace")
+            ],
+            [
+                InlineKeyboardButton("🕊 پیشنهاد صلح", callback_data="propose_peace"),
                 InlineKeyboardButton("🏴 بیانیه رسمی", callback_data="official_statement")
             ],
             [
                 InlineKeyboardButton("🔙 بازگشت", callback_data="main_menu")
+            ]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+    
+    def alliance_menu_keyboard(self, has_alliance=False):
+        """Create alliance menu keyboard"""
+        if has_alliance:
+            keyboard = [
+                [
+                    InlineKeyboardButton("👥 اعضای اتحاد", callback_data="alliance_members"),
+                    InlineKeyboardButton("📨 دعوت بازیکن", callback_data="alliance_invite")
+                ],
+                [
+                    InlineKeyboardButton("📋 دعوت‌نامه‌ها", callback_data="alliance_invitations"),
+                    InlineKeyboardButton("🚪 ترک اتحاد", callback_data="alliance_leave")
+                ],
+                [
+                    InlineKeyboardButton("🔙 بازگشت", callback_data="diplomacy")
+                ]
+            ]
+        else:
+            keyboard = [
+                [
+                    InlineKeyboardButton("➕ تشکیل اتحاد", callback_data="alliance_create"),
+                    InlineKeyboardButton("📋 دعوت‌نامه‌ها", callback_data="alliance_invitations")
+                ],
+                [
+                    InlineKeyboardButton("🔙 بازگشت", callback_data="diplomacy")
+                ]
+            ]
+        
+        return InlineKeyboardMarkup(keyboard)
+    
+    def marketplace_menu_keyboard(self):
+        """Create marketplace menu keyboard"""
+        keyboard = [
+            [
+                InlineKeyboardButton("🛒 خرید کالا", callback_data="market_browse"),
+                InlineKeyboardButton("💰 فروش کالا", callback_data="market_sell")
+            ],
+            [
+                InlineKeyboardButton("📋 آگهی‌های من", callback_data="market_my_listings"),
+                InlineKeyboardButton("📊 تاریخچه خرید", callback_data="market_history")
+            ],
+            [
+                InlineKeyboardButton("🔙 بازگشت", callback_data="diplomacy")
+            ]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+    
+    def market_categories_keyboard(self):
+        """Create market categories keyboard"""
+        keyboard = [
+            [
+                InlineKeyboardButton("⚔️ تسلیحات", callback_data="market_cat_weapon"),
+                InlineKeyboardButton("📦 منابع", callback_data="market_cat_resource")
+            ],
+            [
+                InlineKeyboardButton("💰 پول", callback_data="market_cat_money"),
+                InlineKeyboardButton("🔙 بازگشت", callback_data="marketplace")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)

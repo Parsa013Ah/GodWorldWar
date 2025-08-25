@@ -16,6 +16,9 @@ from news import NewsChannel
 from combat import CombatSystem
 from countries import CountryManager
 from config import Config
+from convoy import ConvoySystem
+from alliance import AllianceSystem
+from marketplace import Marketplace
 
 # Configure logging
 logging.basicConfig(
@@ -35,6 +38,9 @@ class DragonRPBot:
         self.combat = CombatSystem(self.db)
         self.countries = CountryManager(self.db)
         self.news = NewsChannel()
+        self.convoy = ConvoySystem(self.db)
+        self.alliance = AllianceSystem(self.db)
+        self.marketplace = Marketplace(self.db)
         self.scheduler = AsyncIOScheduler()
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -114,6 +120,16 @@ class DragonRPBot:
                 await self.handle_resource_transfer_target(query, context)
             elif data.startswith("transfer_"):
                 await self.handle_resource_transfer(query, context)
+            elif data.startswith("convoy_"):
+                await self.handle_convoy_action(query, context)
+            elif data == "alliances":
+                await self.show_alliance_menu(query, context)
+            elif data.startswith("alliance_"):
+                await self.handle_alliance_action(query, context)
+            elif data == "marketplace":
+                await self.show_marketplace_menu(query, context)
+            elif data.startswith("market_"):
+                await self.handle_marketplace_action(query, context)
             elif data.startswith("admin_"):
                 await self.admin.handle_admin_action(query, context)
             else:
@@ -188,7 +204,8 @@ class DragonRPBot:
 
 انتخاب کنید:"""
 
-        keyboard = self.keyboards.main_menu_keyboard()
+        is_admin = self.admin.is_admin(update.effective_user.id)
+        keyboard = self.keyboards.main_menu_keyboard(is_admin)
         await update.message.reply_text(menu_text, reply_markup=keyboard)
 
     async def show_main_menu_callback(self, query, context):
@@ -225,7 +242,8 @@ class DragonRPBot:
 
 انتخاب کنید:"""
 
-        keyboard = self.keyboards.main_menu_keyboard()
+        is_admin = self.admin.is_admin(user_id)
+        keyboard = self.keyboards.main_menu_keyboard(is_admin)
         await query.edit_message_text(menu_text, reply_markup=keyboard)
 
     async def show_economy_menu(self, query, context):
@@ -685,6 +703,111 @@ class DragonRPBot:
             )
         else:
             await query.edit_message_text("❌ منابع کافی برای این انتقال ندارید!")
+
+    async def handle_convoy_action(self, query, context):
+        """Handle convoy interception actions"""
+        user_id = query.from_user.id
+        action_data = query.data.replace("convoy_", "")
+        
+        if action_data.startswith("stop_"):
+            convoy_id = int(action_data.replace("stop_", ""))
+            result = self.convoy.attempt_convoy_interception(user_id, convoy_id, "stop")
+        elif action_data.startswith("steal_"):
+            convoy_id = int(action_data.replace("steal_", ""))
+            result = self.convoy.attempt_convoy_interception(user_id, convoy_id, "steal")
+        else:
+            await query.edit_message_text("❌ دستور نامعتبر!")
+            return
+        
+        await query.edit_message_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
+    
+    async def show_alliance_menu(self, query, context):
+        """Show alliance menu"""
+        user_id = query.from_user.id
+        player = self.db.get_player(user_id)
+        alliance = self.alliance.get_player_alliance(user_id)
+        
+        if alliance:
+            menu_text = f"""🤝 اتحاد - {player['country_name']}
+            
+🏛 اتحاد: {alliance['alliance_name']}
+👑 نقش: {alliance['role']}
+
+انتخاب کنید:"""
+        else:
+            menu_text = f"""🤝 اتحادها - {player['country_name']}
+            
+شما عضو هیچ اتحادی نیستید.
+
+انتخاب کنید:"""
+        
+        keyboard = self.keyboards.alliance_menu_keyboard(alliance is not None)
+        await query.edit_message_text(menu_text, reply_markup=keyboard)
+    
+    async def handle_alliance_action(self, query, context):
+        """Handle alliance actions"""
+        user_id = query.from_user.id
+        action = query.data.replace("alliance_", "")
+        
+        if action == "create":
+            await query.edit_message_text("نام اتحاد جدید را ارسال کنید:")
+            context.user_data['awaiting_alliance_name'] = True
+        elif action == "invite":
+            await self.show_alliance_invite_menu(query, context)
+        elif action == "members":
+            await self.show_alliance_members(query, context)
+        elif action == "invitations":
+            await self.show_alliance_invitations(query, context)
+        elif action == "leave":
+            result = self.alliance.leave_alliance(user_id)
+            await query.edit_message_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
+        else:
+            await query.edit_message_text("❌ دستور نامعتبر!")
+    
+    async def show_marketplace_menu(self, query, context):
+        """Show marketplace menu"""
+        user_id = query.from_user.id
+        player = self.db.get_player(user_id)
+        
+        menu_text = f"""🛒 فروشگاه - {player['country_name']}
+        
+💰 پول شما: ${player['money']:,}
+
+در فروشگاه می‌توانید:
+• کالاهای دیگران را خریداری کنید
+• اقلام خود را برای فروش عرضه کنید
+• امنیت بالاتر = احتمال تحویل بیشتر
+
+انتخاب کنید:"""
+        
+        keyboard = self.keyboards.marketplace_menu_keyboard()
+        await query.edit_message_text(menu_text, reply_markup=keyboard)
+    
+    async def handle_marketplace_action(self, query, context):
+        """Handle marketplace actions"""
+        user_id = query.from_user.id
+        action = query.data.replace("market_", "")
+        
+        if action == "browse":
+            await self.show_market_categories(query, context)
+        elif action == "sell":
+            await self.show_sell_categories(query, context)
+        elif action == "my_listings":
+            await self.show_my_listings(query, context)
+        elif action.startswith("cat_"):
+            category = action.replace("cat_", "")
+            await self.show_market_listings(query, context, category)
+        else:
+            await query.edit_message_text("❌ دستور نامعتبر!")
+    
+    async def show_market_categories(self, query, context):
+        """Show market categories for browsing"""
+        menu_text = """🛒 دسته‌بندی کالاها
+        
+کدام دسته را می‌خواهید مرور کنید؟"""
+        
+        keyboard = self.keyboards.market_categories_keyboard()
+        await query.edit_message_text(menu_text, reply_markup=keyboard)
 
     async def show_propose_peace(self, query, context):
         """Show propose peace menu"""

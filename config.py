@@ -6,6 +6,11 @@ Contains all game constants, costs, and specifications
 class Config:
     """Main configuration class for DragonRP game"""
 
+    # Admin configuration
+    ADMIN_CONFIG = {
+        'default_admin_ids': [123456789, 987654321]  # Replace with actual admin user IDs
+    }
+
     # Countries with flags
     COUNTRIES = {
         'AR': 'آرژانتین',

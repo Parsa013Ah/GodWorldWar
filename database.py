@@ -372,13 +372,59 @@ class Database:
             ''', (new_count, user_id))
             conn.commit()
 
+    def create_convoy(self, sender_id, receiver_id, resources, arrival_hours=2):
+        """Create a new convoy"""
+        import json
+        from datetime import datetime, timedelta
+        
+        arrival_time = datetime.now() + timedelta(hours=arrival_hours)
+        
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO convoys (sender_id, receiver_id, resources, arrival_time, security_level)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (sender_id, receiver_id, json.dumps(resources), arrival_time.isoformat(), 50))
+            
+            convoy_id = cursor.lastrowid
+            conn.commit()
+            return convoy_id
+    
+    def get_convoy(self, convoy_id):
+        """Get convoy details"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM convoys WHERE id = ?', (convoy_id,))
+            result = cursor.fetchone()
+            return dict(result) if result else None
+    
+    def update_convoy_status(self, convoy_id, new_status):
+        """Update convoy status"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('UPDATE convoys SET status = ? WHERE id = ?', (new_status, convoy_id))
+            conn.commit()
+    
+    def update_convoy_arrival(self, convoy_id, new_arrival_time, new_status):
+        """Update convoy arrival time and status"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE convoys 
+                SET arrival_time = ?, status = ? 
+                WHERE id = ?
+            ''', (new_arrival_time, new_status, convoy_id))
+            conn.commit()
+
     def reset_all_data(self):
         """Reset all game data (admin function)"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
 
             # Drop and recreate all game tables
-            tables = ['players', 'resources', 'buildings', 'weapons', 'wars', 'convoys']
+            tables = ['players', 'resources', 'buildings', 'weapons', 'wars', 'convoys', 
+                     'alliances', 'alliance_members', 'alliance_invitations',
+                     'market_listings', 'market_transactions']
             for table in tables:
                 cursor.execute(f'DROP TABLE IF EXISTS {table}')
 
