@@ -134,6 +134,15 @@ class Keyboards:
                 InlineKeyboardButton("✈️ جت‌های پیشرفته", callback_data="weapon_cat_advanced_jets")
             ],
             [
+                InlineKeyboardButton("🚚 تجهیزات حمل‌ونقل", callback_data="weapon_cat_transport")
+            ],
+            [
+                InlineKeyboardButton("🔙 بازگشت", callback_data="military_menu")
+            ]
+        ]
+        return InlineKeyboardMarkup(keyboard)nced_jets")
+            ],
+            [
                 InlineKeyboardButton("🚛 تجهیزات حمل و نقل", callback_data="weapon_cat_transport")
             ],
             [

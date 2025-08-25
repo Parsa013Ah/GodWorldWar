@@ -1,15 +1,15 @@
 
-# جت‌های پیشرفته
+# جت‌های پیشرفته و جنگنده‌های نسل پنجم
 
 ADVANCED_JETS = {
     'f22': {
-        'name': 'اف-22 رپتور',
-        'cost': 15000000,
-        'power': 5500,
+        'name': 'F-22 رپتور',
+        'cost': 20000,
+        'power': 980,
         'range': 3000,
         'speed': 2400,
         'armor': 800,
-        'resources': {'titanium': 50, 'uranium': 10, 'lithium': 20, 'gold': 15},
+        'resources': {'titanium': 9, 'iron': 15, 'aluminum': 30, 'copper': 9, 'gold': 3},
         'category': 'advanced_jets',
         'description': 'جنگنده پنهان‌کار آمریکایی',
         'requirements': ['weapon_factory', 'power_plant', 'refinery'],
@@ -18,13 +18,13 @@ ADVANCED_JETS = {
         'air_superiority': 95
     },
     'f35': {
-        'name': 'اف-35 لایتنینگ',
-        'cost': 12000000,
-        'power': 4800,
-        'range': 2500,
+        'name': 'F-35 لایتنینگ',
+        'cost': 18000,
+        'power': 950,
+        'range': 2800,
         'speed': 1900,
         'armor': 600,
-        'resources': {'titanium': 40, 'aluminum': 30, 'lithium': 15, 'gold': 12},
+        'resources': {'titanium': 9, 'iron': 10, 'aluminum': 21, 'copper': 6, 'gold': 2},
         'category': 'advanced_jets',
         'description': 'جنگنده چندمنظوره پیشرفته',
         'requirements': ['weapon_factory', 'power_plant'],
@@ -33,13 +33,13 @@ ADVANCED_JETS = {
         'air_superiority': 88
     },
     'su57': {
-        'name': 'سوخو-57',
-        'cost': 13500000,
-        'power': 5200,
-        'range': 2800,
+        'name': 'Su-57 فلون',
+        'cost': 18000,
+        'power': 940,
+        'range': 2700,
         'speed': 2100,
         'armor': 750,
-        'resources': {'titanium': 45, 'uranium': 8, 'aluminum': 35, 'lithium': 18},
+        'resources': {'titanium': 9, 'iron': 10, 'aluminum': 21, 'copper': 6, 'gold': 2},
         'category': 'advanced_jets',
         'description': 'جنگنده پنهان‌کار روسی',
         'requirements': ['weapon_factory', 'power_plant', 'refinery'],
@@ -48,18 +48,48 @@ ADVANCED_JETS = {
         'air_superiority': 92
     },
     'j20': {
-        'name': 'جی-20',
-        'cost': 11000000,
-        'power': 4500,
-        'range': 2200,
+        'name': 'J-20 اژدر قدرتمند',
+        'cost': 15000,
+        'power': 920,
+        'range': 2500,
         'speed': 2000,
         'armor': 650,
-        'resources': {'titanium': 38, 'aluminum': 32, 'lithium': 16, 'gold': 10},
+        'resources': {'titanium': 9, 'iron': 10, 'aluminum': 21, 'copper': 6, 'gold': 2},
         'category': 'advanced_jets',
         'description': 'جنگنده پنهان‌کار چینی',
         'requirements': ['weapon_factory', 'power_plant'],
         'production_time': 280,
         'stealth': True,
         'air_superiority': 85
+    },
+    'f15ex': {
+        'name': 'F-15EX ایگل',
+        'cost': 15000,
+        'power': 910,
+        'range': 2400,
+        'speed': 2650,
+        'armor': 500,
+        'resources': {'titanium': 6, 'iron': 15, 'aluminum': 30, 'copper': 9, 'gold': 3},
+        'category': 'advanced_jets',
+        'description': 'جنگنده سنگین آمریکایی',
+        'requirements': ['weapon_factory', 'power_plant'],
+        'production_time': 250,
+        'heavy_fighter': True,
+        'air_superiority': 82
+    },
+    'su35s': {
+        'name': 'Su-35S فلنکر',
+        'cost': 15000,
+        'power': 900,
+        'range': 2300,
+        'speed': 2500,
+        'armor': 550,
+        'resources': {'titanium': 6, 'iron': 10, 'aluminum': 21, 'copper': 6, 'gold': 2},
+        'category': 'advanced_jets',
+        'description': 'جنگنده چندمنظوره روسی',
+        'requirements': ['weapon_factory', 'power_plant'],
+        'production_time': 240,
+        'multirole': True,
+        'air_superiority': 80
     }
 }
