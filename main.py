@@ -1293,6 +1293,91 @@ class DragonRPBot:
         else:
             await query.edit_message_text("❌ دستور نامعتبر!")
 
+    async def show_military_power(self, query, context):
+        """Show military power calculation"""
+        user_id = query.from_user.id
+        player = self.db.get_player(user_id)
+        weapons = self.db.get_player_weapons(user_id)
+        
+        # Calculate total military power
+        total_power = self.combat.calculate_military_power(user_id)
+        
+        power_text = f"""⚔️ قدرت نظامی - {player['country_name']}
+
+👥 جمعیت: {player['population']:,}
+⚔️ سربازان: {player['soldiers']:,}
+💪 قدرت کل: {total_power:,}
+
+🔫 تسلیحات:
+🔫 تفنگ: {weapons.get('rifle', 0)}
+🚗 تانک: {weapons.get('tank', 0)}
+✈️ جنگنده: {weapons.get('fighter_jet', 0)}
+🚁 پهپاد: {weapons.get('drone', 0)}
+🚀 موشک: {weapons.get('simple_missile', 0)}
+🚢 کشتی جنگی: {weapons.get('warship', 0)}
+🛡 پدافند هوایی: {weapons.get('air_defense', 0)}
+🚀 سپر موشکی: {weapons.get('missile_shield', 0)}"""
+
+        keyboard = self.keyboards.back_to_military_keyboard()
+        await query.edit_message_text(power_text, reply_markup=keyboard)
+
+    async def show_alliance_invite_menu(self, query, context):
+        """Show alliance invite menu"""
+        user_id = query.from_user.id
+        player = self.db.get_player(user_id)
+        alliance = self.alliance.get_player_alliance(user_id)
+        
+        if not alliance or alliance['role'] not in ['leader', 'officer']:
+            await query.edit_message_text("❌ شما اجازه دعوت کردن ندارید!")
+            return
+            
+        invite_text = f"""🤝 دعوت به اتحاد - {alliance['alliance_name']}
+
+لطفاً ID کاربری کشوری که می‌خواهید دعوت کنید را ارسال کنید."""
+
+        await query.edit_message_text(invite_text)
+        context.user_data['awaiting_alliance_invite'] = True
+
+    async def show_alliance_members(self, query, context):
+        """Show alliance members"""
+        user_id = query.from_user.id
+        alliance = self.alliance.get_player_alliance(user_id)
+        
+        if not alliance:
+            await query.edit_message_text("❌ شما عضو هیچ اتحادی نیستید!")
+            return
+            
+        members = self.alliance.get_alliance_members(alliance['alliance_id'])
+        
+        members_text = f"""👥 اعضای اتحاد - {alliance['alliance_name']}
+
+"""
+        
+        for member in members:
+            role_emoji = "👑" if member['role'] == 'leader' else "⭐" if member['role'] == 'officer' else "👤"
+            members_text += f"{role_emoji} {member['country_name']} ({member['role']})\n"
+            
+        keyboard = self.keyboards.back_to_alliance_keyboard()
+        await query.edit_message_text(members_text, reply_markup=keyboard)
+
+    async def show_alliance_invitations(self, query, context):
+        """Show pending alliance invitations"""
+        user_id = query.from_user.id
+        invitations = self.alliance.get_pending_invitations(user_id)
+        
+        if not invitations:
+            await query.edit_message_text("📭 شما هیچ دعوت‌نامه‌ای ندارید!")
+            return
+            
+        invite_text = "📬 دعوت‌نامه‌های شما:\n\n"
+        
+        for invite in invitations:
+            invite_text += f"🏛 {invite['alliance_name']}\n"
+            invite_text += f"📨 از: {invite['inviter_country']}\n\n"
+            
+        keyboard = self.keyboards.back_to_alliance_keyboard()
+        await query.edit_message_text(invite_text, reply_markup=keyboard)
+
     async def show_marketplace_menu(self, query, context):
         """Show marketplace menu"""
         user_id = query.from_user.id

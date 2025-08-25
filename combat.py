@@ -160,6 +160,20 @@ class CombatSystem:
         
         return defense_power
     
+    def calculate_military_power(self, user_id):
+        """Calculate total military power for display purposes"""
+        weapons = self.db.get_player_weapons(user_id)
+        total_power = 0
+        
+        # Calculate total power from all weapons
+        for weapon_type, count in weapons.items():
+            if weapon_type != 'user_id' and count > 0:
+                if weapon_type in Config.WEAPONS:
+                    weapon_power = Config.WEAPONS[weapon_type]['power']
+                    total_power += weapon_power * count
+        
+        return total_power
+    
     def schedule_delayed_attack(self, attacker_id, defender_id, attack_type="mixed"):
         """Schedule a delayed attack based on travel time"""
         can_attack, reason = self.can_attack_country(attacker_id, defender_id)

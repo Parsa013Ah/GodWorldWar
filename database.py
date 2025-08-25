@@ -354,6 +354,40 @@ class Database:
             cursor.execute('SELECT * FROM players ORDER BY country_name')
             return [dict(row) for row in cursor.fetchall()]
 
+    def set_player_building(self, user_id, building_type, count):
+        """Set player building count to specific value"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(f'''
+                    UPDATE buildings 
+                    SET {building_type} = ?
+                    WHERE user_id = ?
+                ''', (count, user_id))
+                conn.commit()
+                logger.info(f"Set {building_type} to {count} for player {user_id}")
+                return True
+        except Exception as e:
+            logger.error(f"Error setting building count: {e}")
+            return False
+
+    def update_player_income(self, user_id, new_money, new_population, new_soldiers):
+        """Update player money, population, and soldiers (for income cycle)"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    UPDATE players 
+                    SET money = ?, population = ?, soldiers = ?
+                    WHERE user_id = ?
+                ''', (new_money, new_population, new_soldiers, user_id))
+                conn.commit()
+                logger.info(f"Updated income for player {user_id}: ${new_money:,}, population: {new_population:,}, soldiers: {new_soldiers:,}")
+                return True
+        except Exception as e:
+            logger.error(f"Error updating player income: {e}")
+            return False
+
     def get_all_countries(self):
         """Get all countries with players"""
         with self.get_connection() as conn:
