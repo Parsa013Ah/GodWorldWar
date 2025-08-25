@@ -5,11 +5,11 @@ Contains all game constants, costs, and specifications
 
 class Config:
     """Main configuration class for DragonRP game"""
-    
+
     # Countries with flags
     COUNTRIES = {
         'AR': 'آرژانتین',
-        'IR': 'ایران', 
+        'IR': 'ایران',
         'JP': 'ژاپن',
         'RU': 'روسیه',
         'EG': 'مصر',

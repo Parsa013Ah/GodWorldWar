@@ -94,10 +94,10 @@ class DragonRPBot:
                 await self.handle_weapon_production(query, context)
             elif data == "select_attack_target":
                 await self.show_attack_targets(query, context)
-            elif data.startswith("attack_"):
-                await self.handle_attack(query, context)
             elif data == "attack_menu":
                 await self.show_attack_targets(query, context)
+            elif data.startswith("attack_"):
+                await self.handle_attack(query, context)
             elif data == "send_resources":
                 await self.show_send_resources_menu(query, context)
             elif data == "official_statement":
@@ -110,6 +110,10 @@ class DragonRPBot:
                 await self.show_military_power(query, context)
             elif data == "propose_peace":
                 await self.show_propose_peace(query, context)
+            elif data.startswith("send_to_"):
+                await self.handle_resource_transfer_target(query, context)
+            elif data.startswith("transfer_"):
+                await self.handle_resource_transfer(query, context)
             elif data.startswith("admin_"):
                 await self.admin.handle_admin_action(query, context)
             else:
@@ -499,18 +503,30 @@ class DragonRPBot:
         """Show resource transfer menu"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
+        resources = self.db.get_player_resources(user_id)
+        
+        all_countries = self.db.get_all_countries()
+        other_countries = [c for c in all_countries if c['user_id'] != user_id]
+        
+        if not other_countries:
+            await query.edit_message_text("❌ هیچ کشور دیگری برای ارسال منابع یافت نشد!")
+            return
         
         menu_text = f"""📬 ارسال منابع - {player['country_name']}
 
-این بخش به زودی فعال می‌شود...
+💰 پول شما: ${player['money']:,}
 
-💡 قابلیت‌های آینده:
-• ارسال پول به کشورهای دیگر
-• ارسال منابع خام
-• ارسال تسلیحات
-• حمله به کاروان‌ها"""
+📊 منابع موجود:
+🔩 آهن: {resources.get('iron', 0):,}
+🥉 مس: {resources.get('copper', 0):,}
+🛢 نفت: {resources.get('oil', 0):,}
+⛽ گاز: {resources.get('gas', 0):,}
+🔗 آلومینیوم: {resources.get('aluminum', 0):,}
+🏆 طلا: {resources.get('gold', 0):,}
+
+کشور مقصد را انتخاب کنید:"""
         
-        keyboard = self.keyboards.back_to_main_keyboard()
+        keyboard = self.keyboards.send_resources_targets_keyboard(other_countries)
         await query.edit_message_text(menu_text, reply_markup=keyboard)
     
     async def handle_official_statement(self, query, context):
@@ -581,6 +597,95 @@ class DragonRPBot:
         keyboard = self.keyboards.back_to_main_keyboard()
         await query.edit_message_text(power_breakdown, reply_markup=keyboard)
     
+    async def handle_resource_transfer_target(self, query, context):
+        """Handle resource transfer target selection"""
+        user_id = query.from_user.id
+        target_id = int(query.data.replace("send_to_", ""))
+        
+        player = self.db.get_player(user_id)
+        target = self.db.get_player(target_id)
+        resources = self.db.get_player_resources(user_id)
+        
+        menu_text = f"""📬 ارسال منابع به {target['country_name']}
+
+💰 پول شما: ${player['money']:,}
+
+منابع قابل ارسال:
+"""
+        
+        # Show available resources with transfer options
+        transfer_options = []
+        if player['money'] >= 10000:
+            transfer_options.append(('money_10k', '💰 10,000 دلار'))
+        if player['money'] >= 50000:
+            transfer_options.append(('money_50k', '💰 50,000 دلار'))
+        
+        for resource, amount in resources.items():
+            if resource != 'user_id' and amount >= 1000:
+                resource_config = Config.RESOURCES.get(resource, {})
+                resource_name = resource_config.get('name', resource)
+                resource_emoji = resource_config.get('emoji', '📦')
+                transfer_options.append((f'{resource}_1k', f'{resource_emoji} 1,000 {resource_name}'))
+        
+        if not transfer_options:
+            await query.edit_message_text("❌ منابع کافی برای ارسال ندارید!")
+            return
+        
+        keyboard = self.keyboards.resource_transfer_keyboard(target_id, transfer_options)
+        await query.edit_message_text(menu_text, reply_markup=keyboard)
+    
+    async def handle_resource_transfer(self, query, context):
+        """Handle actual resource transfer"""
+        user_id = query.from_user.id
+        data_parts = query.data.replace("transfer_", "").split("_")
+        target_id = int(data_parts[0])
+        transfer_type = "_".join(data_parts[1:])
+        
+        player = self.db.get_player(user_id)
+        target = self.db.get_player(target_id)
+        
+        success = False
+        transfer_description = ""
+        
+        if transfer_type == "money_10k":
+            if player['money'] >= 10000:
+                self.db.update_player_money(user_id, player['money'] - 10000)
+                self.db.update_player_money(target_id, target['money'] + 10000)
+                transfer_description = "10,000 دلار"
+                success = True
+        elif transfer_type == "money_50k":
+            if player['money'] >= 50000:
+                self.db.update_player_money(user_id, player['money'] - 50000)
+                self.db.update_player_money(target_id, target['money'] + 50000)
+                transfer_description = "50,000 دلار"
+                success = True
+        elif transfer_type.endswith("_1k"):
+            resource_type = transfer_type.replace("_1k", "")
+            resources = self.db.get_player_resources(user_id)
+            if resources.get(resource_type, 0) >= 1000:
+                self.db.consume_resources(user_id, {resource_type: 1000})
+                self.db.add_resources(target_id, resource_type, 1000)
+                resource_config = Config.RESOURCES.get(resource_type, {})
+                resource_name = resource_config.get('name', resource_type)
+                transfer_description = f"1,000 {resource_name}"
+                success = True
+        
+        if success:
+            await query.edit_message_text(
+                f"✅ انتقال موفق!\n\n"
+                f"📤 {transfer_description} به {target['country_name']} ارسال شد."
+            )
+            
+            # Send news to channel
+            await self.news.send_resource_transfer(
+                player['country_name'], 
+                target['country_name'], 
+                {transfer_type: transfer_description},
+                "فوری"
+            )
+        else:
+            await query.edit_message_text("❌ منابع کافی برای این انتقال ندارید!")
+
     async def show_propose_peace(self, query, context):
         """Show propose peace menu"""
         user_id = query.from_user.id

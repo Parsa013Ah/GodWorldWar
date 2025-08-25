@@ -175,6 +175,35 @@ class Keyboards:
         keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="diplomacy")])
         return InlineKeyboardMarkup(keyboard)
 
+    def send_resources_targets_keyboard(self, countries):
+        """Create send resources targets keyboard"""
+        keyboard = []
+        
+        for country in countries:
+            flag = Config.COUNTRY_FLAGS.get(country['country_code'], '🏳')
+            button = InlineKeyboardButton(
+                f"{flag} {country['country_name']}",
+                callback_data=f"send_to_{country['user_id']}"
+            )
+            keyboard.append([button])
+        
+        keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="diplomacy")])
+        return InlineKeyboardMarkup(keyboard)
+    
+    def resource_transfer_keyboard(self, target_id, transfer_options):
+        """Create resource transfer options keyboard"""
+        keyboard = []
+        
+        for option_code, option_text in transfer_options:
+            button = InlineKeyboardButton(
+                option_text,
+                callback_data=f"transfer_{target_id}_{option_code}"
+            )
+            keyboard.append([button])
+        
+        keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="send_resources")])
+        return InlineKeyboardMarkup(keyboard)
+
     def back_to_main_keyboard(self):
         """Simple back to main menu keyboard"""
         keyboard = [
