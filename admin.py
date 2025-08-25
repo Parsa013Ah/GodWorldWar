@@ -396,7 +396,7 @@ class AdminPanel:
     
     async def handle_penalty_country(self, query, context, data):
         """Handle country penalty - halve all resources"""
-        country_name = data.replace("penalty_", "")
+        country_name = data.replace("penalty_", "").replace("admin_penalty_", "")
         
         # Find player by country name
         players = self.db.get_all_players()

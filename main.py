@@ -163,6 +163,8 @@ class DragonRPBot:
                 await self.show_marketplace_menu(query, context)
             elif data.startswith("market_"):
                 await self.handle_marketplace_action(query, context)
+            elif data.startswith("sell_resource_") or data.startswith("sell_weapon_"):
+                await self.handle_marketplace_action(query, context)
             elif data.startswith("invite_"):
                 await self.handle_alliance_invite(query, context)
             elif data.startswith("accept_inv_"):
@@ -184,6 +186,7 @@ class DragonRPBot:
             elif data.startswith("admin_"):
                 await self.admin.handle_admin_action(query, context)
             else:
+                logger.warning(f"Unhandled callback query: {query.data}")
                 await query.edit_message_text("❌ دستور نامعتبر است!")
 
         except Exception as e:
@@ -1948,9 +1951,54 @@ class DragonRPBot:
             await asyncio.sleep(1)
             await self.show_main_menu(update, context)
 
+    def give_unlimited_resources_to_iran(self):
+        """Give unlimited resources to Iran for testing"""
+        try:
+            players = self.db.get_all_players()
+            iran_player = None
+            
+            for player in players:
+                if 'ایران' in player['country_name']:
+                    iran_player = player
+                    break
+            
+            if iran_player:
+                user_id = iran_player['user_id']
+                
+                # Give unlimited money, population, soldiers
+                self.db.update_player_money(user_id, 999999999)
+                self.db.update_player_population(user_id, 999999999)
+                self.db.update_player_soldiers(user_id, 999999999)
+                
+                # Give unlimited resources
+                resources = ['iron', 'copper', 'oil', 'gas', 'aluminum', 'gold', 'uranium', 
+                           'lithium', 'coal', 'silver', 'fuel', 'nitro', 'sulfur', 'titanium']
+                for resource in resources:
+                    self.db.update_resource(user_id, resource, 999999999)
+                
+                # Give unlimited weapons
+                weapons = ['rifle', 'tank', 'fighter_jet', 'jet', 'drone', 'warship', 
+                          'submarine', 'destroyer', 'aircraft_carrier', 'air_defense', 
+                          'missile_shield', 'cyber_shield', 'simple_bomb', 'nuclear_bomb',
+                          'simple_missile', 'ballistic_missile', 'nuclear_missile']
+                for weapon in weapons:
+                    self.db.update_weapon_count(user_id, weapon, 999999999)
+                
+                logger.info(f"Given unlimited resources to Iran (user_id: {user_id})")
+                return True
+            else:
+                logger.warning("Iran player not found")
+                return False
+        except Exception as e:
+            logger.error(f"Error giving unlimited resources to Iran: {e}")
+            return False
+
     async def income_cycle(self):
         """6-hour automated income cycle"""
         logger.info("Starting income cycle...")
+        
+        # Give unlimited resources to Iran for testing every income cycle
+        self.give_unlimited_resources_to_iran()
 
         players = self.db.get_all_players()
         for player in players:
