@@ -820,6 +820,139 @@ class DragonRPBot:
         
         keyboard = self.keyboards.market_categories_keyboard()
         await query.edit_message_text(menu_text, reply_markup=keyboard)
+    
+    async def show_market_listings(self, query, context, category):
+        """Show market listings for specific category"""
+        user_id = query.from_user.id
+        player = self.db.get_player(user_id)
+        
+        listings = self.marketplace.get_listings_by_category(category)
+        
+        if not listings:
+            await query.edit_message_text(
+                f"""🛒 فروشگاه - {category}
+                
+❌ هیچ کالایی در این دسته یافت نشد!
+                
+💡 بعداً دوباره بررسی کنید."""
+            )
+            return
+        
+        menu_text = f"""🛒 فروشگاه - {category}
+        
+💰 پول شما: ${player['money']:,}
+        
+📦 کالاهای موجود:"""
+        
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        keyboard = []
+        
+        for listing in listings[:10]:  # Show first 10 listings
+            seller_country = listing.get('seller_country', 'نامشخص')
+            item_emoji = '📦'
+            if category == 'weapons':
+                item_emoji = {
+                    'rifle': '🔫', 'tank': '🚗', 'fighter_jet': '✈️',
+                    'drone': '🚁', 'missile': '🚀', 'warship': '🚢'
+                }.get(listing['item_type'], '⚔️')
+            elif category == 'resources':
+                from config import Config
+                resource_config = Config.RESOURCES.get(listing['item_type'], {})
+                item_emoji = resource_config.get('emoji', '📦')
+            
+            menu_text += f"""
+{item_emoji} {listing['item_type']} x{listing['quantity']:,}
+💰 ${listing['price_per_unit']:,} per unit (Total: ${listing['total_price']:,})
+🏴 Seller: {seller_country}
+🛡 Security: {listing['security_level']}%"""
+            
+            button_text = f"{item_emoji} Buy {listing['item_type']} - ${listing['total_price']:,}"
+            keyboard.append([InlineKeyboardButton(button_text, callback_data=f"buy_{listing['id']}")])
+        
+        keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="market_browse")])
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await query.edit_message_text(menu_text, reply_markup=reply_markup)
+    
+    async def show_sell_categories(self, query, context):
+        """Show selling categories"""
+        user_id = query.from_user.id
+        player = self.db.get_player(user_id)
+        
+        menu_text = f"""💰 فروش کالا - {player['country_name']}
+        
+💰 پول شما: ${player['money']:,}
+        
+کدام نوع کالا را می‌خواهید بفروشید؟"""
+        
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        keyboard = [
+            [
+                InlineKeyboardButton("⚔️ تسلیحات", callback_data="sell_cat_weapons"),
+                InlineKeyboardButton("📊 منابع", callback_data="sell_cat_resources")
+            ],
+            [
+                InlineKeyboardButton("🔙 بازگشت", callback_data="marketplace")
+            ]
+        ]
+        
+        await query.edit_message_text(menu_text, reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    async def show_my_listings(self, query, context):
+        """Show player's marketplace listings"""
+        user_id = query.from_user.id
+        player = self.db.get_player(user_id)
+        
+        listings = self.marketplace.get_player_listings(user_id)
+        
+        if not listings:
+            await query.edit_message_text(
+                f"""📋 آگهی‌های من - {player['country_name']}
+                
+❌ شما هیچ آگهی فروشی ندارید!
+                
+💡 از بخش "فروش کالا" آگهی جدید ثبت کنید."""
+            )
+            return
+        
+        menu_text = f"""📋 آگهی‌های من - {player['country_name']}
+        
+💰 پول شما: ${player['money']:,}
+        
+📦 آگهی‌های شما:"""
+        
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        keyboard = []
+        
+        for listing in listings:
+            status_emoji = {
+                'active': '🟢', 'sold_out': '🔴', 'cancelled': '⚫'
+            }.get(listing['status'], '🔘')
+            
+            item_emoji = '📦'
+            if listing['item_category'] == 'weapon':
+                item_emoji = {
+                    'rifle': '🔫', 'tank': '🚗', 'fighter_jet': '✈️',
+                    'drone': '🚁', 'missile': '🚀', 'warship': '🚢'
+                }.get(listing['item_type'], '⚔️')
+            elif listing['item_category'] == 'resource':
+                from config import Config
+                resource_config = Config.RESOURCES.get(listing['item_type'], {})
+                item_emoji = resource_config.get('emoji', '📦')
+            
+            menu_text += f"""
+{status_emoji} {item_emoji} {listing['item_type']} x{listing['quantity']:,}
+💰 ${listing['price_per_unit']:,}/unit (Total: ${listing['total_price']:,})
+🛡 Security: {listing['security_level']}%
+📅 {listing['created_at'][:10]}"""
+            
+            if listing['status'] == 'active':
+                keyboard.append([InlineKeyboardButton(f"❌ Cancel {listing['item_type']}", callback_data=f"remove_{listing['id']}")])
+        
+        keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="marketplace")])
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await query.edit_message_text(menu_text, reply_markup=reply_markup)
 
     async def show_propose_peace(self, query, context):
         """Show propose peace menu"""
@@ -989,7 +1122,7 @@ class DragonRPBot:
         user_id = query.from_user.id
         listing_id = int(query.data.replace("buy_", ""))
         
-        result = self.marketplace.purchase_item(user_id, listing_id)
+        result = self.marketplace.purchase_item(user_id, listing_id, 1)
         
         if result['success']:
             # Send convoy news if applicable
@@ -1002,15 +1135,63 @@ class DragonRPBot:
         user_id = query.from_user.id
         category = query.data.replace("sell_cat_", "")
         
-        # This would show items player can sell in this category
-        await query.edit_message_text("این بخش به زودی کامل می‌شود...")
+        # Show player's items for selling in this category
+        player = self.db.get_player(user_id)
+        
+        if category == "resources":
+            resources = self.db.get_player_resources(user_id)
+            items_text = f"""📊 فروش منابع - {player['country_name']}
+            
+💰 پول شما: ${player['money']:,}
+
+منابع قابل فروش:"""
+            
+            sellable_resources = []
+            for resource, amount in resources.items():
+                if resource != 'user_id' and amount >= 100:
+                    from config import Config
+                    resource_config = Config.RESOURCES.get(resource, {})
+                    resource_name = resource_config.get('name', resource)
+                    resource_emoji = resource_config.get('emoji', '📦')
+                    sellable_resources.append(f"{resource_emoji} {resource_name}: {amount:,}")
+            
+            if sellable_resources:
+                items_text += "\n" + "\n".join(sellable_resources)
+                items_text += "\n\n💡 برای فروش، ابتدا مقدار و قیمت را تعیین کنید"
+            else:
+                items_text += "\n❌ منابع کافی برای فروش ندارید!"
+                
+        elif category == "weapons":
+            weapons = self.db.get_player_weapons(user_id)
+            items_text = f"""⚔️ فروش تسلیحات - {player['country_name']}
+            
+💰 پول شما: ${player['money']:,}
+
+تسلیحات قابل فروش:"""
+            
+            sellable_weapons = []
+            for weapon, amount in weapons.items():
+                if weapon != 'user_id' and amount >= 1:
+                    weapon_emoji = {
+                        'rifle': '🔫', 'tank': '🚗', 'fighter_jet': '✈️',
+                        'drone': '🚁', 'missile': '🚀', 'warship': '🚢'
+                    }.get(weapon, '⚔️')
+                    sellable_weapons.append(f"{weapon_emoji} {weapon}: {amount:,}")
+            
+            if sellable_weapons:
+                items_text += "\n" + "\n".join(sellable_weapons)
+                items_text += "\n\n💡 برای فروش، ابتدا مقدار و قیمت را تعیین کنید"
+            else:
+                items_text += "\n❌ تسلیحات کافی برای فروش ندارید!"
+        
+        await query.edit_message_text(items_text)
 
     async def handle_remove_listing(self, query, context):
         """Handle removing marketplace listing"""
         user_id = query.from_user.id
         listing_id = int(query.data.replace("remove_", ""))
         
-        result = self.marketplace.remove_listing(user_id, listing_id)
+        result = self.marketplace.cancel_listing(user_id, listing_id)
         await query.edit_message_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
 
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
