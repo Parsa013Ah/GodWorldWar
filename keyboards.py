@@ -61,24 +61,24 @@ class Keyboards:
         """Create buildings menu keyboard"""
         keyboard = [
             [
-                InlineKeyboardButton("⛏ معدن آهن", callback_data="build_iron_mine"),
-                InlineKeyboardButton("⛏ معدن مس", callback_data="build_copper_mine")
+                InlineKeyboardButton("⛏ معدن آهن - $32K", callback_data="build_iron_mine"),
+                InlineKeyboardButton("⛏ معدن مس - $40K", callback_data="build_copper_mine")
             ],
             [
-                InlineKeyboardButton("🛢 معدن نفت", callback_data="build_oil_mine"),
-                InlineKeyboardButton("⛽ معدن گاز", callback_data="build_gas_mine")
+                InlineKeyboardButton("🛢 معدن نفت - $48K", callback_data="build_oil_mine"),
+                InlineKeyboardButton("⛽ معدن گاز - $44K", callback_data="build_gas_mine")
             ],
             [
-                InlineKeyboardButton("🔗 معدن آلومینیوم", callback_data="build_aluminum_mine"),
-                InlineKeyboardButton("🏆 معدن طلا", callback_data="build_gold_mine")
+                InlineKeyboardButton("🔗 معدن آلومینیوم - $36K", callback_data="build_aluminum_mine"),
+                InlineKeyboardButton("🏆 معدن طلا - $60K", callback_data="build_gold_mine")
             ],
             [
-                InlineKeyboardButton("☢️ معدن اورانیوم", callback_data="build_uranium_mine"),
-                InlineKeyboardButton("🔋 معدن لیتیوم", callback_data="build_lithium_mine")
+                InlineKeyboardButton("☢️ معدن اورانیوم - $80K", callback_data="build_uranium_mine"),
+                InlineKeyboardButton("🔋 معدن لیتیوم - $72K", callback_data="build_lithium_mine")
             ],
             [
-                InlineKeyboardButton("⚫ معدن زغال", callback_data="build_coal_mine"),
-                InlineKeyboardButton("🥈 معدن نقره", callback_data="build_silver_mine")
+                InlineKeyboardButton("⚫ معدن زغال - $34K", callback_data="build_coal_mine"),
+                InlineKeyboardButton("🥈 معدن نقره - $56K", callback_data="build_silver_mine")
             ],
             [
                 InlineKeyboardButton("🏭 کارخانه اسلحه", callback_data="build_weapon_factory"),
@@ -86,11 +86,11 @@ class Keyboards:
             ],
             [
                 InlineKeyboardButton("🏭 پالایشگاه", callback_data="build_refinery"),
-                InlineKeyboardButton("🌾 مزرعه", callback_data="build_wheat_farm")
+                InlineKeyboardButton("🌾 مزرعه - 10K نفر", callback_data="build_wheat_farm")
             ],
             [
-                InlineKeyboardButton("🪖 پادگان", callback_data="build_military_base"),
-                InlineKeyboardButton("🏘 مسکن", callback_data="build_housing")
+                InlineKeyboardButton("🪖 پادگان - 5K سرباز", callback_data="build_military_base"),
+                InlineKeyboardButton("🏘 مسکن - 10K ظرفیت", callback_data="build_housing")
             ],
             [
                 InlineKeyboardButton("🔙 بازگشت", callback_data="economy")

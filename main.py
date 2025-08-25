@@ -96,10 +96,20 @@ class DragonRPBot:
                 await self.show_attack_targets(query, context)
             elif data.startswith("attack_"):
                 await self.handle_attack(query, context)
+            elif data == "attack_menu":
+                await self.show_attack_targets(query, context)
             elif data == "send_resources":
                 await self.show_send_resources_menu(query, context)
             elif data == "official_statement":
                 await self.handle_official_statement(query, context)
+            elif data == "income_report":
+                await self.show_income_report(query, context)
+            elif data == "defense_status":
+                await self.show_defense_status(query, context)
+            elif data == "military_power":
+                await self.show_military_power(query, context)
+            elif data == "propose_peace":
+                await self.show_propose_peace(query, context)
             elif data.startswith("admin_"):
                 await self.admin.handle_admin_action(query, context)
             else:
@@ -516,6 +526,79 @@ class DragonRPBot:
         # Store state for message handler
         context.user_data['awaiting_statement'] = True
     
+    async def show_income_report(self, query, context):
+        """Show detailed income report"""
+        user_id = query.from_user.id
+        report = self.economy.get_income_report(user_id)
+        
+        keyboard = self.keyboards.back_to_main_keyboard()
+        await query.edit_message_text(report, reply_markup=keyboard)
+    
+    async def show_defense_status(self, query, context):
+        """Show defense status"""
+        user_id = query.from_user.id
+        player = self.db.get_player(user_id)
+        weapons = self.db.get_player_weapons(user_id)
+        
+        defense_text = f"""🛡 وضعیت دفاعی - {player['country_name']}
+
+🛡 تسلیحات دفاعی:
+🛡 پدافند هوایی: {weapons.get('air_defense', 0)}
+🚀 سپر موشکی: {weapons.get('missile_shield', 0)}
+💻 سپر سایبری: {weapons.get('cyber_shield', 0)}
+
+⚔️ سربازان دفاعی: {player['soldiers']:,}
+
+💡 برای بهبود دفاع، تسلیحات دفاعی بیشتری تولید کنید."""
+        
+        keyboard = self.keyboards.back_to_main_keyboard()
+        await query.edit_message_text(defense_text, reply_markup=keyboard)
+    
+    async def show_military_power(self, query, context):
+        """Show military power calculation"""
+        user_id = query.from_user.id
+        player = self.db.get_player(user_id)
+        weapons = self.db.get_player_weapons(user_id)
+        
+        total_power = 0
+        power_breakdown = f"""📊 قدرت نظامی - {player['country_name']}
+
+⚔️ سربازان: {player['soldiers']:,} × 1 = {player['soldiers']:,}
+"""
+        total_power += player['soldiers']
+        
+        for weapon_type, count in weapons.items():
+            if weapon_type != 'user_id' and count > 0:
+                weapon_config = Config.WEAPONS.get(weapon_type, {})
+                weapon_power = weapon_config.get('power', 0)
+                weapon_name = weapon_config.get('name', weapon_type)
+                weapon_total = count * weapon_power
+                power_breakdown += f"{weapon_name}: {count} × {weapon_power} = {weapon_total:,}\n"
+                total_power += weapon_total
+        
+        power_breakdown += f"\n🔥 قدرت کل: {total_power:,}"
+        
+        keyboard = self.keyboards.back_to_main_keyboard()
+        await query.edit_message_text(power_breakdown, reply_markup=keyboard)
+    
+    async def show_propose_peace(self, query, context):
+        """Show propose peace menu"""
+        user_id = query.from_user.id
+        player = self.db.get_player(user_id)
+        
+        peace_text = f"""🕊 پیشنهاد صلح - {player['country_name']}
+
+این بخش به زودی فعال می‌شود...
+
+💡 قابلیت‌های آینده:
+• ارسال پیشنهاد صلح به کشورهای دیگر
+• مذاکرات دیپلماتیک
+• قراردادهای تجاری
+• اتحادهای نظامی"""
+        
+        keyboard = self.keyboards.back_to_main_keyboard()
+        await query.edit_message_text(peace_text, reply_markup=keyboard)
+
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle text messages"""
         user_id = update.effective_user.id
