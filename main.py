@@ -911,6 +911,7 @@ class DragonRPBot:
             ('armored_truck', 'کامیون زرهی', '🚚', weapons.get('armored_truck', 0)),
             ('cargo_helicopter', 'هلیکوپتر باری', '🚁', weapons.get('cargo_helicopter', 0)),
             ('cargo_plane', 'هواپیمای باری', '✈️', weapons.get('cargo_plane', 0)),
+            ('escort_frigate', 'ناوچه اسکورت', '🚢', weapons.get('escort_frigate', 0)),
             ('logistics_drone', 'پهپاد لجستیک', '🛸', weapons.get('logistics_drone', 0)),
             ('heavy_transport', 'ترابری سنگین', '🚛', weapons.get('heavy_transport', 0)),
             ('supply_ship', 'کشتی تدارکات', '🚢', weapons.get('supply_ship', 0)),
@@ -989,8 +990,18 @@ class DragonRPBot:
         # Check if selected transport is available
         if transport_type != 'none':
             weapons = self.db.get_player_weapons(user_id)
-            if weapons.get(transport_type, 0) < 1:
-                await query.edit_message_text("❌ وسیله حمل‌ونقل انتخابی در دسترس نیست!", reply_markup=self.keyboards.back_to_main_keyboard())
+            available_count = weapons.get(transport_type, 0)
+            if available_count < 1:
+                # Debug info for the user
+                debug_text = f"""❌ وسیله حمل‌ونقل انتخابی در دسترس نیست!
+
+🔍 جزئیات:
+• وسیله انتخابی: {transport_type}
+• تعداد موجود: {available_count}
+
+💡 برای استفاده از وسایل نقلیه، ابتدا باید آنها را از بخش سلاح‌سازی بسازید یا از بازار خریداری کنید."""
+                
+                await query.edit_message_text(debug_text, reply_markup=self.keyboards.back_to_main_keyboard())
                 return
 
         # Create convoy with selected transport (resources will be deducted automatically)
