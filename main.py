@@ -381,17 +381,23 @@ class DragonRPBot:
 
         result = self.game_logic.build_structure(user_id, building_type)
 
+        # Add back button
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        keyboard = [[InlineKeyboardButton("🔙 بازگشت به ساختمان‌ها", callback_data="buildings")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
         if result['success']:
             await query.edit_message_text(
                 f"✅ {result['message']}\n\n"
-                f"💰 پول باقی‌مانده: ${result['remaining_money']:,}"
+                f"💰 پول باقی‌مانده: ${result['remaining_money']:,}",
+                reply_markup=reply_markup
             )
 
             # Send news to channel
             player = self.db.get_player(user_id)
             await self.news.send_building_constructed(player['country_name'], result['building_name'])
         else:
-            await query.edit_message_text(f"❌ {result['message']}")
+            await query.edit_message_text(f"❌ {result['message']}", reply_markup=reply_markup)
 
     async def show_military_menu(self, query, context):
         """Show military management menu"""
@@ -540,17 +546,23 @@ class DragonRPBot:
 
         result = self.game_logic.produce_weapon(user_id, weapon_type)
 
+        # Add back button
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        keyboard = [[InlineKeyboardButton("🔙 بازگشت به تسلیحات", callback_data="weapons")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
         if result['success']:
             await query.edit_message_text(
                 f"✅ {result['message']}\n\n"
-                f"💰 پول باقی‌مانده: ${result['remaining_money']:,}"
+                f"💰 پول باقی‌مانده: ${result['remaining_money']:,}",
+                reply_markup=reply_markup
             )
 
             # Send news to channel
             player = self.db.get_player(user_id)
             await self.news.send_weapon_produced(player['country_name'], result['weapon_name'])
         else:
-            await query.edit_message_text(f"❌ {result['message']}")
+            await query.edit_message_text(f"❌ {result['message']}", reply_markup=reply_markup)
 
     async def show_weapon_quantity_selection(self, query, context):
         """Show quantity selection for weapon production"""
@@ -1696,14 +1708,22 @@ class DragonRPBot:
 
             result = self.marketplace.purchase_item(user_id, listing_id, 1)
 
-            if result['success']:
-                # Send convoy news if applicable
+            if result['success'] and result.get('is_first_purchase', False):
+                # Send convoy news only for first purchases
                 try:
                     await self.news.send_marketplace_purchase(result)
                 except:
                     pass  # Don't fail purchase if news fails
 
-            await query.edit_message_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
+            # Add back button
+            from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+            keyboard = [[InlineKeyboardButton("🔙 بازگشت به فروشگاه", callback_data="marketplace")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await query.edit_message_text(
+                f"{'✅' if result['success'] else '❌'} {result['message']}",
+                reply_markup=reply_markup
+            )
             
         except ValueError:
             await query.edit_message_text("❌ شناسه کالا نامعتبر!")
@@ -1910,7 +1930,12 @@ class DragonRPBot:
         else:
             success_text = f"❌ {result['message']}"
         
-        await query.edit_message_text(success_text)
+        # Add back button
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        keyboard = [[InlineKeyboardButton("🔙 بازگشت به فروشگاه", callback_data="marketplace")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await query.edit_message_text(success_text, reply_markup=reply_markup)
 
     async def handle_manual_transfer(self, query, context):
         """Handle manual transfer input request"""
@@ -2121,7 +2146,16 @@ oil 300
         listing_id = int(query.data.replace("remove_", ""))
 
         result = self.marketplace.cancel_listing(user_id, listing_id)
-        await query.edit_message_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
+        
+        # Add back button
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        keyboard = [[InlineKeyboardButton("🔙 بازگشت به فروشگاه", callback_data="marketplace")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await query.edit_message_text(
+            f"{'✅' if result['success'] else '❌'} {result['message']}",
+            reply_markup=reply_markup
+        )
 
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle text messages"""
@@ -2168,54 +2202,11 @@ oil 300
             await asyncio.sleep(1)
             await self.show_main_menu(update, context)
 
-    def give_unlimited_resources_to_iran(self):
-        """Give unlimited resources to Iran for testing"""
-        try:
-            players = self.db.get_all_players()
-            iran_player = None
-            
-            for player in players:
-                if 'ایران' in player['country_name']:
-                    iran_player = player
-                    break
-            
-            if iran_player:
-                user_id = iran_player['user_id']
-                
-                # Give unlimited money, population, soldiers
-                self.db.update_player_money(user_id, 999999999)
-                self.db.update_player_population(user_id, 999999999)
-                self.db.update_player_soldiers(user_id, 999999999)
-                
-                # Give unlimited resources
-                resources = ['iron', 'copper', 'oil', 'gas', 'aluminum', 'gold', 'uranium', 
-                           'lithium', 'coal', 'silver', 'fuel', 'nitro', 'sulfur', 'titanium']
-                for resource in resources:
-                    self.db.update_resource(user_id, resource, 999999999)
-                
-                # Give unlimited weapons
-                weapons = ['rifle', 'tank', 'fighter_jet', 'jet', 'drone', 'warship', 
-                          'submarine', 'destroyer', 'aircraft_carrier', 'air_defense', 
-                          'missile_shield', 'cyber_shield', 'simple_bomb', 'nuclear_bomb',
-                          'simple_missile', 'ballistic_missile', 'nuclear_missile']
-                for weapon in weapons:
-                    self.db.update_weapon_count(user_id, weapon, 999999999)
-                
-                logger.info(f"Given unlimited resources to Iran (user_id: {user_id})")
-                return True
-            else:
-                logger.warning("Iran player not found")
-                return False
-        except Exception as e:
-            logger.error(f"Error giving unlimited resources to Iran: {e}")
-            return False
+    
 
     async def income_cycle(self):
         """6-hour automated income cycle"""
         logger.info("Starting income cycle...")
-        
-        # Give unlimited resources to Iran for testing every income cycle
-        self.give_unlimited_resources_to_iran()
 
         players = self.db.get_all_players()
         for player in players:

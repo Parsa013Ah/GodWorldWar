@@ -135,6 +135,11 @@ class Marketplace:
 
             conn.commit()
 
+        # Check if this is first purchase for news
+        is_first_purchase = self.db.check_first_purchase(buyer_id, listing['item_type'])
+        if is_first_purchase:
+            self.db.record_first_purchase(buyer_id, listing['item_type'])
+
         # Add items to buyer (will be delivered based on security)
         delivery_success = self.process_delivery(buyer_id, listing, quantity_to_buy, transaction_id)
 
@@ -142,7 +147,8 @@ class Marketplace:
             'success': True,
             'message': 'خرید انجام شد! در صورت موفقیت تحویل، اقلام به شما تحویل داده می‌شود.',
             'transaction_id': transaction_id,
-            'delivery_status': delivery_success
+            'delivery_status': delivery_success,
+            'is_first_purchase': is_first_purchase
         }
 
     def process_delivery(self, buyer_id, listing, quantity, transaction_id):

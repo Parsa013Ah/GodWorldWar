@@ -57,18 +57,18 @@ class Database:
                     FOREIGN KEY (user_id) REFERENCES players (user_id)
                 )
             ''')
-            
+
             # Add new resource columns if they don't exist
             try:
                 cursor.execute('ALTER TABLE resources ADD COLUMN nitro INTEGER DEFAULT 0')
             except sqlite3.OperationalError:
                 pass  # Column already exists
-            
+
             try:
                 cursor.execute('ALTER TABLE resources ADD COLUMN sulfur INTEGER DEFAULT 0')
             except sqlite3.OperationalError:
                 pass  # Column already exists
-                
+
             try:
                 cursor.execute('ALTER TABLE resources ADD COLUMN titanium INTEGER DEFAULT 0')
             except sqlite3.OperationalError:
@@ -139,7 +139,7 @@ class Database:
                     FOREIGN KEY (user_id) REFERENCES players (user_id)
                 )
             ''')
-            
+
             # Add new weapon columns if they don't exist
             new_weapon_columns = [
                 'jet', 'submarine', 'destroyer', 'aircraft_carrier',
@@ -156,7 +156,7 @@ class Database:
                 # New naval weapons
                 'aircraft_carrier_full', 'warship', 'nuclear_submarine', 'patrol_ship', 'patrol_boat', 'amphibious_ship'
             ]
-            
+
             for column in new_weapon_columns:
                 try:
                     cursor.execute(f'ALTER TABLE weapons ADD COLUMN {column} INTEGER DEFAULT 0')
@@ -196,13 +196,13 @@ class Database:
                     FOREIGN KEY (receiver_id) REFERENCES players (user_id)
                 )
             ''')
-            
+
             # Add security_level column if it doesn't exist
             try:
                 cursor.execute('ALTER TABLE convoys ADD COLUMN security_level INTEGER DEFAULT 50')
             except sqlite3.OperationalError:
                 pass  # Column already exists
-                
+
             # Add created_at column if it doesn't exist
             try:
                 cursor.execute('ALTER TABLE convoys ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP')
@@ -253,22 +253,36 @@ class Database:
             )
             """)
 
-            # Marketplace transactions
-            cursor.execute("""
-            CREATE TABLE IF NOT EXISTS market_transactions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                buyer_id INTEGER NOT NULL,
-                seller_id INTEGER NOT NULL,
-                item_name TEXT NOT NULL,
-                item_type TEXT NOT NULL,
-                item_id TEXT NOT NULL,
-                quantity INTEGER NOT NULL,
-                price INTEGER NOT NULL,
-                transaction_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (buyer_id) REFERENCES players (user_id),
-                FOREIGN KEY (seller_id) REFERENCES players (user_id)
-            )
-            """)
+            # Market transactions table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS market_transactions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    listing_id INTEGER NOT NULL,
+                    buyer_id INTEGER NOT NULL,
+                    seller_id INTEGER NOT NULL,
+                    item_type TEXT NOT NULL,
+                    quantity INTEGER NOT NULL,
+                    total_paid INTEGER NOT NULL,
+                    status TEXT DEFAULT 'pending',
+                    transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    delivery_date TIMESTAMP,
+                    FOREIGN KEY (listing_id) REFERENCES market_listings (id),
+                    FOREIGN KEY (buyer_id) REFERENCES players (user_id),
+                    FOREIGN KEY (seller_id) REFERENCES players (user_id)
+                )
+            ''')
+
+            # Purchase tracking table for preventing duplicate news
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS purchase_tracking (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    buyer_id INTEGER NOT NULL,
+                    item_type TEXT NOT NULL,
+                    first_purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(buyer_id, item_type),
+                    FOREIGN KEY (buyer_id) REFERENCES players (user_id)
+                )
+            ''')
 
             conn.commit()
             logger.info("Database initialized successfully")
@@ -455,9 +469,9 @@ class Database:
             'supply_ship': 'supply_ship',
             'stealth_transport': 'stealth_transport'
         }
-        
+
         column_name = weapon_column_map.get(weapon_type, weapon_type)
-        
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(f'''
@@ -665,7 +679,7 @@ class Database:
             # Drop and recreate all game tables
             tables = ['players', 'resources', 'buildings', 'weapons', 'wars', 'convoys', 'pending_attacks', 
                      'alliances', 'alliance_members', 'alliance_invitations',
-                     'market_listings', 'market_transactions']
+                     'market_listings', 'market_transactions', 'purchase_tracking']
             for table in tables:
                 cursor.execute(f'DROP TABLE IF EXISTS {table}')
 
@@ -674,3 +688,23 @@ class Database:
         # Reinitialize database
         self.initialize()
         return True
+
+    def check_first_purchase(self, user_id, item_type):
+        """Check if this is user's first purchase of this item type"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT id FROM purchase_tracking WHERE buyer_id = ? AND item_type = ?',
+                (user_id, item_type)
+            )
+            return cursor.fetchone() is None
+
+    def record_first_purchase(self, user_id, item_type):
+        """Record first purchase of an item type"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT OR IGNORE INTO purchase_tracking (buyer_id, item_type)
+                VALUES (?, ?)
+            ''', (user_id, item_type))
+            conn.commit()
