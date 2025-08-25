@@ -89,6 +89,25 @@ class NewsChannel:
             logger.error(f"Failed to send news to channel: {e}")
             return False
 
+    async def send_convoy_news(self, message, keyboard=None):
+        """Send convoy news with action buttons"""
+        if not self.bot:
+            logger.error("Bot not set for news channel")
+            return False
+
+        try:
+            await self.bot.send_message(
+                chat_id=self.channel_id, 
+                text=message, 
+                parse_mode='HTML',
+                reply_markup=keyboard
+            )
+            logger.info(f"🚚 Convoy news sent to {self.channel_id}")
+            return True
+        except TelegramError as e:
+            logger.error(f"Failed to send convoy news to channel: {e}")
+            return False
+
     async def send_player_joined(self, country_name, username):
         """Send player joined news"""
         country_flag = self.get_country_flag(country_name)

@@ -251,7 +251,7 @@ class Keyboards:
         keyboard = [
             [
                 InlineKeyboardButton("⚔️ انتخاب هدف حمله", callback_data="select_attack_target"),
-                InlineKeyboardButton("📬 ارسال منابع", callback_data="send_resources")
+                InlineKeyboardButton("🚚 انتقال منابع", callback_data="send_resources")
             ],
             [
                 InlineKeyboardButton("🏴‍☠️ دزدی محموله", callback_data="intercept_convoys"),
@@ -260,6 +260,9 @@ class Keyboards:
             [
                 InlineKeyboardButton("🕊 پیشنهاد صلح", callback_data="propose_peace"),
                 InlineKeyboardButton("🤝 اتحادها", callback_data="alliances")
+            ],
+            [
+                InlineKeyboardButton("🛒 فروشگاه", callback_data="marketplace")
             ],
             [
                 InlineKeyboardButton("🔙 بازگشت به منوی اصلی", callback_data="main_menu")

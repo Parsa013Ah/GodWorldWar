@@ -733,6 +733,7 @@ class DragonRPBot:
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
         resources = self.db.get_player_resources(user_id)
+        weapons = self.db.get_player_weapons(user_id)
 
         all_countries = self.db.get_all_countries()
         other_countries = [c for c in all_countries if c['user_id'] != user_id]
@@ -741,9 +742,13 @@ class DragonRPBot:
             await query.edit_message_text("❌ هیچ کشور دیگری برای ارسال منابع یافت نشد!")
             return
 
-        menu_text = f"""📬 ارسال منابع - {player['country_name']}
+        # Calculate estimated travel time based on transport equipment
+        travel_time = self.convoy.calculate_convoy_travel_time(user_id)
+
+        menu_text = f"""🚚 انتقال منابع - {player['country_name']}
 
 💰 پول شما: ${player['money']:,}
+⏱ زمان انتقال تخمینی: {travel_time} دقیقه
 
 📊 منابع موجود:
 🔩 آهن: {resources.get('iron', 0):,}
@@ -752,6 +757,16 @@ class DragonRPBot:
 ⛽ گاز: {resources.get('gas', 0):,}
 🔗 آلومینیوم: {resources.get('aluminum', 0):,}
 🏆 طلا: {resources.get('gold', 0):,}
+☢️ اورانیوم: {resources.get('uranium', 0):,}
+🔋 لیتیوم: {resources.get('lithium', 0):,}
+
+🚛 تجهیزات حمل‌ونقل:
+🚚 کامیون زرهی: {weapons.get('armored_truck', 0)}
+🚁 هلیکوپتر باری: {weapons.get('cargo_helicopter', 0)}
+✈️ هواپیمای باری: {weapons.get('cargo_plane', 0)}
+🚢 کشتی تدارکات: {weapons.get('supply_ship', 0)}
+
+💡 محموله در طول مسیر قابل رهگیری است!
 
 کشور مقصد را انتخاب کنید:"""
 
@@ -864,7 +879,7 @@ class DragonRPBot:
         await query.edit_message_text(menu_text, reply_markup=keyboard)
 
     async def handle_resource_transfer(self, query, context):
-        """Handle actual resource transfer"""
+        """Handle actual resource transfer with convoy system"""
         user_id = query.from_user.id
         data_parts = query.data.replace("transfer_", "").split("_")
         target_id = int(data_parts[0])
@@ -873,45 +888,72 @@ class DragonRPBot:
         player = self.db.get_player(user_id)
         target = self.db.get_player(target_id)
 
-        success = False
+        transfer_resources = {}
         transfer_description = ""
+        can_transfer = False
 
         if transfer_type == "money_10k":
             if player['money'] >= 10000:
-                self.db.update_player_money(user_id, player['money'] - 10000)
-                self.db.update_player_money(target_id, target['money'] + 10000)
-                transfer_description = "10,000 دلار"
-                success = True
+                transfer_resources = {'money': 10000}
+                transfer_description = "💰 10,000 دلار"
+                can_transfer = True
         elif transfer_type == "money_50k":
             if player['money'] >= 50000:
-                self.db.update_player_money(user_id, player['money'] - 50000)
-                self.db.update_player_money(target_id, target['money'] + 50000)
-                transfer_description = "50,000 دلار"
-                success = True
+                transfer_resources = {'money': 50000}
+                transfer_description = "💰 50,000 دلار"
+                can_transfer = True
         elif transfer_type.endswith("_1k"):
             resource_type = transfer_type.replace("_1k", "")
             resources = self.db.get_player_resources(user_id)
             if resources.get(resource_type, 0) >= 1000:
-                self.db.consume_resources(user_id, {resource_type: 1000})
-                self.db.add_resources(target_id, resource_type, 1000)
+                transfer_resources = {resource_type: 1000}
                 resource_config = Config.RESOURCES.get(resource_type, {})
                 resource_name = resource_config.get('name', resource_type)
-                transfer_description = f"1,000 {resource_name}"
-                success = True
+                resource_emoji = resource_config.get('emoji', '📦')
+                transfer_description = f"{resource_emoji} 1,000 {resource_name}"
+                can_transfer = True
 
-        if success:
+        if can_transfer:
+            # Deduct resources from sender
+            if 'money' in transfer_resources:
+                self.db.update_player_money(user_id, player['money'] - transfer_resources['money'])
+            else:
+                self.db.consume_resources(user_id, transfer_resources)
+
+            # Create convoy
+            convoy_result = self.convoy.create_convoy(user_id, target_id, transfer_resources)
+            
             await query.edit_message_text(
-                f"✅ انتقال موفق!\n\n"
-                f"📤 {transfer_description} به {target['country_name']} ارسال شد."
+                f"🚚 محموله آماده شد!\n\n"
+                f"📤 در حال ارسال: {transfer_description}\n"
+                f"📍 مقصد: {target['country_name']}\n"
+                f"⏱ زمان رسیدن: {convoy_result['travel_time']} دقیقه\n"
+                f"🛡 سطح امنیت: {convoy_result['security_level']}%\n\n"
+                f"💡 محموله در طول مسیر قابل رهگیری است!"
             )
 
-            # Send news to channel
-            await self.news.send_resource_transfer(
-                player['country_name'],
-                target['country_name'],
-                transfer_description,
-                "فوری"
+            # Send convoy news to channel with action buttons
+            sender_flag = Config.COUNTRY_FLAGS.get(player['country_code'], '🏳')
+            receiver_flag = Config.COUNTRY_FLAGS.get(target['country_code'], '🏳')
+            
+            convoy_message = f"""🚚 محموله در حرکت!
+
+📤 {sender_flag} <b>{player['country_name']}</b> 
+📥 {receiver_flag} <b>{target['country_name']}</b>
+
+📦 محتویات: {transfer_description}
+⏱ زمان رسیدن: {convoy_result['travel_time']} دقیقه
+🛡 امنیت: {convoy_result['security_level']}%
+
+💡 این محموله قابل رهگیری است!"""
+
+            # Create keyboard for convoy actions
+            convoy_keyboard = self.convoy.create_convoy_news_keyboard(
+                convoy_result['convoy_id'], 
+                convoy_result['security_level']
             )
+            
+            await self.news.send_convoy_news(convoy_message, convoy_keyboard)
         else:
             await query.edit_message_text("❌ منابع کافی برای این انتقال ندارید!")
 

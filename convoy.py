@@ -163,6 +163,56 @@ class ConvoySystem:
             'message': 'محموله آزاد شد و مجدداً در حال حرکت است!'
         }
     
+    def get_active_convoys(self):
+        """Get all active convoys that are in transit"""
+        return self.db.get_active_convoys()
+
+    def create_convoy(self, sender_id, receiver_id, resources, transfer_type="resources"):
+        """Create a new convoy with calculated travel time"""
+        # Calculate travel time based on transport equipment
+        travel_time = self.calculate_convoy_travel_time(sender_id)
+        
+        # Calculate convoy security
+        total_value = sum(amount * Config.RESOURCES.get(res_type, {}).get('market_value', 10) 
+                         for res_type, amount in resources.items() if res_type != 'money')
+        if 'money' in resources:
+            total_value += resources['money']
+            
+        security_level = self.calculate_convoy_security(sender_id, total_value)
+        
+        # Create convoy in database
+        convoy_id = self.db.create_convoy(sender_id, receiver_id, resources, travel_time, security_level)
+        
+        return {
+            'convoy_id': convoy_id,
+            'travel_time': travel_time,
+            'security_level': security_level,
+            'estimated_arrival': datetime.now() + timedelta(minutes=travel_time)
+        }
+
+    def calculate_convoy_travel_time(self, sender_id):
+        """Calculate convoy travel time based on transport equipment (10-30 minutes)"""
+        weapons = self.db.get_player_weapons(sender_id)
+        
+        # Base travel time: 30 minutes
+        base_time = 30
+        
+        # Calculate speed reduction from transport equipment
+        speed_reduction = 0
+        speed_reduction += weapons.get('armored_truck', 0) * 1      # 1 min reduction per truck
+        speed_reduction += weapons.get('cargo_helicopter', 0) * 2   # 2 min reduction per heli
+        speed_reduction += weapons.get('cargo_plane', 0) * 3        # 3 min reduction per plane
+        speed_reduction += weapons.get('escort_frigate', 0) * 2.5   # 2.5 min reduction per frigate
+        speed_reduction += weapons.get('logistics_drone', 0) * 1.5  # 1.5 min reduction per drone
+        speed_reduction += weapons.get('heavy_transport', 0) * 2    # 2 min reduction per heavy transport
+        speed_reduction += weapons.get('supply_ship', 0) * 2.5      # 2.5 min reduction per ship
+        speed_reduction += weapons.get('stealth_transport', 0) * 4  # 4 min reduction per stealth transport
+        
+        # Minimum time is 10 minutes, maximum is 30 minutes
+        final_time = max(10, base_time - int(speed_reduction))
+        
+        return final_time
+
     def create_convoy_news_keyboard(self, convoy_id, security_level):
         """Create keyboard for convoy news with interception options"""
         keyboard = [

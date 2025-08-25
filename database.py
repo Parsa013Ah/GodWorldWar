@@ -530,19 +530,37 @@ class Database:
             ''', (new_count, user_id))
             conn.commit()
 
-    def create_convoy(self, sender_id, receiver_id, resources, arrival_hours=2):
+    def get_active_convoys(self):
+        """Get all active convoys in transit"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT c.*, 
+                       s.country_name as sender_country,
+                       r.country_name as receiver_country
+                FROM convoys c
+                JOIN players s ON c.sender_id = s.user_id
+                JOIN players r ON c.receiver_id = r.user_id
+                WHERE c.status = 'in_transit'
+                AND c.arrival_time > datetime('now')
+                ORDER BY c.created_at DESC
+            ''')
+            results = cursor.fetchall()
+            return [dict(row) for row in results] if results else []
+
+    def create_convoy(self, sender_id, receiver_id, resources, travel_minutes=30, security_level=50):
         """Create a new convoy"""
         import json
         from datetime import datetime, timedelta
 
-        arrival_time = datetime.now() + timedelta(hours=arrival_hours)
+        arrival_time = datetime.now() + timedelta(minutes=travel_minutes)
 
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO convoys (sender_id, receiver_id, resources, arrival_time, security_level)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (sender_id, receiver_id, json.dumps(resources), arrival_time.isoformat(), 50))
+                INSERT INTO convoys (sender_id, receiver_id, resources, arrival_time, security_level, status, created_at)
+                VALUES (?, ?, ?, ?, ?, 'in_transit', datetime('now'))
+            ''', (sender_id, receiver_id, json.dumps(resources), arrival_time.isoformat(), security_level))
 
             convoy_id = cursor.lastrowid
             conn.commit()
