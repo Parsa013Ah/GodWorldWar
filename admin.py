@@ -2,6 +2,7 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes, MessageHandler, filters
 from keyboards import Keyboards
+from config import Config
 
 logger = logging.getLogger(__name__)
 

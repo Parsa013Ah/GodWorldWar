@@ -1388,7 +1388,11 @@ class DragonRPBot:
             return
         
         item_type = data_parts[2]  # e.g., "iron", "rifle", etc.
-        amount = int(data_parts[3])
+        try:
+            amount = int(data_parts[3])
+        except ValueError:
+            await query.edit_message_text("❌ مقدار نامعتبر!")
+            return
         
         # Get all players
         players = self.db.get_all_players()
@@ -1398,11 +1402,18 @@ class DragonRPBot:
         
         # Give to all players
         success_count = 0
+        error_count = 0
+        
         for player in players:
             try:
+                result = None
+                
+                # Check if it's a resource
                 if item_type in ['iron', 'copper', 'oil', 'aluminum', 'gold', 'uranium', 'lithium', 'coal', 'nitro', 'sulfur', 'titanium']:
                     self.db.add_resources(player['user_id'], item_type, amount)
                     success_count += 1
+                    
+                # Check if it's a weapon
                 elif item_type in ['rifle', 'tank', 'fighter', 'jet', 'drone', 'simple', 'bomb', 'nuclear', 'ballistic', 'missile', 'f22']:
                     weapon_map = {
                         'rifle': 'rifle',
@@ -1420,16 +1431,32 @@ class DragonRPBot:
                     weapon_name = weapon_map.get(item_type, item_type)
                     self.db.add_weapon(player['user_id'], weapon_name, amount)
                     success_count += 1
+                    
                 else:
                     logger.error(f"Unknown item type: {item_type}")
+                    error_count += 1
                     continue
+                    
             except Exception as e:
                 logger.error(f"Error giving {item_type} to {player['country_name']}: {e}")
+                error_count += 1
+        
+        # Create result message
+        if success_count > 0:
+            result_text = f"✅ آیتم با موفقیت به {success_count} کشور هدیه داده شد!\n\n"
+            result_text += f"📦 آیتم: {item_type}\n"
+            result_text += f"🔢 مقدار: {amount:,}"
+            
+            if error_count > 0:
+                result_text += f"\n\n⚠️ {error_count} خطا رخ داد"
+        else:
+            result_text = f"❌ خطا در هدیه دادن آیتم!\n\n"
+            result_text += f"📦 آیتم: {item_type}\n"
+            result_text += f"🔢 مقدار: {amount:,}\n"
+            result_text += f"❌ تعداد خطاها: {error_count}"
         
         await query.edit_message_text(
-            f"✅ آیتم با موفقیت به {success_count} کشور هدیه داده شد!\n\n"
-            f"📦 آیتم: {item_type}\n"
-            f"🔢 مقدار: {amount:,}",
+            result_text,
             reply_markup=self.keyboards.admin_give_items_keyboard()
         )
 
