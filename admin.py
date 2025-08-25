@@ -287,3 +287,83 @@ class AdminPanel:
             self.admin_ids.remove(user_id)
             return True
         return False
+    
+    def give_resources_to_player(self, user_id, resource_type, amount):
+        """Give resources to a player"""
+        player = self.db.get_player(user_id)
+        if not player:
+            return {'success': False, 'message': 'بازیکن یافت نشد'}
+        
+        # Add resources
+        self.db.add_resources(user_id, resource_type, amount)
+        
+        resource_config = Config.RESOURCES.get(resource_type, {})
+        resource_name = resource_config.get('name', resource_type)
+        
+        return {
+            'success': True,
+            'message': f"{amount:,} {resource_name} به {player['country_name']} اضافه شد"
+        }
+    
+    def give_weapons_to_player(self, user_id, weapon_type, amount):
+        """Give weapons to a player"""
+        player = self.db.get_player(user_id)
+        if not player:
+            return {'success': False, 'message': 'بازیکن یافت نشد'}
+        
+        # Add weapons
+        self.db.add_weapon(user_id, weapon_type, amount)
+        
+        weapon_config = Config.WEAPONS.get(weapon_type, {})
+        weapon_name = weapon_config.get('name', weapon_type)
+        
+        return {
+            'success': True,
+            'message': f"{amount:,} {weapon_name} به {player['country_name']} اضافه شد"
+        }
+    
+    def give_population_to_player(self, user_id, amount):
+        """Give population to a player"""
+        player = self.db.get_player(user_id)
+        if not player:
+            return {'success': False, 'message': 'بازیکن یافت نشد'}
+        
+        new_population = player['population'] + amount
+        self.db.update_player_population(user_id, new_population)
+        
+        return {
+            'success': True,
+            'message': f"{amount:,} نفر جمعیت به {player['country_name']} اضافه شد"
+        }
+    
+    def give_soldiers_to_player(self, user_id, amount):
+        """Give soldiers to a player"""
+        player = self.db.get_player(user_id)
+        if not player:
+            return {'success': False, 'message': 'بازیکن یافت نشد'}
+        
+        new_soldiers = player['soldiers'] + amount
+        self.db.update_player_soldiers(user_id, new_soldiers)
+        
+        return {
+            'success': True,
+            'message': f"{amount:,} سرباز به {player['country_name']} اضافه شد"
+        }
+    
+    def give_buildings_to_player(self, user_id, building_type, amount):
+        """Give buildings to a player"""
+        player = self.db.get_player(user_id)
+        if not player:
+            return {'success': False, 'message': 'بازیکن یافت نشد'}
+        
+        # Add buildings
+        for _ in range(amount):
+            self.db.add_building(user_id, building_type)
+        
+        building_config = Config.BUILDINGS.get(building_type, {})
+        building_name = building_config.get('name', building_type)
+        
+        return {
+            'success': True,
+            'message': f"{amount:,} {building_name} به {player['country_name']} اضافه شد"
+        }

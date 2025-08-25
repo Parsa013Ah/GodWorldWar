@@ -51,9 +51,28 @@ class Database:
                     coal INTEGER DEFAULT 0,
                     silver INTEGER DEFAULT 0,
                     fuel INTEGER DEFAULT 0,
+                    nitro INTEGER DEFAULT 0,
+                    sulfur INTEGER DEFAULT 0,
+                    titanium INTEGER DEFAULT 0,
                     FOREIGN KEY (user_id) REFERENCES players (user_id)
                 )
             ''')
+            
+            # Add new resource columns if they don't exist
+            try:
+                cursor.execute('ALTER TABLE resources ADD COLUMN nitro INTEGER DEFAULT 0')
+            except sqlite3.OperationalError:
+                pass  # Column already exists
+            
+            try:
+                cursor.execute('ALTER TABLE resources ADD COLUMN sulfur INTEGER DEFAULT 0')
+            except sqlite3.OperationalError:
+                pass  # Column already exists
+                
+            try:
+                cursor.execute('ALTER TABLE resources ADD COLUMN titanium INTEGER DEFAULT 0')
+            except sqlite3.OperationalError:
+                pass  # Column already exists
 
             # Buildings table
             cursor.execute('''
@@ -69,6 +88,9 @@ class Database:
                     lithium_mine INTEGER DEFAULT 0,
                     coal_mine INTEGER DEFAULT 0,
                     silver_mine INTEGER DEFAULT 0,
+                    nitro_mine INTEGER DEFAULT 0,
+                    sulfur_mine INTEGER DEFAULT 0,
+                    titanium_mine INTEGER DEFAULT 0,
                     weapon_factory INTEGER DEFAULT 0,
                     refinery INTEGER DEFAULT 0,
                     power_plant INTEGER DEFAULT 0,

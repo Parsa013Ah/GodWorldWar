@@ -363,10 +363,11 @@ class Keyboards:
                 InlineKeyboardButton("👥 مدیریت بازیکنان", callback_data="admin_players")
             ],
             [
-                InlineKeyboardButton("📋 لاگ‌ها", callback_data="admin_logs"),
-                InlineKeyboardButton("🔄 ریست بازی", callback_data="admin_reset")
+                InlineKeyboardButton("🎁 هدیه به کشورها", callback_data="admin_give_items"),
+                InlineKeyboardButton("📋 لاگ‌ها", callback_data="admin_logs")
             ],
             [
+                InlineKeyboardButton("🔄 ریست بازی", callback_data="admin_reset"),
                 InlineKeyboardButton("🔙 منوی اصلی", callback_data="main_menu")
             ]
         ]
@@ -395,10 +396,93 @@ class Keyboards:
                 InlineKeyboardButton("📊 نمایش کامل", callback_data=f"admin_view_{user_id}")
             ],
             [
+                InlineKeyboardButton("🎁 هدیه آیتم", callback_data=f"admin_give_to_{user_id}"),
                 InlineKeyboardButton("❌ حذف بازیکن", callback_data=f"admin_delete_{user_id}")
             ],
             [
                 InlineKeyboardButton("🔙 بازگشت", callback_data="admin_players")
+            ]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+    
+    def admin_give_items_keyboard(self):
+        """Create admin give items category keyboard"""
+        keyboard = [
+            [
+                InlineKeyboardButton("💰 پول", callback_data="admin_give_cat_money"),
+                InlineKeyboardButton("📦 منابع", callback_data="admin_give_cat_resources")
+            ],
+            [
+                InlineKeyboardButton("⚔️ سلاح‌ها", callback_data="admin_give_cat_weapons"),
+                InlineKeyboardButton("🏗 ساختمان‌ها", callback_data="admin_give_cat_buildings")
+            ],
+            [
+                InlineKeyboardButton("👥 جمعیت", callback_data="admin_give_cat_population"),
+                InlineKeyboardButton("🪖 سرباز", callback_data="admin_give_cat_soldiers")
+            ],
+            [
+                InlineKeyboardButton("🔙 پنل ادمین", callback_data="admin_panel")
+            ]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+    
+    def admin_give_resources_keyboard(self):
+        """Create keyboard for giving resources"""
+        keyboard = [
+            [
+                InlineKeyboardButton("🔩 آهن (1000)", callback_data="admin_give_iron_1000"),
+                InlineKeyboardButton("🥉 مس (1000)", callback_data="admin_give_copper_1000")
+            ],
+            [
+                InlineKeyboardButton("🛢 نفت (1000)", callback_data="admin_give_oil_1000"),
+                InlineKeyboardButton("🔗 آلومینیوم (1000)", callback_data="admin_give_aluminum_1000")
+            ],
+            [
+                InlineKeyboardButton("🏆 طلا (100)", callback_data="admin_give_gold_100"),
+                InlineKeyboardButton("☢️ اورانیوم (100)", callback_data="admin_give_uranium_100")
+            ],
+            [
+                InlineKeyboardButton("🔋 لیتیوم (500)", callback_data="admin_give_lithium_500"),
+                InlineKeyboardButton("⚫ زغال‌سنگ (1000)", callback_data="admin_give_coal_1000")
+            ],
+            [
+                InlineKeyboardButton("💥 نیتر (500)", callback_data="admin_give_nitro_500"),
+                InlineKeyboardButton("🌫 گوگرد (500)", callback_data="admin_give_sulfur_500")
+            ],
+            [
+                InlineKeyboardButton("🛡 تیتانیوم (100)", callback_data="admin_give_titanium_100")
+            ],
+            [
+                InlineKeyboardButton("🔙 انتخاب دسته", callback_data="admin_give_items")
+            ]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+    
+    def admin_give_weapons_keyboard(self):
+        """Create keyboard for giving weapons"""
+        keyboard = [
+            [
+                InlineKeyboardButton("🔫 تفنگ (10)", callback_data="admin_give_rifle_10"),
+                InlineKeyboardButton("🚗 تانک (5)", callback_data="admin_give_tank_5")
+            ],
+            [
+                InlineKeyboardButton("✈️ جنگنده (3)", callback_data="admin_give_fighter_jet_3"),
+                InlineKeyboardButton("🚁 پهپاد (3)", callback_data="admin_give_drone_3")
+            ],
+            [
+                InlineKeyboardButton("💣 بمب ساده (5)", callback_data="admin_give_simple_bomb_5"),
+                InlineKeyboardButton("☢️ بمب هسته‌ای (1)", callback_data="admin_give_nuclear_bomb_1")
+            ],
+            [
+                InlineKeyboardButton("🚀 موشک ساده (3)", callback_data="admin_give_simple_missile_3"),
+                InlineKeyboardButton("🚀 موشک بالستیک (2)", callback_data="admin_give_ballistic_missile_2")
+            ],
+            [
+                InlineKeyboardButton("☢️ موشک هسته‌ای (1)", callback_data="admin_give_nuclear_missile_1"),
+                InlineKeyboardButton("✈️ F-22 (1)", callback_data="admin_give_f22_1")
+            ],
+            [
+                InlineKeyboardButton("🔙 انتخاب دسته", callback_data="admin_give_items")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
