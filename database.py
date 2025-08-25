@@ -148,7 +148,13 @@ class Database:
                 'df41_nuclear', 'tomahawk_conventional', 'tomahawk_nuclear', 'kalibr_conventional',
                 'f22', 'f35', 'su57', 'j20', 'f15ex', 'su35s',
                 'armored_truck', 'cargo_helicopter', 'cargo_plane', 'escort_frigate',
-                'logistics_drone', 'heavy_transport', 'supply_ship', 'stealth_transport'
+                'logistics_drone', 'heavy_transport', 'supply_ship', 'stealth_transport',
+                # New tanks
+                'kf51_panther', 'abrams_x', 'm1e3_abrams', 't90ms_proryv', 'm1a2_abrams_sepv3',
+                # New defense systems
+                's500_defense', 'thaad_defense', 's400_defense', 'iron_dome', 'slq32_ew', 'phalanx_ciws',
+                # New naval weapons
+                'aircraft_carrier_full', 'warship', 'nuclear_submarine', 'patrol_ship', 'patrol_boat', 'amphibious_ship'
             ]
             
             for column in new_weapon_columns:

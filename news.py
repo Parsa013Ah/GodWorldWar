@@ -92,19 +92,60 @@ class NewsChannel:
     async def send_convoy_news(self, message, keyboard=None):
         """Send convoy news with optional keyboard"""
         try:
-            formatted_message = f"🚚 <b>محموله در حرکت!</b>\n\n{message}\n\n💡 <i>این محموله قابل رهگیری است!</i>"
-
             if keyboard:
                 await self.bot.send_message(
                     chat_id=self.channel_id,
-                    text=formatted_message,
+                    text=f"🚛 انتقال منابع\n\n{message}",
                     parse_mode='HTML',
                     reply_markup=keyboard
                 )
             else:
-                await self.send_text_message(formatted_message)
+                await self.bot.send_message(
+                    chat_id=self.channel_id,
+                    text=f"🚛 انتقال منابع\n\n{message}",
+                    parse_mode='HTML'
+                )
+
+            logger.info(f"📢 Convoy news sent to {self.channel_id}: 🚛 انتقال منابع...")
         except Exception as e:
             logger.error(f"Failed to send convoy news: {e}")
+
+    async def send_weapon_produced(self, country_name, weapon_name, quantity=1):
+        """Send weapon production news with quantity"""
+        message = f"""🔫 ارتقای تسلیحات
+
+🇮🇷 <b>{country_name}</b> موفق به ساخت <b>{quantity:,} عدد {weapon_name}</b> شد!
+
+💪 قدرت نظامی این کشور افزایش یافته است."""
+
+        try:
+            await self.bot.send_message(
+                chat_id=self.channel_id,
+                text=message,
+                parse_mode='HTML'
+            )
+            logger.info(f"📢 News sent to {self.channel_id}: 🔫 ارتقای تسلیحات...")
+        except Exception as e:
+            logger.error(f"Failed to send news: {e}")
+
+    async def send_building_constructed(self, country_name, building_name, quantity=1):
+        """Send building construction news with quantity"""
+        message = f"""🏗 توسعه زیرساخت
+
+🇮🇷 <b>{country_name}</b> موفق به ساخت <b>{quantity:,} عدد {building_name}</b> شد!
+
+📈 اقتصاد این کشور تقویت شده است."""
+
+        try:
+            await self.bot.send_message(
+                chat_id=self.channel_id,
+                text=message,
+                parse_mode='HTML'
+            )
+            logger.info(f"📢 News sent to {self.channel_id}: 🏗 توسعه زیرساخت...")
+        except Exception as e:
+            logger.error(f"Failed to send news: {e}")
+
 
     async def send_player_joined(self, country_name, username):
         """Send player joined news"""

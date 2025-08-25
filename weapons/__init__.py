@@ -6,6 +6,7 @@ from .missiles import MISSILES
 from .special_missiles import SPECIAL_MISSILES
 from .transport_equipment import TRANSPORT_EQUIPMENT
 from .bombs import BOMBS
+from .naval_weapons import NAVAL_WEAPONS
 
 # ترکیب تمام سلاح‌ها
 ALL_WEAPONS = {}
@@ -16,6 +17,7 @@ ALL_WEAPONS.update(MISSILES)
 ALL_WEAPONS.update(SPECIAL_MISSILES)
 ALL_WEAPONS.update(TRANSPORT_EQUIPMENT)
 ALL_WEAPONS.update(BOMBS)
+ALL_WEAPONS.update(NAVAL_WEAPONS)
 
 # دسته‌بندی سلاح‌ها برای نمایش در منو
 WEAPON_CATEGORIES = {
@@ -26,6 +28,10 @@ WEAPON_CATEGORIES = {
     'defense': {
         'name': 'سیستم‌های دفاعی', 
         'weapons': DEFENSE_WEAPONS
+    },
+    'naval': {
+        'name': 'تسلیحات دریایی',
+        'weapons': NAVAL_WEAPONS
     },
     'advanced_jets': {
         'name': 'جت‌های پیشرفته',
@@ -75,10 +81,9 @@ def calculate_weapon_cost(weapon_key, quantity=1):
         return weapon.get('cost', 0) * quantity
     return 0
 
-def get_weapon_resources(weapon_key, quantity=1):
+def get_weapon_resources(weapon_key):
     """دریافت منابع مورد نیاز برای ساخت سلاح"""
     weapon = ALL_WEAPONS.get(weapon_key)
     if weapon:
-        resources = weapon.get('resources', {})
-        return {resource: amount * quantity for resource, amount in resources.items()}
+        return weapon.get('resources', {})
     return {}

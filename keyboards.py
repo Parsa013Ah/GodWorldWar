@@ -119,21 +119,22 @@ class Keyboards:
         return InlineKeyboardMarkup(keyboard)
 
     def weapons_menu_keyboard(self):
-        """Create weapons production categories menu keyboard"""
+        """Create weapons production menu keyboard"""
         keyboard = [
             [
                 InlineKeyboardButton("🔫 سلاح‌های پایه", callback_data="weapon_cat_basic"),
                 InlineKeyboardButton("🛡 سیستم‌های دفاعی", callback_data="weapon_cat_defense")
             ],
             [
-                InlineKeyboardButton("💣 بمب‌ها", callback_data="weapon_cat_bombs"),
-                InlineKeyboardButton("🚀 موشک‌های ساده", callback_data="weapon_cat_missiles")
+                InlineKeyboardButton("🚢 تسلیحات دریایی", callback_data="weapon_cat_naval"),
+                InlineKeyboardButton("💣 بمب‌ها", callback_data="weapon_cat_bombs")
             ],
             [
-                InlineKeyboardButton("☢️ موشک‌های مخصوص", callback_data="weapon_cat_special_missiles"),
-                InlineKeyboardButton("✈️ جت‌های پیشرفته", callback_data="weapon_cat_advanced_jets")
+                InlineKeyboardButton("🚀 موشک‌های ساده", callback_data="weapon_cat_missiles"),
+                InlineKeyboardButton("⚡ موشک‌های مخصوص", callback_data="weapon_cat_special_missiles")
             ],
             [
+                InlineKeyboardButton("✈️ جت‌های پیشرفته", callback_data="weapon_cat_advanced_jets"),
                 InlineKeyboardButton("🚚 تجهیزات حمل‌ونقل", callback_data="weapon_cat_transport")
             ],
             [
@@ -240,6 +241,24 @@ class Keyboards:
                 [
                     InlineKeyboardButton("🚢 کشتی تدارکات", callback_data="select_weapon_supply_ship"),
                     InlineKeyboardButton("🥷 ترابری پنهان‌کار", callback_data="select_weapon_stealth_transport")
+                ]
+            ]
+        elif category == "naval":
+            keyboard = [
+                [
+                    InlineKeyboardButton("🚢 ناو هواپیمابر", callback_data="select_weapon_aircraft_carrier"),
+                    InlineKeyboardButton("🚢 ناو جنگی", callback_data="select_weapon_warship")
+                ],
+                [
+                    InlineKeyboardButton("🚢 ناوشکن", callback_data="select_weapon_destroyer"),
+                    InlineKeyboardButton("🚢 زیردریایی هسته‌ای", callback_data="select_weapon_nuclear_submarine")
+                ],
+                [
+                    InlineKeyboardButton("🚢 کشتی گشتی", callback_data="select_weapon_patrol_boat"),
+                    InlineKeyboardButton("🚢 قایق گشتی", callback_data="select_weapon_speed_boat")
+                ],
+                [
+                    InlineKeyboardButton("🚢 کشتی آبی-خاکی", callback_data="select_weapon_amphibious_assault_ship")
                 ]
             ]
 
@@ -473,10 +492,23 @@ class Keyboards:
         return InlineKeyboardMarkup(keyboard)
 
     def back_to_diplomacy_keyboard(self):
-        """Create back to diplomacy menu keyboard"""
-        keyboard = [
-            [InlineKeyboardButton("🔙 بازگشت به دیپلماسی", callback_data="diplomacy")]
-        ]
+        """Back to diplomacy keyboard"""
+        keyboard = [[InlineKeyboardButton("🔙 بازگشت", callback_data="diplomacy")]]
+        return InlineKeyboardMarkup(keyboard)
+
+    def convoy_action_confirmation_keyboard(self, convoy_id, action_type, can_perform=True):
+        """Create convoy action confirmation keyboard"""
+        keyboard = []
+
+        if can_perform:
+            if action_type == "stop":
+                keyboard.append([InlineKeyboardButton("✅ تایید توقف محموله", callback_data=f"confirm_convoy_stop_{convoy_id}")])
+            elif action_type == "steal":
+                keyboard.append([InlineKeyboardButton("✅ تایید سرقت محموله", callback_data=f"confirm_convoy_steal_{convoy_id}")])
+        else:
+            keyboard.append([InlineKeyboardButton("❌ امکان انجام عملیات نیست", callback_data="convoy_info")])
+
+        keyboard.append([InlineKeyboardButton("🔙 انصراف", callback_data="intercept_convoys")])
         return InlineKeyboardMarkup(keyboard)
 
     def admin_panel_keyboard(self):
@@ -714,6 +746,8 @@ class Keyboards:
             'cyber_shield': '💻', 'f22': '✈️', 'f35': '✈️', 'su57': '✈️',
             'j20': '✈️', 'missile': '🚀', 'nuclear_missile': '☢️',
             'armored_truck': '🚛', 'cargo_helicopter': '🚁', 'cargo_plane': '✈️',
-            'stealth_transport': '🛸'
+            'stealth_transport': '🛸', 'aircraft_carrier': '🚢', 'destroyer': '🚢',
+            'nuclear_submarine': '🚢', 'patrol_boat': '🚢', 'speed_boat': '🚢',
+            'amphibious_assault_ship': '🚢'
         }
         return emoji_map.get(weapon_key, '⚔️')

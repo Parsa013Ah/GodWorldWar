@@ -1,5 +1,5 @@
 
-# پایه‌ای‌ترین سلاح‌ها
+# سلاح‌های پایه
 
 BASIC_WEAPONS = {
     'rifle': {
@@ -17,7 +17,7 @@ BASIC_WEAPONS = {
     },
     'tank': {
         'name': 'تانک جنگی',
-        'cost': 850000,
+        'cost': 8500,
         'power': 1200,
         'range': 500,
         'speed': 60,
@@ -30,7 +30,7 @@ BASIC_WEAPONS = {
     },
     'fighter_jet': {
         'name': 'جنگنده',
-        'cost': 2500000,
+        'cost': 25000,
         'power': 2000,
         'range': 1200,
         'speed': 800,
@@ -43,7 +43,7 @@ BASIC_WEAPONS = {
     },
     'helicopter': {
         'name': 'هلیکوپتر جنگی',
-        'cost': 2800000,
+        'cost': 18000,
         'power': 2400,
         'range': 1500,
         'resources': {'aluminum': 30, 'iron': 20, 'copper': 10},
@@ -54,7 +54,7 @@ BASIC_WEAPONS = {
     },
     'jet': {
         'name': 'جت جنگی',
-        'cost': 4500000,
+        'cost': 35000,
         'power': 3200,
         'range': 2000,
         'speed': 1200,
@@ -67,7 +67,7 @@ BASIC_WEAPONS = {
     },
     'drone': {
         'name': 'پهپاد نظامی',
-        'cost': 180000,
+        'cost': 1800,
         'power': 800,
         'range': 1000,
         'speed': 200,
@@ -78,69 +78,84 @@ BASIC_WEAPONS = {
         'requirements': ['weapon_factory'],
         'production_time': 30
     },
-    'warship': {
-        'name': 'ناو جنگی',
-        'cost': 2500000,
-        'power': 3500,
-        'range': 1500,
-        'speed': 45,
-        'armor': 1500,
-        'resources': {'iron': 100, 'aluminum': 50, 'copper': 30},
-        'category': 'basic',
-        'description': 'کشتی جنگی سنگین',
-        'requirements': ['weapon_factory', 'refinery'],
-        'production_time': 180
-    },
-    'submarine': {
-        'name': 'زیردریایی',
-        'cost': 4200000,
-        'power': 4800,
-        'range': 2000,
-        'speed': 35,
-        'armor': 2000,
-        'resources': {'iron': 80, 'aluminum': 40, 'uranium': 5},
-        'category': 'basic',
-        'description': 'زیردریایی نظامی',
-        'requirements': ['weapon_factory', 'refinery'],
-        'production_time': 240
-    },
-    'destroyer': {
-        'name': 'ناوشکن',
-        'cost': 3800000,
-        'power': 5200,
-        'range': 1800,
-        'speed': 50,
-        'armor': 1800,
-        'resources': {'iron': 90, 'aluminum': 45, 'copper': 25, 'titanium': 3},
-        'category': 'basic',
-        'description': 'ناوشکن پیشرفته',
-        'requirements': ['weapon_factory', 'refinery'],
-        'production_time': 200
-    },
-    'aircraft_carrier': {
-        'name': 'ناو هواپیمابر',
-        'cost': 12500000,
-        'power': 15000,
-        'range': 2500,
-        'speed': 30,
-        'armor': 5000,
-        'resources': {'iron': 200, 'aluminum': 100, 'titanium': 20, 'uranium': 10},
-        'category': 'basic',
-        'description': 'ناو هواپیمابر غول‌پیکر',
-        'requirements': ['weapon_factory', 'refinery', 'power_plant'],
-        'production_time': 480
-    },
     'strategic_bomber': {
         'name': 'بمب‌افکن استراتژیک',
-        'cost': 8500000,
+        'cost': 85000,
         'power': 4500,
         'range': 4500,
-        'speed': 400,
-        'armor': 800,
+        'speed': 900,
+        'armor': 600,
         'resources': {'aluminum': 60, 'titanium': 25, 'fuel': 50},
         'category': 'basic',
-        'description': 'بمب‌افکن سنگین',
+        'description': 'بمب‌افکن سنگین برای حملات استراتژیک',
         'requirements': ['weapon_factory', 'refinery'],
         'production_time': 300
+    },
+
+    # تانک‌های مدرن
+    'kf51_panther': {
+        'name': 'KF51 Panther',
+        'cost': 9000,
+        'power': 100,
+        'range': 600,
+        'speed': 70,
+        'armor': 900,
+        'resources': {'iron': 30, 'copper': 3, 'aluminum': 30},
+        'category': 'basic',
+        'description': 'تانک مدرن آلمانی',
+        'requirements': ['weapon_factory'],
+        'production_time': 45
+    },
+    'abrams_x': {
+        'name': 'AbramsX',
+        'cost': 9000,
+        'power': 99,
+        'range': 580,
+        'speed': 68,
+        'armor': 880,
+        'resources': {'iron': 21, 'copper': 3, 'titanium': 1},
+        'category': 'basic',
+        'description': 'تانک پیشرفته آمریکایی',
+        'requirements': ['weapon_factory'],
+        'production_time': 45
+    },
+    'm1e3_abrams': {
+        'name': 'M1E3 Abrams',
+        'cost': 6000,
+        'power': 98,
+        'range': 570,
+        'speed': 65,
+        'armor': 850,
+        'resources': {'iron': 21, 'copper': 3, 'titanium': 1},
+        'category': 'basic',
+        'description': 'نسخه بهبود یافته ابرامز',
+        'requirements': ['weapon_factory'],
+        'production_time': 40
+    },
+    't90ms_proryv': {
+        'name': 'T-90MS Proryv',
+        'cost': 6000,
+        'power': 95,
+        'range': 550,
+        'speed': 62,
+        'armor': 820,
+        'resources': {'iron': 21, 'copper': 3, 'titanium': 1},
+        'category': 'basic',
+        'description': 'تانک مدرن روسی',
+        'requirements': ['weapon_factory'],
+        'production_time': 40
+    },
+    'm1a2_abrams_sepv3': {
+        'name': 'M1A2 Abrams SEPv3',
+        'cost': 3000,
+        'power': 80,
+        'range': 500,
+        'speed': 55,
+        'armor': 750,
+        'resources': {'iron': 18, 'copper': 3},
+        'category': 'basic',
+        'description': 'تانک استاندارد آمریکایی',
+        'requirements': ['weapon_factory'],
+        'production_time': 35
     }
 }

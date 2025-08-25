@@ -50,25 +50,25 @@ class Config:
 
     # Buildings configuration
     BUILDINGS = {
-        'iron_mine': {'name': 'معدن آهن', 'cost': 80000, 'income': 32000, 'resource': 'iron'},
-        'copper_mine': {'name': 'معدن مس', 'cost': 100000, 'income': 40000, 'resource': 'copper'},
-        'oil_mine': {'name': 'معدن نفت', 'cost': 120000, 'income': 48000, 'resource': 'oil'},
-        'gas_mine': {'name': 'معدن گاز', 'cost': 110000, 'income': 44000, 'resource': 'gas'},
-        'aluminum_mine': {'name': 'معدن آلومینیوم', 'cost': 90000, 'income': 36000, 'resource': 'aluminum'},
-        'gold_mine': {'name': 'معدن طلا', 'cost': 150000, 'income': 60000, 'resource': 'gold'},
-        'uranium_mine': {'name': 'معدن اورانیوم', 'cost': 200000, 'income': 80000, 'resource': 'uranium'},
-        'lithium_mine': {'name': 'معدن لیتیوم', 'cost': 180000, 'income': 72000, 'resource': 'lithium'},
-        'coal_mine': {'name': 'معدن زغال‌سنگ', 'cost': 85000, 'income': 34000, 'resource': 'coal'},
-        'silver_mine': {'name': 'معدن نقره', 'cost': 140000, 'income': 56000, 'resource': 'silver'},
-        'nitro_mine': {'name': 'معدن نیتر', 'cost': 95000, 'income': 38000, 'resource': 'nitro'},
-        'sulfur_mine': {'name': 'معدن گوگرد', 'cost': 75000, 'income': 30000, 'resource': 'sulfur'},
-        'titanium_mine': {'name': 'معدن تیتانیوم', 'cost': 250000, 'income': 100000, 'resource': 'titanium'},
-        'weapon_factory': {'name': 'کارخانه اسلحه', 'cost': 150000, 'requirements': ['power_plant']},
-        'refinery': {'name': 'پالایشگاه', 'cost': 100000},
-        'power_plant': {'name': 'نیروگاه', 'cost': 90000},
-        'wheat_farm': {'name': 'مزرعه گندم', 'cost': 50000, 'population_increase': 10000},
-        'military_base': {'name': 'پادگان', 'cost': 50000, 'soldier_production': 5000},
-        'housing': {'name': 'مسکن', 'cost': 50000, 'capacity': 10000}
+        'iron_mine': {'name': 'معدن آهن', 'cost': 8000, 'income': 3200, 'resource': 'iron', 'production_rate': 53},
+        'copper_mine': {'name': 'معدن مس', 'cost': 10000, 'income': 4000, 'resource': 'copper', 'production_rate': 67},
+        'oil_mine': {'name': 'معدن نفت', 'cost': 12000, 'income': 4800, 'resource': 'oil', 'production_rate': 80},
+        'gas_mine': {'name': 'معدن گاز', 'cost': 11000, 'income': 4400, 'resource': 'gas', 'production_rate': 73},
+        'aluminum_mine': {'name': 'معدن آلومینیوم', 'cost': 9000, 'income': 3600, 'resource': 'aluminum', 'production_rate': 60},
+        'gold_mine': {'name': 'معدن طلا', 'cost': 15000, 'income': 6000, 'resource': 'gold', 'production_rate': 100},
+        'uranium_mine': {'name': 'معدن اورانیوم', 'cost': 20000, 'income': 8000, 'resource': 'uranium', 'production_rate': 133},
+        'lithium_mine': {'name': 'معدن لیتیوم', 'cost': 18000, 'income': 7200, 'resource': 'lithium', 'production_rate': 120},
+        'coal_mine': {'name': 'معدن زغال‌سنگ', 'cost': 8500, 'income': 3400, 'resource': 'coal', 'production_rate': 57},
+        'silver_mine': {'name': 'معدن نقره', 'cost': 14000, 'income': 5600, 'resource': 'silver', 'production_rate': 93},
+        'nitro_mine': {'name': 'معدن نیتر', 'cost': 9500, 'income': 3800, 'resource': 'nitro', 'production_rate': 63},
+        'sulfur_mine': {'name': 'معدن گوگرد', 'cost': 7500, 'income': 3000, 'resource': 'sulfur', 'production_rate': 50},
+        'titanium_mine': {'name': 'معدن تیتانیوم', 'cost': 25000, 'income': 10000, 'resource': 'titanium', 'production_rate': 167},
+        'weapon_factory': {'name': 'کارخانه اسلحه', 'cost': 15000, 'requirements': ['power_plant']},
+        'refinery': {'name': 'پالایشگاه', 'cost': 10000},
+        'power_plant': {'name': 'نیروگاه', 'cost': 9000},
+        'wheat_farm': {'name': 'مزرعه گندم', 'cost': 5000, 'population_increase': 10000},
+        'military_base': {'name': 'پادگان', 'cost': 5000, 'soldier_production': 5000},
+        'housing': {'name': 'مسکن', 'cost': 5000, 'capacity': 10000}
     }
 
     # Import weapons from modular system

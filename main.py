@@ -141,6 +141,8 @@ class DragonRPBot:
                 await self.handle_resource_transfer(query, context)
             elif data.startswith("convoy_"):
                 await self.handle_convoy_action(query, context)
+            elif data.startswith("confirm_convoy_"):
+                await self.handle_convoy_confirmation(query, context)
             elif data == "alliances":
                 await self.show_alliance_menu(query, context)
             elif data.startswith("alliance_"):
@@ -328,25 +330,25 @@ class DragonRPBot:
 
 انتخاب کنید:
 
-⛏ معادن (تولید منابع):
-• معدن آهن - $80,000
-• معدن مس - $100,000  
-• معدن نفت - $120,000
-• معدن گاز - $110,000
-• معدن آلومینیوم - $90,000
-• معدن طلا - $150,000
-• معدن اورانیوم - $200,000
-• معدن لیتیوم - $180,000
-• معدن زغال‌سنگ - $85,000
-• معدن نقره - $140,000
+⛏ معادن (تولید در ساعت):
+• معدن آهن - $8,000 (53 واحد/ساعت)
+• معدن مس - $10,000 (67 واحد/ساعت)
+• معدن نفت - $12,000 (80 واحد/ساعت)
+• معدن گاز - $11,000 (73 واحد/ساعت)
+• معدن آلومینیوم - $9,000 (60 واحد/ساعت)
+• معدن طلا - $15,000 (100 واحد/ساعت)
+• معدن اورانیوم - $20,000 (133 واحد/ساعت)
+• معدن لیتیوم - $18,000 (120 واحد/ساعت)
+• معدن زغال‌سنگ - $8,500 (57 واحد/ساعت)
+• معدن نقره - $14,000 (93 واحد/ساعت)
 
 🏭 ساختمان‌های تولیدی:
-• کارخانه اسلحه - $150,000
-• پالایشگاه نفت - $100,000
-• نیروگاه برق - $90,000
-• مزرعه گندم - $50,000
-• پادگان آموزشی - $50,000
-• مسکن (10,000 نفر) - $50,000"""
+• کارخانه اسلحه - $15,000 (امکان تولید سلاح)
+• پالایشگاه نفت - $10,000 (پردازش نفت)
+• نیروگاه برق - $9,000 (تامین برق)
+• مزرعه گندم - $5,000 (+10,000 جمعیت)
+• پادگان آموزشی - $5,000 (+5,000 سرباز)
+• مسکن - $5,000 (ظرفیت: 10,000 نفر)"""
 
         keyboard = self.keyboards.buildings_menu_keyboard()
         await query.edit_message_text(menu_text, reply_markup=keyboard)
@@ -999,9 +1001,66 @@ class DragonRPBot:
             await query.edit_message_text("❌ منابع کافی برای این انتقال ندارید!")
 
     async def handle_convoy_action(self, query, context):
-        """Handle convoy interception actions"""
+        """Handle convoy interception actions - show confirmation"""
         user_id = query.from_user.id
         action_data = query.data.replace("convoy_", "")
+
+        if action_data.startswith("stop_"):
+            convoy_id = int(action_data.replace("stop_", ""))
+            action_type = "stop"
+        elif action_data.startswith("steal_"):
+            convoy_id = int(action_data.replace("steal_", ""))
+            action_type = "steal"
+        else:
+            await query.edit_message_text("❌ دستور نامعتبر!")
+            return
+
+        # Get convoy details
+        convoy = self.db.get_convoy(convoy_id)
+        if not convoy:
+            await query.edit_message_text("❌ محموله یافت نشد!")
+            return
+
+        # Check if player can intercept
+        convoy_security = convoy['security_level']
+        can_intercept = self.convoy.can_intercept_convoy(user_id, convoy_security)
+        
+        # Calculate required power
+        weapons = self.db.get_player_weapons(user_id)
+        intercept_power = 0
+        intercept_power += weapons.get('fighter_jet', 0) * 30
+        intercept_power += weapons.get('drone', 0) * 25
+        intercept_power += weapons.get('simple_missile', 0) * 50
+        intercept_power += weapons.get('warship', 0) * 35
+        
+        min_power_needed = convoy_security * 2
+
+        if action_type == "stop":
+            action_name = "توقف محموله"
+            description = "محموله متوقف شده و منابع به فرستنده بازگردانده می‌شود"
+        else:
+            action_name = "سرقت محموله"
+            description = "محتویات محموله به شما انتقال پیدا می‌کند"
+
+        confirmation_text = f"""🎯 تایید {action_name}
+
+🛡 امنیت محموله: {convoy_security}%
+⚔️ قدرت رهگیری شما: {intercept_power:,}
+📊 قدرت مورد نیاز: {min_power_needed:,}
+
+💡 {description}
+
+⚠️ در صورت شکست، بخشی از تجهیزاتتان از دست خواهد رفت!
+
+آیا مطمئن هستید؟"""
+
+        keyboard = self.keyboards.convoy_action_confirmation_keyboard(convoy_id, action_type, can_intercept)
+        await query.edit_message_text(confirmation_text, reply_markup=keyboard)
+
+    async def handle_convoy_confirmation(self, query, context):
+        """Handle convoy action confirmation"""
+        user_id = query.from_user.id
+        action_data = query.data.replace("confirm_convoy_", "")
 
         if action_data.startswith("stop_"):
             convoy_id = int(action_data.replace("stop_", ""))
