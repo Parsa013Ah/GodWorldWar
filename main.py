@@ -484,7 +484,7 @@ class DragonRPBot:
 
             menu_text += f"\n• {config['name']}: ${config['cost']:,}{materials_text}"
 
-        keyboard = self.keyboards.weapon_category_keyboard(category, weapons_in_category)
+        keyboard = self.keyboards.weapon_category_keyboard(category)
         await query.edit_message_text(menu_text, reply_markup=keyboard)
 
     async def handle_weapon_production(self, query, context):
