@@ -45,26 +45,37 @@ class AdminPanel:
             await self.show_player_management(query, context, data)
         elif data.startswith("delete_player_"):
             await self.delete_player(query, context, data)
-        elif query.data.startswith("penalty_"): # Fixed callback data prefix
-            country_name = query.data.replace("penalty_", "")
-            player = self.db.get_player_by_country_name(country_name)
+        elif data.startswith("penalty_"): # Fixed callback data prefix
+            penalty_parts = data.split("_", 1)
+            if len(penalty_parts) > 1:
+                country_name = penalty_parts[1]
+                # Find player by country name
+                all_players = self.db.get_all_players()
+                player = None
+                for p in all_players:
+                    if p['country_name'] == country_name:
+                        player = p
+                        break
 
-            if not player:
-                await query.edit_message_text(f"❌ کشور {country_name} یافت نشد!")
-                return
+                if not player:
+                    await query.edit_message_text(f"❌ کشور {country_name} یافت نشد!")
+                    return
 
             # Show penalty confirmation
-            penalty_keyboard = [
-                [InlineKeyboardButton("💰 جریمه مالی", callback_data=f"penalty_money_{player['user_id']}")],
-                [InlineKeyboardButton("📦 کسر منابع", callback_data=f"penalty_resources_{player['user_id']}")],
-                [InlineKeyboardButton("⚔️ کسر تسلیحات", callback_data=f"penalty_weapons_{player['user_id']}")],
-                [InlineKeyboardButton("🔙 بازگشت", callback_data="admin_main")]
-            ]
+                penalty_keyboard = [
+                    [InlineKeyboardButton("💰 جریمه مالی", callback_data=f"penalty_money_{player['user_id']}")],
+                    [InlineKeyboardButton("📦 کسر منابع", callback_data=f"penalty_resources_{player['user_id']}")],
+                    [InlineKeyboardButton("⚔️ کسر تسلیحات", callback_data=f"penalty_weapons_{player['user_id']}")],
+                    [InlineKeyboardButton("🔙 بازگشت", callback_data="admin_panel")]
+                ]
 
-            await query.edit_message_text(
-                f"⚠️ انتخاب نوع جریمه برای کشور {player['country_name']}:",
-                reply_markup=InlineKeyboardMarkup(penalty_keyboard)
-            )
+                await query.edit_message_text(
+                    f"⚠️ کشور {player['country_name']} به دلیل رعایت نکردن قوانین جریمه خواهد شد.\n\nنوع جریمه را انتخاب کنید:",
+                    reply_markup=InlineKeyboardMarkup(penalty_keyboard)
+                )
+            else:
+                await query.edit_message_text("❌ داده جریمه نامعتبر!")
+                return
         elif data.startswith("reset_country_"):
             await self.reset_country(query, context, data)
         elif data.startswith("confirm_reset_"):

@@ -1956,6 +1956,28 @@ oil 300
             reply_markup=reply_markup
         )
 
+    async def handle_official_statement(self, query, context):
+        """Handle official statement request"""
+        user_id = query.from_user.id
+        player = self.db.get_player(user_id)
+
+        if not player:
+            await query.edit_message_text("❌ ابتدا باید کشور خود را انتخاب کنید.")
+            return
+
+        # Set awaiting statement flag
+        context.user_data['awaiting_statement'] = True
+
+        statement_text = f"""📢 بیانیه رسمی - {player['country_name']}
+
+لطفاً متن بیانیه رسمی خود را ارسال کنید:
+
+📝 حداکثر 300 کاراکتر
+💡 این پیام در کانال اخبار منتشر خواهد شد
+⚠️ از محتوای مناسب استفاده کنید"""
+
+        await query.edit_message_text(statement_text)
+
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle text messages"""
         user_id = update.effective_user.id
