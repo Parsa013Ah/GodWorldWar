@@ -48,7 +48,10 @@ class Economy:
             'uranium_mine': ('uranium', 100),
             'lithium_mine': ('lithium', 300),
             'coal_mine': ('coal', 1200),
-            'silver_mine': ('silver', 400)
+            'silver_mine': ('silver', 400),
+            'nitro_mine': ('nitro', 100),
+            'sulfur_mine': ('sulfur', 150),
+            'titanium_mine': ('titanium', 3)
         }
 
         for building_type, (resource_type, production_amount) in resource_production.items():

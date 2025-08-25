@@ -78,6 +78,8 @@ class AdminPanel:
                 return
         elif data.startswith("reset_country_"):
             await self.reset_country(query, context, data)
+        elif data.startswith("penalty_money_") or data.startswith("penalty_resources_") or data.startswith("penalty_weapons_"):
+            await self.handle_penalty_action(query, context, data)
         elif data.startswith("confirm_reset_"):
             user_id = int(data.replace("confirm_reset_", ""))
             await self.confirm_country_reset(query, context, user_id)

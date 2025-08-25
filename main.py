@@ -187,6 +187,8 @@ class DragonRPBot:
                 await self.handle_manual_sell(query, context)
             elif data.startswith("admin_give_cat_"):
                 await self.show_admin_give_category(query, context)
+            elif data.startswith("penalty_money_") or data.startswith("penalty_resources_") or data.startswith("penalty_weapons_"):
+                await self.admin.handle_penalty_action(query, context, data)
             elif data.startswith("admin_give_all_"):
                 await self.handle_admin_give_item(query, context)
             elif data.startswith("admin_"):
