@@ -172,18 +172,18 @@ class ConvoySystem:
         """Get all active convoys that are in transit"""
         return self.db.get_active_convoys()
 
-    def create_convoy(self, sender_id, receiver_id, resources, transfer_type="resources"):
-        """Create a new convoy with calculated travel time"""
-        # Calculate travel time based on transport equipment
-        travel_time = self.calculate_convoy_travel_time(sender_id)
+    def create_convoy_with_transport(self, sender_id, receiver_id, resources, transport_type, transfer_type="resources"):
+        """Create a new convoy with specific transport equipment"""
+        # Calculate travel time based on specific transport
+        travel_time = self.calculate_convoy_travel_time_with_transport(sender_id, transport_type)
 
-        # Calculate convoy security
+        # Calculate convoy security with transport bonus
         total_value = sum(amount * Config.RESOURCES.get(res_type, {}).get('market_value', 10) 
                          for res_type, amount in resources.items() if res_type != 'money')
         if 'money' in resources:
             total_value += resources['money']
 
-        security_level = self.calculate_convoy_security(sender_id, total_value)
+        security_level = self.calculate_convoy_security_with_transport(sender_id, total_value, transport_type)
 
         # Create convoy in database
         convoy_id = self.db.create_convoy(sender_id, receiver_id, resources, travel_time, security_level)
@@ -194,6 +194,59 @@ class ConvoySystem:
             'security_level': security_level,
             'estimated_arrival': datetime.now() + timedelta(minutes=travel_time)
         }
+
+    def calculate_convoy_travel_time_with_transport(self, sender_id, transport_type):
+        """Calculate convoy travel time with specific transport"""
+        transport_times = {
+            'none': 30,
+            'armored_truck': 25,
+            'cargo_helicopter': 20,
+            'cargo_plane': 15,
+            'logistics_drone': 18,
+            'heavy_transport': 22,
+            'supply_ship': 35,
+            'stealth_transport': 12
+        }
+        
+        return transport_times.get(transport_type, 30)
+
+    def calculate_convoy_security_with_transport(self, sender_id, resources_value, transport_type):
+        """Calculate convoy security with specific transport"""
+        weapons = self.db.get_player_weapons(sender_id)
+
+        # Calculate escort power from military weapons
+        escort_power = 0
+        escort_power += weapons.get('tank', 0) * 15
+        escort_power += weapons.get('fighter_jet', 0) * 25
+        escort_power += weapons.get('warship', 0) * 40
+        escort_power += weapons.get('drone', 0) * 20
+
+        # Transport specific bonuses
+        transport_bonuses = {
+            'none': 0,
+            'armored_truck': 70,
+            'cargo_helicopter': 75,
+            'cargo_plane': 85,
+            'logistics_drone': 80,
+            'heavy_transport': 75,
+            'supply_ship': 80,
+            'stealth_transport': 95
+        }
+
+        transport_bonus = transport_bonuses.get(transport_type, 50)
+
+        # Base security from resources value
+        base_security = min(resources_value / 1000, 30)
+
+        # Total security
+        total_security = min(base_security + (escort_power / 10) + (transport_bonus / 2), 95)
+
+        return int(total_security)
+
+    def create_convoy(self, sender_id, receiver_id, resources, transfer_type="resources"):
+        """Create a new convoy with calculated travel time"""
+        # Default to no specific transport for backwards compatibility
+        return self.create_convoy_with_transport(sender_id, receiver_id, resources, 'none', transfer_type)
 
     def calculate_convoy_travel_time(self, sender_id):
         """Calculate convoy travel time based on transport equipment (10-30 minutes)"""
@@ -226,7 +279,55 @@ class ConvoySystem:
                 InlineKeyboardButton("💰 سرقت محموله", url=f"https://t.me/{bot_username}?start=convoy_steal_{convoy_id}")
             ],
             [
+                InlineKeyboardButton("🛡 اسکورت محموله", url=f"https://t.me/{bot_username}?start=convoy_escort_{convoy_id}")
+            ],
+            [
                 InlineKeyboardButton(f"🛡 امنیت: {security_level}%", callback_data="convoy_info")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
+
+    def provide_convoy_escort(self, escorter_id, convoy_id, escort_weapons):
+        """Provide escort for convoy to increase security"""
+        convoy = self.db.get_convoy(convoy_id)
+        if not convoy or convoy['status'] != 'in_transit':
+            return {'success': False, 'message': 'محموله یافت نشد یا قبلاً رسیده!'}
+
+        # Check if convoy is still in transit
+        arrival_time = datetime.fromisoformat(convoy['arrival_time'])
+        if datetime.now() >= arrival_time:
+            return {'success': False, 'message': 'محموله قبلاً به مقصد رسیده!'}
+
+        # Don't allow sender/receiver to escort their own convoy
+        if convoy['sender_id'] == escorter_id or convoy['receiver_id'] == escorter_id:
+            return {'success': False, 'message': 'نمی‌توانید محموله خودتان را اسکورت کنید!'}
+
+        # Calculate escort bonus
+        escort_bonus = 0
+        escorter_weapons = self.db.get_player_weapons(escorter_id)
+        
+        for weapon, count in escort_weapons.items():
+            available = escorter_weapons.get(weapon, 0)
+            if available >= count:
+                if weapon == 'fighter_jet':
+                    escort_bonus += count * 20
+                elif weapon == 'tank':
+                    escort_bonus += count * 15
+                elif weapon == 'warship':
+                    escort_bonus += count * 30
+                elif weapon == 'drone':
+                    escort_bonus += count * 18
+            else:
+                return {'success': False, 'message': f'تعداد کافی {weapon} ندارید!'}
+
+        # Apply escort bonus to convoy security
+        new_security = min(convoy['security_level'] + escort_bonus, 99)
+        self.db.update_convoy_security(convoy_id, new_security)
+
+        return {
+            'success': True,
+            'message': f'اسکورت با موفقیت انجام شد! امنیت محموله از {convoy["security_level"]}% به {new_security}% افزایش یافت.',
+            'old_security': convoy['security_level'],
+            'new_security': new_security,
+            'escort_bonus': escort_bonus
+        }

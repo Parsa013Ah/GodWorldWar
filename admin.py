@@ -3,6 +3,7 @@ from telegram import Update
 from telegram.ext import ContextTypes, MessageHandler, filters
 from keyboards import Keyboards
 from config import Config
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +45,26 @@ class AdminPanel:
             await self.show_player_management(query, context, data)
         elif data.startswith("delete_player_"):
             await self.delete_player(query, context, data)
-        elif data.startswith("penalty_"):
-            await self.handle_penalty_country(query, context, data)
+        elif query.data.startswith("penalty_"): # Fixed callback data prefix
+            country_name = query.data.replace("penalty_", "")
+            player = self.db.get_player_by_country_name(country_name)
+
+            if not player:
+                await query.edit_message_text(f"❌ کشور {country_name} یافت نشد!")
+                return
+
+            # Show penalty confirmation
+            penalty_keyboard = [
+                [InlineKeyboardButton("💰 جریمه مالی", callback_data=f"penalty_money_{player['user_id']}")],
+                [InlineKeyboardButton("📦 کسر منابع", callback_data=f"penalty_resources_{player['user_id']}")],
+                [InlineKeyboardButton("⚔️ کسر تسلیحات", callback_data=f"penalty_weapons_{player['user_id']}")],
+                [InlineKeyboardButton("🔙 بازگشت", callback_data="admin_main")]
+            ]
+
+            await query.edit_message_text(
+                f"⚠️ انتخاب نوع جریمه برای کشور {player['country_name']}:",
+                reply_markup=InlineKeyboardMarkup(penalty_keyboard)
+            )
         elif data.startswith("reset_country_"):
             await self.reset_country(query, context, data)
         elif data.startswith("confirm_reset_"):
@@ -93,7 +112,6 @@ class AdminPanel:
 📈 وضعیت سرور: ✅ فعال
 🕐 آخرین آپدیت: اکنون"""
 
-        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
         keyboard = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton("🔄 بروزرسانی", callback_data="admin_stats"),
@@ -145,7 +163,7 @@ class AdminPanel:
 
 💰 پول: ${player['money']:,}
 👥 جمعیت: {player['population']:,}
-⚔️ سربازان: {player['soldiers']:,}
+⚔️سربازان: {player['soldiers']:,}
 
 📊 منابع اصلی:
 🔩 آهن: {resources.get('iron', 0):,}
@@ -182,9 +200,9 @@ class AdminPanel:
             # Log admin action
             admin_id = query.from_user.id
             self.db.log_admin_action(
-                admin_id, 
-                "DELETE_PLAYER", 
-                user_id, 
+                admin_id,
+                "DELETE_PLAYER",
+                user_id,
                 f"Deleted player {player['country_name']}"
             )
 
@@ -216,7 +234,6 @@ class AdminPanel:
                 logs_text += f"📋 Details: {log['details']}\n"
             logs_text += "─────────────\n"
 
-        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
         keyboard = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton("🔄 بروزرسانی", callback_data="admin_logs"),
@@ -240,7 +257,6 @@ class AdminPanel:
 
 آیا مطمئن هستید؟"""
 
-        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
         keyboard = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton("✅ بله، ریست کن", callback_data="admin_reset_confirm"),
@@ -404,7 +420,7 @@ class AdminPanel:
         for p in all_players:
             # Assuming player dict has 'country_name' and Config.COUNTRIES maps country_code to country_name
             # If your DB stores country_code directly in player, adjust this logic
-            if Config.COUNTRIES.get(country_code) == p['country_name']: 
+            if Config.COUNTRIES.get(country_code) == p['country_name']:
                 player = p
                 break
 
@@ -471,7 +487,6 @@ class AdminPanel:
 
         reset_text = "🔄 انتخاب کشور برای ریست\n\nکشور مورد نظر را انتخاب کنید:"
 
-        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
         keyboard = []
 
         for player in players[:10]:  # Show first 10 countries
@@ -494,7 +509,6 @@ class AdminPanel:
             return
 
         # Show confirmation
-        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
         keyboard = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton("✅ بله، ریست کن", callback_data=f"admin_confirm_reset_{user_id}"),
@@ -547,3 +561,64 @@ class AdminPanel:
             )
         else:
             await query.edit_message_text("❌ خطا در ریست کشور!")
+
+    async def handle_penalty_action(self, query, context, data):
+        """Handle specific penalty actions"""
+        parts = data.split('_')
+        penalty_type = parts[1]
+        user_id = int(parts[2])
+        player = self.db.get_player(user_id)
+
+        if not player:
+            await query.edit_message_text("❌ بازیکن یافت نشد!")
+            return
+
+        if penalty_type == "money":
+            # Execute penalty
+            penalty_amount = min(player['money'] * 0.1, 100000)  # 10% or max 100k
+            new_money = max(0, player['money'] - penalty_amount)
+            self.db.update_player_money(player['user_id'], new_money)
+
+            # Send notification to penalized player
+            try:
+                await context.bot.send_message(
+                    chat_id=player['user_id'],
+                    text=f"⚠️ کشور {player['country_name']} به دلیل رعایت نکردن قوانین جریمه شد!\n💰 مبلغ جریمه: ${penalty_amount:,}"
+                )
+            except:
+                pass
+
+            await query.edit_message_text(
+                f"✅ جریمه مالی اعمال شد!\n"
+                f"🎯 هدف: {player['country_name']}\n"
+                f"💰 مبلغ جریمه: ${penalty_amount:,}\n"
+                f"📱 کاربر مطلع شد."
+            )
+        elif penalty_type == "resources":
+            # Halve all resources
+            resources = self.db.get_player_resources(user_id)
+            for resource, amount in resources.items():
+                if resource != 'user_id' and amount > 0:
+                    new_amount = amount // 2
+                    self.db.update_resource(user_id, resource, new_amount)
+
+            await query.edit_message_text(
+                f"✅ کسر منابع اعمال شد!\n"
+                f"🎯 هدف: {player['country_name']}\n"
+                f"📦 تمام منابع این کشور نصف شدند."
+            )
+        elif penalty_type == "weapons":
+            # Halve all weapons
+            weapons = self.db.get_player_weapons(user_id)
+            for weapon, amount in weapons.items():
+                if weapon != 'user_id' and amount > 0:
+                    new_amount = amount // 2
+                    self.db.update_weapon_count(user_id, weapon, new_amount)
+
+            await query.edit_message_text(
+                f"✅ کسر تسلیحات اعمال شد!\n"
+                f"🎯 هدف: {player['country_name']}\n"
+                f"⚔️ تمام تسلیحات این کشور نصف شدند."
+            )
+        else:
+            await query.edit_message_text("❌ نوع جریمه نامعتبر!")

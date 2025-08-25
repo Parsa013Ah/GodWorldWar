@@ -683,6 +683,18 @@ class Database:
             conn.commit()
             cursor.close()
 
+    def update_convoy_security(self, convoy_id, new_security_level):
+        """Update convoy security level"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE convoys 
+                SET security_level = ? 
+                WHERE id = ?
+            ''', (new_security_level, convoy_id))
+            conn.commit()
+            cursor.close()
+
     def create_pending_attack(self, attack_data):
         """Create a new pending attack"""
         with self.get_connection() as conn:
