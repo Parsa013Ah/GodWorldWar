@@ -707,6 +707,25 @@ class Database:
             conn.commit()
             cursor.close()
 
+    def get_arrived_convoys(self):
+        """Get all convoys that have arrived at their destination"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT c.*, 
+                       s.country_name as sender_country,
+                       r.country_name as receiver_country
+                FROM convoys c
+                JOIN players s ON c.sender_id = s.user_id
+                JOIN players r ON c.receiver_id = r.user_id
+                WHERE c.status = 'in_transit'
+                AND c.arrival_time <= datetime('now')
+                ORDER BY c.arrival_time ASC
+            ''')
+            results = cursor.fetchall()
+            cursor.close()
+            return [dict(row) for row in results] if results else []
+
     def create_pending_attack(self, attack_data):
         """Create a new pending attack"""
         with self.get_connection() as conn:
@@ -819,25 +838,26 @@ class Database:
     def clear_test_data(self):
         """Clear test data from database"""
         try:
-            cursor = self.conn.cursor()
-            # Delete test players
-            cursor.execute("DELETE FROM players WHERE user_id IN (123456, 123457, 123458)")
-            cursor.execute("DELETE FROM buildings WHERE user_id IN (123456, 123457, 123458)")
-            cursor.execute("DELETE FROM resources WHERE user_id IN (123456, 123457, 123458)")
-            cursor.execute("DELETE FROM weapons WHERE user_id IN (123456, 123457, 123458)")
-            cursor.execute("DELETE FROM convoys WHERE sender_id IN (123456, 123457, 123458) OR receiver_id IN (123456, 123457, 123458)")
-            # The original code had 'marketplace' which is not a table name, corrected to 'marketplace_listings'
-            cursor.execute("DELETE FROM marketplace_listings WHERE seller_id IN (123456, 123457, 123458)")
-            # The original code had 'alliances' and 'alliance_members' which are not defined in the initialize method, assuming they exist or should be handled.
-            # For now, commented out as they are not in the provided initialize schema.
-            # cursor.execute("DELETE FROM alliances WHERE leader_id IN (123456, 123457, 123458)")
-            # cursor.execute("DELETE FROM alliance_members WHERE user_id IN (123456, 123457, 123458)")
-            # The original code had 'first_builds' which is not a table name, corrected to 'build_tracking'
-            cursor.execute("DELETE FROM build_tracking WHERE builder_id IN (123456, 123457, 123458)")
-            self.conn.commit()
-            cursor.close()
-            logger.info("Test data cleared successfully")
-            return True
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                # Delete test players
+                cursor.execute("DELETE FROM players WHERE user_id IN (123456, 123457, 123458)")
+                cursor.execute("DELETE FROM buildings WHERE user_id IN (123456, 123457, 123458)")
+                cursor.execute("DELETE FROM resources WHERE user_id IN (123456, 123457, 123458)")
+                cursor.execute("DELETE FROM weapons WHERE user_id IN (123456, 123457, 123458)")
+                cursor.execute("DELETE FROM convoys WHERE sender_id IN (123456, 123457, 123458) OR receiver_id IN (123456, 123457, 123458)")
+                # The original code had 'marketplace' which is not a table name, corrected to 'marketplace_listings'
+                cursor.execute("DELETE FROM marketplace_listings WHERE seller_id IN (123456, 123457, 123458)")
+                # The original code had 'alliances' and 'alliance_members' which are not defined in the initialize method, assuming they exist or should be handled.
+                # For now, commented out as they are not in the provided initialize schema.
+                # cursor.execute("DELETE FROM alliances WHERE leader_id IN (123456, 123457, 123458)")
+                # cursor.execute("DELETE FROM alliance_members WHERE user_id IN (123456, 123457, 123458)")
+                # The original code had 'first_builds' which is not a table name, corrected to 'build_tracking'
+                cursor.execute("DELETE FROM build_tracking WHERE builder_id IN (123456, 123457, 123458)")
+                conn.commit()
+                cursor.close()
+                logger.info("Test data cleared successfully")
+                return True
         except Exception as e:
             logger.error(f"Error clearing test data: {e}")
             return False

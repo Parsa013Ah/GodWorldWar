@@ -92,7 +92,7 @@ class ConvoySystem:
         intercept_power = (
             interceptor_weapons.get('fighter_jet', 0) * 30 +
             interceptor_weapons.get('drone', 0) * 25 +
-            interceptor_weapons.get('missile', 0) * 50 +
+            interceptor_weapons.get('simple_missile', 0) * 50 +
             interceptor_weapons.get('warship', 0) * 35
         )
 
@@ -141,7 +141,7 @@ class ConvoySystem:
         weapons = self.db.get_player_weapons(player_id)
 
         # Lose 10-30% of attacking weapons
-        loss_weapons = ['fighter_jet', 'drone', 'missile']
+        loss_weapons = ['fighter_jet', 'drone', 'simple_missile']
         for weapon in loss_weapons:
             current = weapons.get(weapon, 0)
             if current > 0:
@@ -174,6 +174,14 @@ class ConvoySystem:
 
     def create_convoy_with_transport(self, sender_id, receiver_id, resources, transport_type, transfer_type="resources"):
         """Create a new convoy with specific transport equipment"""
+        # Validate sender has enough resources before creating convoy
+        if not self.validate_sender_resources(sender_id, resources):
+            return {'success': False, 'message': 'منابع کافی برای ارسال ندارید!'}
+
+        # Consume resources from sender
+        if not self.consume_sender_resources(sender_id, resources):
+            return {'success': False, 'message': 'خطا در کسر منابع!'}
+
         # Calculate travel time based on specific transport
         travel_time = self.calculate_convoy_travel_time_with_transport(sender_id, transport_type)
 
@@ -189,6 +197,7 @@ class ConvoySystem:
         convoy_id = self.db.create_convoy(sender_id, receiver_id, resources, travel_time, security_level)
 
         return {
+            'success': True,
             'convoy_id': convoy_id,
             'travel_time': travel_time,
             'security_level': security_level,
@@ -331,3 +340,110 @@ class ConvoySystem:
             'new_security': new_security,
             'escort_bonus': escort_bonus
         }
+
+    def validate_sender_resources(self, sender_id, resources):
+        """Validate that sender has enough resources"""
+        current_resources = self.db.get_player_resources(sender_id)
+        player = self.db.get_player(sender_id)
+        
+        for resource, amount in resources.items():
+            if resource == 'money':
+                if player['money'] < amount:
+                    return False
+            else:
+                if current_resources.get(resource, 0) < amount:
+                    return False
+        return True
+
+    def consume_sender_resources(self, sender_id, resources):
+        """Remove resources from sender when creating convoy"""
+        try:
+            player = self.db.get_player(sender_id)
+            
+            # Handle money separately
+            if 'money' in resources:
+                money_amount = resources['money']
+                new_money = player['money'] - money_amount
+                self.db.update_player_money(sender_id, new_money)
+            
+            # Handle other resources
+            other_resources = {k: v for k, v in resources.items() if k != 'money'}
+            if other_resources:
+                return self.db.consume_resources(sender_id, other_resources)
+            
+            return True
+        except Exception as e:
+            logger.error(f"Error consuming sender resources: {e}")
+            return False
+
+    def process_convoy_arrivals(self):
+        """Process all convoys that have arrived at their destination"""
+        arrived_convoys = self.db.get_arrived_convoys()
+        results = []
+        
+        for convoy in arrived_convoys:
+            try:
+                result = self.deliver_convoy(convoy)
+                results.append(result)
+            except Exception as e:
+                logger.error(f"Error processing convoy {convoy['id']}: {e}")
+                # Mark convoy as failed
+                self.db.update_convoy_status(convoy['id'], 'failed')
+        
+        return results
+
+    def deliver_convoy(self, convoy):
+        """Deliver convoy resources to receiver"""
+        convoy_id = convoy['id']
+        receiver_id = convoy['receiver_id']
+        sender_id = convoy['sender_id']
+        resources = json.loads(convoy['resources'])
+        security_level = convoy['security_level']
+        
+        # Calculate delivery success chance based on security
+        success_chance = min(security_level + 10, 95)
+        
+        if random.randint(1, 100) <= success_chance:
+            # Successful delivery
+            try:
+                # Add resources to receiver
+                player = self.db.get_player(receiver_id)
+                
+                # Handle money separately
+                if 'money' in resources:
+                    money_amount = resources['money']
+                    new_money = player['money'] + money_amount
+                    self.db.update_player_money(receiver_id, new_money)
+                
+                # Handle other resources
+                for resource, amount in resources.items():
+                    if resource != 'money':
+                        self.db.add_resources(receiver_id, resource, amount)
+                
+                # Mark convoy as delivered
+                self.db.update_convoy_status(convoy_id, 'delivered')
+                
+                return {
+                    'convoy_id': convoy_id,
+                    'success': True,
+                    'message': 'محموله با موفقیت تحویل شد!',
+                    'resources': resources
+                }
+                
+            except Exception as e:
+                logger.error(f"Error delivering convoy {convoy_id}: {e}")
+                self.db.update_convoy_status(convoy_id, 'failed')
+                return {
+                    'convoy_id': convoy_id,
+                    'success': False,
+                    'message': 'خطا در تحویل محموله!'
+                }
+        else:
+            # Failed delivery - convoy intercepted/lost
+            self.db.update_convoy_status(convoy_id, 'lost')
+            return {
+                'convoy_id': convoy_id,
+                'success': False,
+                'message': 'محموله در راه دزدیده شد!',
+                'resources_lost': resources
+            }

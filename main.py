@@ -993,15 +993,13 @@ class DragonRPBot:
                 await query.edit_message_text("❌ وسیله حمل‌ونقل انتخابی در دسترس نیست!", reply_markup=self.keyboards.back_to_main_keyboard())
                 return
 
-        # Deduct resources from sender
-        if 'money' in transfer_resources:
-            self.db.update_player_money(user_id, player['money'] - transfer_resources['money'])
-        else:
-            for resource, amount in transfer_resources.items():
-                self.db.subtract_resources(user_id, resource, amount)
-
-        # Create convoy with selected transport
+        # Create convoy with selected transport (resources will be deducted automatically)
         convoy_result = self.convoy.create_convoy_with_transport(user_id, target_id, transfer_resources, transport_type)
+
+        # Check if convoy creation was successful
+        if not convoy_result.get('success', False):
+            await query.edit_message_text(f"❌ {convoy_result.get('message', 'خطا در ایجاد محموله!')}", reply_markup=self.keyboards.back_to_main_keyboard())
+            return
 
         # Get transport info
         transport_info = {
@@ -2102,6 +2100,28 @@ oil 300
         except Exception as e:
             logger.error(f"Error processing pending attacks: {e}")
 
+    async def process_convoy_arrivals(self):
+        """Process convoy arrivals that are due"""
+        try:
+            results = self.convoy.process_convoy_arrivals()
+
+            for result in results:
+                # Send news about convoy delivery
+                convoy = self.db.get_convoy(result['convoy_id'])
+                if convoy:
+                    sender = self.db.get_player(convoy['sender_id'])
+                    receiver = self.db.get_player(convoy['receiver_id'])
+
+                    if result['success']:
+                        message = f"📦 محموله از {sender['country_name']} به {receiver['country_name']} تحویل شد!"
+                        await self.news.send_convoy_news(message, None, result.get('resources', {}))
+                    else:
+                        message = f"💀 محموله از {sender['country_name']} به {receiver['country_name']} دزدیده شد!"
+                        await self.news.send_convoy_news(message, None, result.get('resources_lost', {}))
+
+        except Exception as e:
+            logger.error(f"Error processing convoy arrivals: {e}")
+
     def setup_scheduler(self):
         """Setup the automated scheduler"""
         # 6-hour income cycle
@@ -2122,7 +2142,16 @@ oil 300
             replace_existing=True
         )
 
-        logger.info("Scheduler configured - 6-hour income cycle and pending attacks active")
+        # Process convoy arrivals every minute
+        self.scheduler.add_job(
+            func=self.process_convoy_arrivals,
+            trigger=IntervalTrigger(minutes=1),
+            id='convoy_arrivals',
+            name='Process convoy arrivals',
+            replace_existing=True
+        )
+
+        logger.info("Scheduler configured - 6-hour income cycle, pending attacks, and convoy arrivals active")
 
     async def start_scheduler(self):
         """Start the scheduler within async context"""
