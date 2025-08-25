@@ -266,7 +266,7 @@ class AllianceSystem:
         
         return {
             'success': True,
-            'message': f'شما اتحاد "{alliance['alliance_name']}" را ترک کردید.'
+            'message': f'شما اتحاد "{alliance["alliance_name"]}" را ترک کردید.'
         }
     
     def disband_alliance(self, alliance_id):
