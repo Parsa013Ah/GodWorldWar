@@ -56,11 +56,23 @@ class NewsChannel:
         """Send building construction news"""
         country_flag = self.get_country_flag(country_name)
 
-        message = f"""🏗 توسعه زیرساخت
+        building_emojis = {
+            'iron_mine': '⛏', 'copper_mine': '⛏', 'oil_mine': '🛢', 'gas_mine': '⛽',
+            'aluminum_mine': '🔗', 'gold_mine': '🏆', 'uranium_mine': '☢️',
+            'lithium_mine': '🔋', 'coal_mine': '⚫', 'silver_mine': '🥈',
+            'weapon_factory': '🏭', 'refinery': '🏭', 'power_plant': '⚡',
+            'wheat_farm': '🌾', 'military_base': '🪖', 'housing': '🏘'
+        }
+        
+        building_emoji = building_emojis.get(building_name.replace(' ', '_').lower(), '🏗')
 
-{country_flag} <b>{country_name}</b> یک <b>{building_name}</b> جدید ساخت!
+        message = f"""🏗 توسعه عظیم زیرساخت!
 
-اقتصاد این کشور در حال رشد است... 📈
+{country_flag} <b>{country_name}</b> یک {building_emoji} <b>{building_name}</b> مدرن احداث کرد!
+
+📈 اقتصاد قدرتمندتر شد!
+💰 درآمد آینده افزایش یافت!
+🌟 پیشرفت چشمگیر!
 
 ───────────────"""
 
@@ -87,25 +99,28 @@ class NewsChannel:
 
         if battle_result['success']:
             result_emoji = "🏆"
-            result_text = f"{attacker_flag} <b>{battle_result['attacker_country']}</b> برنده شد!"
+            result_text = f"🎯 {attacker_flag} <b>{battle_result['attacker_country']}</b> پیروز شد!"
+            victory_desc = "✨ حمله موفقیت‌آمیز بود!"
         else:
             result_emoji = "🛡"
-            result_text = f"{defender_flag} <b>{battle_result['defender_country']}</b> حمله را دفع کرد!"
+            result_text = f"🏰 {defender_flag} <b>{battle_result['defender_country']}</b> مقاومت کرد!"
+            victory_desc = "💪 دفاع قهرمانانه بود!"
 
-        message = f"""⚔️ گزارش جنگ {result_emoji}
+        message = f"""⚔️ نبرد بزرگ {result_emoji}
 
 {attacker_flag} <b>{battle_result['attacker_country']}</b> 
-🆚 
+⚡ حمله به ⚡
 {defender_flag} <b>{battle_result['defender_country']}</b>
 
-🔥 قدرت حمله: {battle_result['attack_power']:,}
-🛡 قدرت دفاع: {battle_result['defense_power']:,}
+🔥 نیروی حمله: {battle_result['attack_power']:,}
+🛡 نیروی دفاع: {battle_result['defense_power']:,}
 
-{result_text}"""
+{result_text}
+{victory_desc}"""
 
         # Add losses information
         if battle_result['success'] and battle_result.get('stolen_resources'):
-            message += "\n\n💰 منابع غارت شده:"
+            message += "\n\n💎 غنائم جنگی:"
             for resource, amount in battle_result['stolen_resources'].items():
                 resource_config = Config.RESOURCES.get(resource, {})
                 resource_name = resource_config.get('name', resource)
@@ -131,26 +146,21 @@ class NewsChannel:
 
         await self.send_news(message)
 
-    async def send_resource_transfer(self, sender_country, receiver_country, resources, travel_time):
+    async def send_resource_transfer(self, sender_country, receiver_country, transfer_description, travel_time):
         """Send resource transfer news"""
         sender_flag = self.get_country_flag(sender_country)
         receiver_flag = self.get_country_flag(receiver_country)
 
-        message = f"""📬 انتقال منابع
+        message = f"""📬 انتقال منابع فوری!
 
-{sender_flag} <b>{sender_country}</b> در حال ارسال منابع به {receiver_flag} <b>{receiver_country}</b>
+🚁 {sender_flag} <b>{sender_country}</b> در حال ارسال منابع به {receiver_flag} <b>{receiver_country}</b>
 
-📦 محموله شامل:"""
+💰 محموله: {transfer_description}
 
-        for resource, amount in resources.items():
-            resource_config = Config.RESOURCES.get(resource, {})
-            resource_name = resource_config.get('name', resource)
-            resource_emoji = resource_config.get('emoji', '📦')
-            message += f"\n{resource_emoji} {resource_name}: {amount:,}"
+⚡ انتقال فوری انجام شد!
+🛡 محموله با موفقیت تحویل داده شد.
 
-        message += f"\n\n⏱ زمان رسیدن: {travel_time} ساعت"
-        message += "\n💥 محموله قابل حمله است!"
-        message += "\n\n───────────────"
+───────────────"""
 
         await self.send_news(message)
 
@@ -175,12 +185,15 @@ class NewsChannel:
 
     async def send_income_cycle_complete(self):
         """Send income cycle completion news"""
-        message = f"""💰 چرخه درآمد شش‌ساعته
+        message = f"""💰 چرخه اقتصادی ۶ ساعته تکمیل شد!
 
-✅ درآمد همه کشورها محاسبه شد
-📈 منابع معادن توزیع گردید
-👥 جمعیت از مزارع افزایش یافت
-⚔️ سربازان جدید آموزش دیدند
+✨ همه کشورها درآمد دریافت کردند
+⛏ معادن منابع تولید کردند  
+🌾 مزارع جمعیت تولید کردند
+🪖 پادگان‌ها سرباز آموزش دادند
+
+🌍 اقتصاد جهانی در حال رشد است!
+📊 آماده برای چرخه بعدی...
 
 ───────────────"""
 

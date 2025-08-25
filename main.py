@@ -710,7 +710,7 @@ class DragonRPBot:
             await self.news.send_resource_transfer(
                 player['country_name'],
                 target['country_name'],
-                {transfer_type: transfer_description},
+                transfer_description,
                 "فوری"
             )
         else:
