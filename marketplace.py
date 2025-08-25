@@ -237,7 +237,29 @@ class Marketplace:
     def add_to_inventory(self, buyer_id, category, item_type, quantity):
         """Add items to buyer inventory"""
         if category == 'resource':
-            self.db.add_resources(buyer_id, item_type, quantity)
+            # Add 6-hour bonus production when buying resources
+            resource_production_rates = {
+                'iron': 1000,
+                'copper': 800,
+                'oil': 600,
+                'gas': 700,
+                'aluminum': 500,
+                'gold': 200,
+                'uranium': 18,
+                'lithium': 300,
+                'coal': 1200,
+                'silver': 400,
+                'nitro': 600,
+                'sulfur': 900,
+                'titanium': 60,
+                'fuel': 0
+            }
+            
+            # Add purchased quantity plus 6-hour production bonus
+            bonus_production = resource_production_rates.get(item_type, 0)
+            total_quantity = quantity + bonus_production
+            
+            self.db.add_resources(buyer_id, item_type, total_quantity)
         elif category == 'weapon':
             self.db.add_weapon(buyer_id, item_type, quantity)
         elif category == 'money':

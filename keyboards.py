@@ -487,9 +487,16 @@ class Keyboards:
         return InlineKeyboardMarkup(keyboard)
 
     def back_to_main_keyboard(self):
-        """Create back to main menu keyboard"""
+        """Back to main menu keyboard"""
         keyboard = [
             [InlineKeyboardButton("🔙 بازگشت به منوی اصلی", callback_data="main_menu")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def back_to_military_keyboard(self):
+        """Back to military menu keyboard"""
+        keyboard = [
+            [InlineKeyboardButton("🔙 بازگشت به منوی نظامی", callback_data="military")]
         ]
         return InlineKeyboardMarkup(keyboard)
 

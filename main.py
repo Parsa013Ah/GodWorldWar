@@ -1593,6 +1593,40 @@ class DragonRPBot:
         result = self.alliance.respond_to_invitation(user_id, invitation_id, response)
         await query.edit_message_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
 
+    async def show_income_report(self, query, context):
+        """Show detailed income report"""
+        user_id = query.from_user.id
+        player = self.db.get_player(user_id)
+        
+        if not player:
+            await query.edit_message_text("❌ بازیکن یافت نشد!")
+            return
+            
+        report = self.economy.get_income_report(user_id)
+        keyboard = self.keyboards.back_to_main_keyboard()
+        await query.edit_message_text(report, reply_markup=keyboard)
+
+    async def show_convoy_interception_menu(self, query, context):
+        """Show convoy interception menu"""
+        user_id = query.from_user.id
+        active_convoys = self.convoy.get_active_convoys()
+        
+        if not active_convoys:
+            menu_text = "❌ هیچ محموله‌ای در حال حرکت نیست!"
+            keyboard = self.keyboards.back_to_main_keyboard()
+            await query.edit_message_text(menu_text, reply_markup=keyboard)
+            return
+            
+        menu_text = "🚚 محموله‌های در حال حرکت:\n\n"
+        
+        for convoy in active_convoys:
+            if convoy['sender_id'] != user_id and convoy['receiver_id'] != user_id:
+                menu_text += f"🆔 {convoy['id']} - از {convoy['sender_country']} به {convoy['receiver_country']}\n"
+                menu_text += f"🛡 امنیت: {convoy['security_level']}%\n\n"
+        
+        keyboard = self.keyboards.back_to_main_keyboard()
+        await query.edit_message_text(menu_text, reply_markup=keyboard)
+
     async def handle_marketplace_purchase(self, query, context):
         """Handle marketplace purchase"""
         try:

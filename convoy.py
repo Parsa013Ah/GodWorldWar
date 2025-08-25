@@ -178,6 +178,22 @@ class ConvoySystem:
         if not self.validate_sender_resources(sender_id, resources):
             return {'success': False, 'message': 'منابع کافی برای ارسال ندارید!'}
 
+        # Validate sender has the transport equipment
+        if transport_type != 'none':
+            weapons = self.db.get_player_weapons(sender_id)
+            if weapons.get(transport_type, 0) < 1:
+                transport_names = {
+                    'armored_truck': 'کامیون زرهی',
+                    'cargo_helicopter': 'هلیکوپتر باری',
+                    'cargo_plane': 'هواپیمای باری',
+                    'logistics_drone': 'پهپاد لجستیک',
+                    'heavy_transport': 'ترابری سنگین',
+                    'supply_ship': 'کشتی تدارکات',
+                    'stealth_transport': 'ترابری پنهان‌کار'
+                }
+                transport_name = transport_names.get(transport_type, transport_type)
+                return {'success': False, 'message': f'شما {transport_name} ندارید!'}
+
         # Consume resources from sender
         if not self.consume_sender_resources(sender_id, resources):
             return {'success': False, 'message': 'خطا در کسر منابع!'}
@@ -206,6 +222,12 @@ class ConvoySystem:
 
     def calculate_convoy_travel_time_with_transport(self, sender_id, transport_type):
         """Calculate convoy travel time with specific transport"""
+        # Check if player has the transport equipment
+        if transport_type != 'none':
+            weapons = self.db.get_player_weapons(sender_id)
+            if weapons.get(transport_type, 0) < 1:
+                return 30  # Default time if transport not available
+        
         transport_times = {
             'none': 30,
             'armored_truck': 25,

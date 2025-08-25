@@ -55,13 +55,13 @@ class Economy:
             'gas_mine': ('gas', 700),
             'aluminum_mine': ('aluminum', 500),
             'gold_mine': ('gold', 200),
-            'uranium_mine': ('uranium', 100),
+            'uranium_mine': ('uranium', 18),
             'lithium_mine': ('lithium', 300),
             'coal_mine': ('coal', 1200),
             'silver_mine': ('silver', 400),
-            'nitro_mine': ('nitro', 100),
-            'sulfur_mine': ('sulfur', 150),
-            'titanium_mine': ('titanium', 3)
+            'nitro_mine': ('nitro', 600),
+            'sulfur_mine': ('sulfur', 900),
+            'titanium_mine': ('titanium', 60)
         }
 
         for building_type, (resource_type, production_amount) in resource_production.items():
@@ -113,10 +113,13 @@ class Economy:
             'gas_mine': ('gas', 700, '⛽'),
             'aluminum_mine': ('aluminum', 500, '🔗'),
             'gold_mine': ('gold', 200, '🏆'),
-            'uranium_mine': ('uranium', 100, '☢️'),
+            'uranium_mine': ('uranium', 18, '☢️'),
             'lithium_mine': ('lithium', 300, '🔋'),
             'coal_mine': ('coal', 1200, '⚫'),
-            'silver_mine': ('silver', 400, '🥈')
+            'silver_mine': ('silver', 400, '🥈'),
+            'nitro_mine': ('nitro', 600, '💥'),
+            'sulfur_mine': ('sulfur', 900, '🟡'),
+            'titanium_mine': ('titanium', 60, '🔘')
         }
 
         for building_type, (resource_type, production, emoji) in resource_production.items():
