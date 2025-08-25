@@ -179,6 +179,10 @@ class DragonRPBot:
                 await self.handle_remove_listing(query, context)
             elif data.startswith("confirm_sell_"):
                 await self.handle_confirm_sell(query, context)
+            elif data.startswith("manual_transfer_"):
+                await self.handle_manual_transfer(query, context)
+            elif data.startswith("manual_sell_"):
+                await self.handle_manual_sell(query, context)
             elif data.startswith("admin_give_cat_"):
                 await self.show_admin_give_category(query, context)
             elif data.startswith("admin_give_all_"):
@@ -1869,6 +1873,8 @@ class DragonRPBot:
                 callback_data=callback_data
             )])
         
+        # Add manual input button
+        keyboard.append([InlineKeyboardButton("✏️ مقدار و قیمت دستی", callback_data=f"manual_sell_{item_category}_{item_type}")])
         keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="market_sell")])
         
         await query.edit_message_text(dialog_text, reply_markup=InlineKeyboardMarkup(keyboard))
@@ -1906,6 +1912,209 @@ class DragonRPBot:
         
         await query.edit_message_text(success_text)
 
+    async def handle_manual_transfer(self, query, context):
+        """Handle manual transfer input request"""
+        user_id = query.from_user.id
+        target_id = int(query.data.replace("manual_transfer_", ""))
+        
+        # Store transfer context
+        context.user_data['awaiting_manual_transfer'] = True
+        context.user_data['transfer_target_id'] = target_id
+        
+        player = self.db.get_player(user_id)
+        target_player = self.db.get_player(target_id)
+        
+        manual_text = f"""✏️ ورود مقدار دستی - انتقال به {target_player['country_name']}
+
+💰 پول شما: ${player['money']:,}
+
+📝 لطفاً مقدار دلخواه خود را به فرمت زیر وارد کنید:
+
+🔹 برای ارسال پول:
+money 50000
+
+🔹 برای ارسال منابع:
+iron 1000
+oil 500
+gold 100
+
+شما می‌توانید چندین آیتم را در یک خط جداگانه وارد کنید:
+money 10000
+iron 500
+oil 300
+
+⚠️ فقط اعداد صحیح استفاده کنید"""
+
+        await query.edit_message_text(manual_text)
+
+    async def handle_manual_sell(self, query, context):
+        """Handle manual sell input request"""
+        user_id = query.from_user.id
+        data_parts = query.data.replace("manual_sell_", "").split("_")
+        
+        if len(data_parts) < 2:
+            await query.edit_message_text("❌ خطا در پردازش!")
+            return
+        
+        item_category = data_parts[0]
+        item_type = data_parts[1]
+        
+        # Store sell context
+        context.user_data['awaiting_manual_sell'] = True
+        context.user_data['sell_item_category'] = item_category
+        context.user_data['sell_item_type'] = item_type
+        
+        # Get available amount
+        if item_category == "resources":
+            resources = self.db.get_player_resources(user_id)
+            available_amount = resources.get(item_type, 0)
+        else:  # weapons
+            weapons = self.db.get_player_weapons(user_id)
+            available_amount = weapons.get(item_type, 0)
+        
+        manual_text = f"""✏️ ورود مقدار و قیمت دستی
+
+📦 آیتم: {item_type}
+📊 موجودی شما: {available_amount:,}
+
+📝 لطفاً مقدار و قیمت دلخواه را به فرمت زیر وارد کنید:
+
+مقدار قیمت_واحد
+
+مثال:
+1000 50
+(یعنی 1000 عدد به قیمت 50 دلار هر واحد)
+
+⚠️ فقط اعداد صحیح استفاده کنید
+⚠️ مقدار نباید بیشتر از موجودی شما باشد"""
+
+        await query.edit_message_text(manual_text)
+
+    async def handle_manual_transfer_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle manual transfer text input"""
+        user_id = update.effective_user.id
+        message = update.message.text.strip()
+        target_id = context.user_data.get('transfer_target_id')
+        
+        if not target_id:
+            await update.message.reply_text("❌ خطا در پردازش انتقال!")
+            context.user_data.pop('awaiting_manual_transfer', None)
+            return
+        
+        try:
+            # Parse input
+            lines = message.split('\n')
+            transfer_resources = {}
+            
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+                    
+                parts = line.split()
+                if len(parts) != 2:
+                    await update.message.reply_text("❌ فرمت نادرست! استفاده کنید: آیتم مقدار")
+                    return
+                
+                resource_type, amount_str = parts
+                amount = int(amount_str)
+                
+                if amount <= 0:
+                    await update.message.reply_text("❌ مقدار باید بیشتر از صفر باشد!")
+                    return
+                
+                transfer_resources[resource_type] = amount
+            
+            if not transfer_resources:
+                await update.message.reply_text("❌ هیچ آیتمی برای انتقال مشخص نشده!")
+                return
+            
+            # Execute transfer
+            result = self.convoy.create_convoy(user_id, target_id, transfer_resources)
+            
+            if result['success']:
+                target_player = self.db.get_player(target_id)
+                convoy_message = f"🚛 محموله جدید آماده ارسال!\n\n📦 مقصد: {target_player['country_name']}\n⏱ زمان تحویل: {result['travel_time']} دقیقه\n🛡 امنیت: {result['security_level']}%"
+                
+                # Send convoy news
+                await self.news.send_convoy_news(convoy_message, None, transfer_resources)
+                
+                await update.message.reply_text(f"✅ محموله با موفقیت ارسال شد!\n{convoy_message}")
+            else:
+                await update.message.reply_text(f"❌ {result['message']}")
+            
+        except ValueError:
+            await update.message.reply_text("❌ لطفاً فقط اعداد صحیح وارد کنید!")
+        except Exception as e:
+            logger.error(f"Error in manual transfer: {e}")
+            await update.message.reply_text("❌ خطایی در انتقال رخ داد!")
+        
+        # Clear state
+        context.user_data.pop('awaiting_manual_transfer', None)
+        context.user_data.pop('transfer_target_id', None)
+        
+        # Show main menu
+        await asyncio.sleep(1)
+        await self.show_main_menu(update, context)
+
+    async def handle_manual_sell_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle manual sell text input"""
+        user_id = update.effective_user.id
+        message = update.message.text.strip()
+        item_category = context.user_data.get('sell_item_category')
+        item_type = context.user_data.get('sell_item_type')
+        
+        if not item_category or not item_type:
+            await update.message.reply_text("❌ خطا در پردازش فروش!")
+            context.user_data.pop('awaiting_manual_sell', None)
+            return
+        
+        try:
+            parts = message.split()
+            if len(parts) != 2:
+                await update.message.reply_text("❌ فرمت نادرست! استفاده کنید: مقدار قیمت_واحد")
+                return
+            
+            quantity = int(parts[0])
+            price_per_unit = int(parts[1])
+            
+            if quantity <= 0 or price_per_unit <= 0:
+                await update.message.reply_text("❌ مقدار و قیمت باید بیشتر از صفر باشد!")
+                return
+            
+            # Create listing
+            result = self.marketplace.create_listing(user_id, item_type, item_category, quantity, price_per_unit)
+            
+            if result['success']:
+                total_value = quantity * price_per_unit
+                success_text = f"""✅ آگهی فروش ثبت شد!
+
+📦 آیتم: {item_type}
+🔢 مقدار: {quantity:,}
+💰 قیمت واحد: ${price_per_unit:,}
+💵 ارزش کل: ${total_value:,}
+🛡 امنیت: {result['security_level']}%
+
+🏪 آگهی شما در بازار قرار گرفت."""
+                await update.message.reply_text(success_text)
+            else:
+                await update.message.reply_text(f"❌ {result['message']}")
+            
+        except ValueError:
+            await update.message.reply_text("❌ لطفاً فقط اعداد صحیح وارد کنید!")
+        except Exception as e:
+            logger.error(f"Error in manual sell: {e}")
+            await update.message.reply_text("❌ خطایی در فروش رخ داد!")
+        
+        # Clear state
+        context.user_data.pop('awaiting_manual_sell', None)
+        context.user_data.pop('sell_item_category', None)
+        context.user_data.pop('sell_item_type', None)
+        
+        # Show main menu
+        await asyncio.sleep(1)
+        await self.show_main_menu(update, context)
+
     async def handle_remove_listing(self, query, context):
         """Handle removing marketplace listing"""
         user_id = query.from_user.id
@@ -1918,8 +2127,16 @@ class DragonRPBot:
         """Handle text messages"""
         user_id = update.effective_user.id
 
+        # Check if user is awaiting manual transfer input
+        if context.user_data.get('awaiting_manual_transfer'):
+            await self.handle_manual_transfer_input(update, context)
+            return
+        # Check if user is awaiting manual sell input
+        elif context.user_data.get('awaiting_manual_sell'):
+            await self.handle_manual_sell_input(update, context)
+            return
         # Check if user is awaiting official statement
-        if context.user_data.get('awaiting_statement'):
+        elif context.user_data.get('awaiting_statement'):
             message = update.message.text
             if len(message) > 300:
                 await update.message.reply_text("❌ متن بیانیه نباید بیش از 300 کاراکتر باشد.")

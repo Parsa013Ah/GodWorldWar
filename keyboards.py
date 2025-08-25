@@ -481,6 +481,8 @@ class Keyboards:
             )
             keyboard.append([button])
 
+        # Add manual input button
+        keyboard.append([InlineKeyboardButton("✏️ مقدار دستی", callback_data=f"manual_transfer_{target_id}")])
         keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="send_resources")])
         return InlineKeyboardMarkup(keyboard)
 
