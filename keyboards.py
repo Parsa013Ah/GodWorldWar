@@ -137,15 +137,6 @@ class Keyboards:
                 InlineKeyboardButton("🚚 تجهیزات حمل‌ونقل", callback_data="weapon_cat_transport")
             ],
             [
-                InlineKeyboardButton("🔙 بازگشت", callback_data="military_menu")
-            ]
-        ]
-        return InlineKeyboardMarkup(keyboard)nced_jets")
-            ],
-            [
-                InlineKeyboardButton("🚛 تجهیزات حمل و نقل", callback_data="weapon_cat_transport")
-            ],
-            [
                 InlineKeyboardButton("🔙 بازگشت", callback_data="military")
             ]
         ]
@@ -252,7 +243,7 @@ class Keyboards:
                 ]
             ]
 
-        keyboard.append([InlineKeyboardButton("🔙 منوی تسلیحات", callback_data="weapon_production")])
+        keyboard.append([InlineKeyboardButton("🔙 منوی تسلیحات", callback_data="weapons")])
         return InlineKeyboardMarkup(keyboard)
 
     def diplomacy_menu_keyboard(self, user_id):
