@@ -154,122 +154,29 @@ class Keyboards:
         """Create keyboard for specific weapon category"""
         keyboard = []
 
-        if category == "basic":
-            keyboard = [
-                [
-                    InlineKeyboardButton("🔫 تفنگ", callback_data="select_weapon_rifle"),
-                    InlineKeyboardButton("🚗 تانک", callback_data="select_weapon_tank")
-                ],
-                [
-                    InlineKeyboardButton("✈️ جنگنده", callback_data="select_weapon_fighter_jet"),
-                    InlineKeyboardButton("🚁 پهپاد", callback_data="select_weapon_drone")
-                ],
-                [
-                    InlineKeyboardButton("🚢 کشتی جنگی", callback_data="select_weapon_warship")
-                ]
-            ]
-        elif category == "defense":
-            keyboard = [
-                [
-                    InlineKeyboardButton("🛡 پدافند هوایی", callback_data="select_weapon_air_defense"),
-                    InlineKeyboardButton("🚀 سپر موشکی", callback_data="select_weapon_missile_shield")
-                ],
-                [
-                    InlineKeyboardButton("💻 سپر سایبری", callback_data="select_weapon_cyber_shield")
-                ]
-            ]
-        elif category == "bombs":
-            keyboard = [
-                [
-                    InlineKeyboardButton("💣 بمب ساده", callback_data="select_weapon_simple_bomb"),
-                    InlineKeyboardButton("☢️ بمب هسته‌ای", callback_data="select_weapon_nuclear_bomb")
-                ]
-            ]
-        elif category == "missiles":
-            keyboard = [
-                [
-                    InlineKeyboardButton("🚀 موشک ساده", callback_data="select_weapon_simple_missile"),
-                    InlineKeyboardButton("🚀 موشک بالستیک", callback_data="select_weapon_ballistic_missile")
-                ],
-                [
-                    InlineKeyboardButton("☢️ موشک هسته‌ای", callback_data="select_weapon_nuclear_missile")
-                ]
-            ]
-        elif category == "special_missiles":
-            keyboard = [
-                [
-                    InlineKeyboardButton("🚀 Trident 2 غیر هسته‌ای", callback_data="produce_trident2_conventional"),
-                    InlineKeyboardButton("☢️ Trident 2 هسته‌ای", callback_data="produce_trident2_nuclear")
-                ],
-                [
-                    InlineKeyboardButton("🚀 Satan2 غیر هسته‌ای", callback_data="produce_satan2_conventional"),
-                    InlineKeyboardButton("☢️ Satan2 هسته‌ای", callback_data="produce_satan2_nuclear")
-                ],
-                [
-                    InlineKeyboardButton("☢️ DF-41 هسته‌ای", callback_data="produce_df41_nuclear")
-                ],
-                [
-                    InlineKeyboardButton("🚀 Tomahawk غیر هسته‌ای", callback_data="produce_tomahawk_conventional"),
-                    InlineKeyboardButton("☢️ Tomahawk هسته‌ای", callback_data="produce_tomahawk_nuclear")
-                ],
-                [
-                    InlineKeyboardButton("🚀 Kalibr غیر هسته‌ای", callback_data="produce_kalibr_conventional")
-                ]
-            ]
-        elif category == "advanced_jets":
-            keyboard = [
-                [
-                    InlineKeyboardButton("✈️ F-22", callback_data="select_weapon_f22"),
-                    InlineKeyboardButton("✈️ F-35", callback_data="select_weapon_f35")
-                ],
-                [
-                    InlineKeyboardButton("✈️ Su-57", callback_data="select_weapon_su57"),
-                    InlineKeyboardButton("✈️ J-20", callback_data="select_weapon_j20")
-                ],
-                [
-                    InlineKeyboardButton("✈️ F-15EX", callback_data="select_weapon_f15ex"),
-                    InlineKeyboardButton("✈️ Su-35S", callback_data="select_weapon_su35s")
-                ]
-            ]
-        elif category == "transport":
-            keyboard = [
-                [
-                    InlineKeyboardButton("🚛کامیون زرهی", callback_data="select_weapon_armored_truck"),
-                    InlineKeyboardButton("🚁 هلیکوپتر باری", callback_data="select_weapon_cargo_helicopter")
-                ],
-                [
-                    InlineKeyboardButton("✈️ هواپیمای باری", callback_data="select_weapon_cargo_plane"),
-                    InlineKeyboardButton("🛡 ناوچه اسکورت", callback_data="select_weapon_escort_frigate")
-                ],
-                [
-                    InlineKeyboardButton("🚁 پهپاد لجستیک", callback_data="select_weapon_logistics_drone"),
-                    InlineKeyboardButton("🚚 ترابری سنگین", callback_data="select_weapon_heavy_transport")
-                ],
-                [
-                    InlineKeyboardButton("🚢 کشتی تدارکات", callback_data="select_weapon_supply_ship"),
-                    InlineKeyboardButton("🥷 ترابری پنهان‌کار", callback_data="select_weapon_stealth_transport")
-                ]
-            ]
-        elif category == "naval":
-            keyboard = [
-                [
-                    InlineKeyboardButton("🚢 ناو هواپیمابر", callback_data="select_weapon_aircraft_carrier"),
-                    InlineKeyboardButton("🚢 ناو جنگی", callback_data="select_weapon_warship")
-                ],
-                [
-                    InlineKeyboardButton("🚢 ناوشکن", callback_data="select_weapon_destroyer"),
-                    InlineKeyboardButton("🚢 زیردریایی هسته‌ای", callback_data="select_weapon_nuclear_submarine")
-                ],
-                [
-                    InlineKeyboardButton("🚢 کشتی گشتی", callback_data="select_weapon_patrol_boat"),
-                    InlineKeyboardButton("🚢 قایق گشتی", callback_data="select_weapon_speed_boat")
-                ],
-                [
-                    InlineKeyboardButton("🚢 کشتی آبی-خاکی", callback_data="select_weapon_amphibious_assault_ship")
-                ]
-            ]
+        # Get weapons in this category
+        weapons_in_category = []
+        for weapon_key, weapon_config in Config.WEAPONS.items():
+            if weapon_config.get('category') == category:
+                weapons_in_category.append(weapon_key)
 
-        keyboard.append([InlineKeyboardButton("🔙 منوی تسلیحات", callback_data="weapons")])
+        # Create buttons for weapons (max 2 per row)
+        for i in range(0, len(weapons_in_category), 2):
+            row = []
+            for j in range(2):
+                if i + j < len(weapons_in_category):
+                    weapon_key = weapons_in_category[i + j]
+                    weapon_config = Config.WEAPONS.get(weapon_key, {})
+                    weapon_name = weapon_config.get('name', weapon_key)
+                    emoji = self._get_weapon_emoji(weapon_key)
+                    button_text = f"{emoji} {weapon_name}"
+                    callback_data = f"select_weapon_{weapon_key}"
+                    row.append(InlineKeyboardButton(button_text, callback_data=callback_data))
+            keyboard.append(row)
+
+        # Back button
+        keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="weapons")])
+
         return InlineKeyboardMarkup(keyboard)
 
     def diplomacy_menu_keyboard(self, user_id):
@@ -386,7 +293,7 @@ class Keyboards:
                 InlineKeyboardButton("⚡ حمله سایبری", callback_data=f"attack_type_{target_id}_cyber")
             ],
             [
-                InlineKeyboardButton("🔙 انتخاب هدف دیگر", callback_data=f"select_attack_target")
+                InlineKeyboardButton("🔙 انتخاب نوع حمله", callback_data=f"select_target_{target_id}")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
@@ -403,11 +310,11 @@ class Keyboards:
         for weapon_key, count in available_weapons.items():
             if weapon_key != 'user_id' and count > 0 and weapon_key in Config.WEAPONS:
                 weapon_config = Config.WEAPONS[weapon_key]
-                
+
                 # Skip pure transport and defense weapons  
                 if weapon_config.get('category') in ['transport', 'defense']:
                     continue
-                    
+
                 attack_weapons.append(weapon_key)
 
         if not attack_weapons:
@@ -418,10 +325,10 @@ class Keyboards:
                 weapon_config = Config.WEAPONS[weapon_key]
                 weapon_name = weapon_config.get('name', weapon_key)
                 emoji = self._get_weapon_emoji(weapon_key)
-                
+
                 button_text = f"{emoji} {weapon_name} ({count})"
                 callback_data = f"execute_attack_{target_id}_{attack_type}_{weapon_key}"
-                
+
                 keyboard.append([InlineKeyboardButton(button_text, callback_data=callback_data)])
 
         keyboard.append([InlineKeyboardButton("⚔️ حمله با همه سلاح‌ها", callback_data=f"execute_attack_{target_id}_{attack_type}_all")])
@@ -767,18 +674,36 @@ class Keyboards:
         return InlineKeyboardMarkup(keyboard)
 
     def _get_weapon_emoji(self, weapon_key):
-        """Get appropriate emoji for weapon"""
-        emoji_map = {
-            'rifle': '🔫', 'tank': '🚗', 'fighter_jet': '✈️', 'drone': '🚁',
-            'warship': '🚢', 'air_defense': '🛡', 'missile_shield': '🚀',
-            'cyber_shield': '💻', 'f22': '✈️', 'f35': '✈️', 'su57': '✈️',
-            'j20': '✈️', 'missile': '🚀', 'nuclear_missile': '☢️',
-            'armored_truck': '🚛', 'cargo_helicopter': '🚁', 'cargo_plane': '✈️',
-            'stealth_transport': '🛸', 'aircraft_carrier': '🚢', 'destroyer': '🚢',
-            'nuclear_submarine': '🚢', 'patrol_boat': '🚢', 'speed_boat': '🚢',
-            'amphibious_assault_ship': '🚢'
+        """Get emoji for weapon type"""
+        weapon_emojis = {
+            'rifle': '🔫',
+            'tank': '🚗',
+            'fighter_jet': '✈️',
+            'jet': '✈️',
+            'helicopter': '🚁',
+            'drone': '🚁',
+            'warship': '🚢',
+            'submarine': '🚢',
+            'destroyer': '🚢',
+            'aircraft_carrier': '🚢',
+            'air_defense': '🛡',
+            'missile_shield': '🚀',
+            'cyber_shield': '💻',
+            'simple_bomb': '💣',
+            'nuclear_bomb': '☢️',
+            'simple_missile': '🚀',
+            'ballistic_missile': '🚀',
+            'nuclear_missile': '☢️',
+            'f22': '✈️',
+            'f35': '✈️',
+            'su57': '✈️',
+            'j20': '✈️',
+            'armored_truck': '🚚',
+            'cargo_helicopter': '🚁',
+            'cargo_plane': '✈️',
+            'stealth_transport': '🥷'
         }
-        return emoji_map.get(weapon_key, '⚔️')
+        return weapon_emojis.get(weapon_key, '⚔️')
 
     def alliance_invite_keyboard(self, all_players=None):
         """Keyboard for alliance invite options"""

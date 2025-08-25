@@ -558,27 +558,31 @@ class DragonRPBot:
         weapon_type = '_'.join(parts[2:])  # Handle multi-part weapon names
         user_id = query.from_user.id
 
+        # Check if weapon exists in config
         if weapon_type not in Config.WEAPONS:
-            await query.edit_message_text("❌ نوع سلاح نامعتبر!")
+            available_weapons = list(Config.WEAPONS.keys())[:10]
+            await query.edit_message_text(
+                f"❌ نوع سلاح نامعتبر: {weapon_type}\n\n"
+                f"سلاح‌های موجود: {', '.join(available_weapons)}"
+            )
             return
 
         weapon_config = Config.WEAPONS[weapon_type]
-        result = self.economy.produce_weapon(user_id, weapon_type, 1)
+        result = self.game_logic.produce_weapon(user_id, weapon_type, 1)
 
         if result['success']:
-            weapon_name = weapon_config['name']
-
-            # Add weapon to player's inventory
-            self.db.add_weapon(user_id, weapon_type, 1)
+            weapon_name = weapon_config.get('name', weapon_type)
 
             await query.edit_message_text(
                 f"✅ {weapon_name} با موفقیت تولید شد!\n\n"
-                f"💰 هزینه: ${weapon_config['cost']:,}",
+                f"💰 هزینه: ${weapon_config.get('cost', 0):,}\n"
+                f"💰 پول باقی‌مانده: ${result['remaining_money']:,}",
                 reply_markup=self.keyboards.back_to_military_keyboard()
             )
 
             # Send news about production
-            await self.send_weapon_production_news(user_id, weapon_type, 1)
+            player = self.db.get_player(user_id)
+            await self.news.send_weapon_produced(player['country_name'], weapon_name, 1)
         else:
             await query.edit_message_text(
                 f"❌ {result['message']}",
@@ -795,19 +799,23 @@ class DragonRPBot:
         # Check if attacker has any offensive weapons
         available_weapons = self.db.get_player_weapons(user_id)
         has_offensive_weapons = False
+        offensive_weapons = []
         
         for weapon_type, count in available_weapons.items():
-            if weapon_type != 'user_id' and count > 0 and weapon_type in Config.WEAPONS:
-                weapon_config = Config.WEAPONS[weapon_type]
-                # Skip pure transport and defense weapons
-                if weapon_config.get('category') not in ['transport', 'defense']:
-                    has_offensive_weapons = True
-                    break
+            if weapon_type != 'user_id' and count > 0:
+                # Check if weapon exists in config
+                if weapon_type in Config.WEAPONS:
+                    weapon_config = Config.WEAPONS[weapon_type]
+                    # Skip pure transport and defense weapons
+                    if weapon_config.get('category') not in ['transport', 'defense']:
+                        has_offensive_weapons = True
+                        offensive_weapons.append(f"{weapon_config.get('name', weapon_type)}: {count}")
 
         if not has_offensive_weapons:
             await query.edit_message_text(
                 "❌ شما هیچ سلاح تهاجمی برای حمله ندارید!\n\n"
-                "ابتدا از بخش تسلیحات، سلاح‌های تهاجمی تولید کنید."
+                "ابتدا از بخش تسلیحات، سلاح‌های تهاجمی تولید کنید.\n\n"
+                f"سلاح‌های موجود: {', '.join(offensive_weapons) if offensive_weapons else 'هیچکدام'}"
             )
             return
 

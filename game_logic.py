@@ -73,27 +73,31 @@ class GameLogic:
         }
 
     def produce_weapon(self, user_id, weapon_type, quantity=1):
-        """Produce weapons for player"""
+        """Produce weapons"""
+        # Check if weapon type exists in config
+        if weapon_type not in Config.WEAPONS:
+            available_weapons = list(Config.WEAPONS.keys())[:10]  # Show first 10 weapons for debugging
+            return {'success': False, 'message': f'نوع سلاح نامعتبر: {weapon_type}\nسلاح‌های موجود: {", ".join(available_weapons)}'}
+
         player = self.db.get_player(user_id)
         if not player:
             return {'success': False, 'message': 'بازیکن یافت نشد!'}
 
-        weapon_config = Config.WEAPONS.get(weapon_type)
-
-        if not weapon_config:
-            return {'success': False, 'message': 'نوع سلاح نامعتبر است'}
+        weapon_config = Config.WEAPONS[weapon_type]
 
         if quantity <= 0:
             return {'success': False, 'message': 'تعداد باید بیشتر از صفر باشد!'}
 
-        total_cost = weapon_config['cost'] * quantity
-        weapon_name = weapon_config['name']
+        total_cost = weapon_config.get('cost', 0) * quantity
+        weapon_name = weapon_config.get('name', weapon_type)
         required_resources = weapon_config.get('resources', {})
 
-        # Check weapon factory
-        buildings = self.db.get_player_buildings(user_id)
-        if buildings.get('weapon_factory', 0) == 0:
-            return {'success': False, 'message': 'برای تولید سلاح به کارخانه اسلحه نیاز دارید!'}
+        # Check weapon factory requirement
+        weapon_requirements = weapon_config.get('requirements', [])
+        if 'weapon_factory' in weapon_requirements:
+            buildings = self.db.get_player_buildings(user_id)
+            if buildings.get('weapon_factory', 0) == 0:
+                return {'success': False, 'message': 'برای تولید سلاح به کارخانه اسلحه نیاز دارید!'}
 
         # Check money
         if player['money'] < total_cost:
@@ -112,53 +116,55 @@ class GameLogic:
             else:
                 resource_requirements[item] = amount * quantity
 
-        # Check weapon requirements (other weapons needed)
+        # Check weapon requirements
         if weapon_requirements:
-            player_weapons = self.db.get_player_weapons(user_id)
-            for weapon_req, amount_req in weapon_requirements.items():
-                if player_weapons.get(weapon_req, 0) < amount_req:
-                    weapon_req_name = Config.WEAPONS.get(weapon_req, {}).get('name', weapon_req)
+            current_weapons = self.db.get_player_weapons(user_id)
+            for req_weapon, req_amount in weapon_requirements.items():
+                current_amount = current_weapons.get(req_weapon, 0)
+                if current_amount < req_amount:
+                    req_weapon_name = Config.WEAPONS[req_weapon].get('name', req_weapon)
                     return {
                         'success': False,
-                        'message': f'برای ساخت {quantity} عدد این سلاح به {amount_req} عدد {weapon_req_name} نیاز دارید!'
+                        'message': f'سلاح مورد نیاز کافی نیست! نیاز: {req_amount} {req_weapon_name}, موجود: {current_amount}'
                     }
 
         # Check resource requirements
-        if resource_requirements and not self.db.consume_resources(user_id, resource_requirements):
-            return {'success': False, 'message': 'منابع کافی ندارید!'}
+        if resource_requirements:
+            current_resources = self.db.get_player_resources(user_id)
+            for resource, req_amount in resource_requirements.items():
+                current_amount = current_resources.get(resource, 0)
+                if current_amount < req_amount:
+                    resource_name = Config.RESOURCES.get(resource, {}).get('name', resource)
+                    return {
+                        'success': False,
+                        'message': f'منبع کافی نیست! نیاز: {req_amount} {resource_name}, موجود: {current_amount}'
+                    }
+
+        # Consume required resources
+        if resource_requirements:
+            for resource, amount in resource_requirements.items():
+                self.db.consume_resources(user_id, {resource: amount})
 
         # Consume required weapons
         if weapon_requirements:
-            player_weapons = self.db.get_player_weapons(user_id) # Re-fetch in case it was modified
-            for weapon_req, amount_req in weapon_requirements.items():
-                current_amount = player_weapons.get(weapon_req, 0)
-                new_amount = current_amount - amount_req
-                if new_amount < 0:
-                    # This check should ideally not be hit if player_weapons was up-to-date
-                    # but as a safeguard:
-                    return {'success': False, 'message': 'سلاح‌های مورد نیاز کافی نیست!'}
-                self.db.update_weapon_count(user_id, weapon_req, new_amount)
+            for req_weapon, amount in weapon_requirements.items():
+                current_count = self.db.get_weapon_count(user_id, req_weapon)
+                new_count = current_count - amount
+                self.db.update_weapon_count(user_id, req_weapon, new_count)
 
-        # Check if this is first build
-        is_first_build = self.db.check_first_build(user_id, weapon_type)
-
-        # Add weapons to player
-        self.db.add_weapon(user_id, weapon_type, quantity)
-
-        # Record first build
-        if is_first_build:
-            self.db.record_first_build(user_id, weapon_type)
-
-        # Update player money
+        # Deduct money
         new_money = player['money'] - total_cost
         self.db.update_player_money(user_id, new_money)
 
+        # Add produced weapons
+        self.db.add_weapon(user_id, weapon_type, quantity)
+
         return {
             'success': True,
-            'message': f'✅ {quantity}x {weapon_name} با موفقیت تولید شد!',
+            'message': f'{weapon_name} با موفقیت تولید شد! تعداد: {quantity}',
             'weapon_name': weapon_name,
-            'remaining_money': new_money,
-            'is_first_build': is_first_build
+            'quantity': quantity,
+            'remaining_money': new_money
         }
 
     def calculate_military_power(self, user_id):
