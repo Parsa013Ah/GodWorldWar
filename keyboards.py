@@ -36,7 +36,6 @@ class Keyboards:
                 InlineKeyboardButton("📊 منابع", callback_data="resources")
             ],
             [
-                InlineKeyboardButton("📬 ارسال منابع", callback_data="send_resources"),
                 InlineKeyboardButton("📢 بیانیه رسمی", callback_data="official_statement")
             ],
             [
@@ -82,12 +81,12 @@ class Keyboards:
                 InlineKeyboardButton("🥈 معدن نقره", callback_data="build_silver_mine")
             ],
             [
-                InlineKeyboardButton("⚒ کارخانه اسلحه", callback_data="build_weapon_factory"),
-                InlineKeyboardButton("🏭 پالایشگاه", callback_data="build_refinery")
+                InlineKeyboardButton("🏭 کارخانه اسلحه", callback_data="build_weapon_factory"),
+                InlineKeyboardButton("⚡ نیروگاه", callback_data="build_power_plant")
             ],
             [
-                InlineKeyboardButton("⚡ نیروگاه", callback_data="build_power_plant"),
-                InlineKeyboardButton("🌾 مزرعه گندم", callback_data="build_wheat_farm")
+                InlineKeyboardButton("🏭 پالایشگاه", callback_data="build_refinery"),
+                InlineKeyboardButton("🌾 مزرعه", callback_data="build_wheat_farm")
             ],
             [
                 InlineKeyboardButton("🪖 پادگان", callback_data="build_military_base"),
@@ -107,7 +106,7 @@ class Keyboards:
                 InlineKeyboardButton("⚔️ حمله", callback_data="attack_menu")
             ],
             [
-                InlineKeyboardButton("🛡 دفاع", callback_data="defense_status"),
+                InlineKeyboardButton("🛡 وضعیت دفاعی", callback_data="defense_status"),
                 InlineKeyboardButton("📊 قدرت نظامی", callback_data="military_power")
             ],
             [
@@ -148,23 +147,38 @@ class Keyboards:
         """Create diplomacy menu keyboard"""
         keyboard = [
             [
-                InlineKeyboardButton("🗺 نقشه جهان", callback_data="world_map"),
-                InlineKeyboardButton("📊 رتبه‌بندی", callback_data="rankings")
+                InlineKeyboardButton("⚔️ حمله به کشور", callback_data="select_attack_target"),
+                InlineKeyboardButton("📬 ارسال منابع", callback_data="send_resources")
             ],
             [
-                InlineKeyboardButton("⚔️ اعلان جنگ", callback_data="declare_war"),
-                InlineKeyboardButton("🤝 پیشنهاد صلح", callback_data="peace_offer")
+                InlineKeyboardButton("🤝 پیشنهاد صلح", callback_data="propose_peace"),
+                InlineKeyboardButton("🏴 بیانیه رسمی", callback_data="official_statement")
             ],
             [
                 InlineKeyboardButton("🔙 بازگشت", callback_data="main_menu")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
-    
+
+    def attack_targets_keyboard(self, available_targets):
+        """Create attack targets keyboard"""
+        keyboard = []
+
+        for target in available_targets:
+            flag = Config.COUNTRY_FLAGS.get(target['country_code'], '🏳')
+            button = InlineKeyboardButton(
+                f"{flag} {target['country_name']}",
+                callback_data=f"attack_{target['user_id']}"
+            )
+            keyboard.append([button])
+
+        keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="diplomacy")])
+        return InlineKeyboardMarkup(keyboard)
+
     def back_to_main_keyboard(self):
         """Simple back to main menu keyboard"""
         keyboard = [
-            [InlineKeyboardButton("🔙 بازگشت به منوی اصلی", callback_data="main_menu")]
+            [InlineKeyboardButton("🔙 منوی اصلی", callback_data="main_menu")]
         ]
         return InlineKeyboardMarkup(keyboard)
     
@@ -172,23 +186,15 @@ class Keyboards:
         """Create admin panel keyboard"""
         keyboard = [
             [
-                InlineKeyboardButton("👥 مدیریت بازیکنان", callback_data="admin_players"),
-                InlineKeyboardButton("📊 آمار کلی", callback_data="admin_stats")
+                InlineKeyboardButton("📊 آمار بازی", callback_data="admin_stats"),
+                InlineKeyboardButton("👥 مدیریت بازیکنان", callback_data="admin_players")
             ],
             [
-                InlineKeyboardButton("💰 مدیریت پول", callback_data="admin_money"),
-                InlineKeyboardButton("🏗 مدیریت ساختمان", callback_data="admin_buildings")
+                InlineKeyboardButton("📋 لاگ‌ها", callback_data="admin_logs"),
+                InlineKeyboardButton("🔄 ریست بازی", callback_data="admin_reset")
             ],
             [
-                InlineKeyboardButton("🔫 مدیریت تسلیحات", callback_data="admin_weapons"),
-                InlineKeyboardButton("📰 ارسال خبر", callback_data="admin_news")
-            ],
-            [
-                InlineKeyboardButton("🗂 لاگ‌ها", callback_data="admin_logs"),
-                InlineKeyboardButton("⚠️ ریست کامل", callback_data="admin_reset")
-            ],
-            [
-                InlineKeyboardButton("🔙 بازگشت", callback_data="main_menu")
+                InlineKeyboardButton("🔙 منوی اصلی", callback_data="main_menu")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
@@ -197,172 +203,29 @@ class Keyboards:
         """Create admin players management keyboard"""
         keyboard = []
         
-        # Add buttons for each player
-        for player in players[:10]:  # Limit to 10 players per page
+        for player in players[:10]:  # Show max 10 players
+            flag = Config.COUNTRY_FLAGS.get(player['country_code'], '🏳')
             button = InlineKeyboardButton(
-                f"{player['country_name']} - {player['username']}",
+                f"{flag} {player['country_name']}",
                 callback_data=f"admin_player_{player['user_id']}"
             )
             keyboard.append([button])
         
-        keyboard.append([
-            InlineKeyboardButton("🔙 بازگشت", callback_data="admin_panel")
-        ])
-        
+        keyboard.append([InlineKeyboardButton("🔙 پنل ادمین", callback_data="admin_panel")])
         return InlineKeyboardMarkup(keyboard)
     
     def admin_player_actions_keyboard(self, user_id):
         """Create admin actions keyboard for specific player"""
         keyboard = [
             [
-                InlineKeyboardButton("💰 تغییر پول", callback_data=f"admin_change_money_{user_id}"),
-                InlineKeyboardButton("👥 تغییر جمعیت", callback_data=f"admin_change_population_{user_id}")
+                InlineKeyboardButton("💰 اضافه کردن پول", callback_data=f"admin_add_money_{user_id}"),
+                InlineKeyboardButton("📊 نمایش کامل", callback_data=f"admin_view_{user_id}")
             ],
             [
-                InlineKeyboardButton("⚔️ تغییر سربازان", callback_data=f"admin_change_soldiers_{user_id}"),
-                InlineKeyboardButton("📦 افزودن منابع", callback_data=f"admin_add_resources_{user_id}")
-            ],
-            [
-                InlineKeyboardButton("🏗 افزودن ساختمان", callback_data=f"admin_add_building_{user_id}"),
-                InlineKeyboardButton("🔫 افزودن سلاح", callback_data=f"admin_add_weapon_{user_id}")
-            ],
-            [
-                InlineKeyboardButton("❌ حذف بازیکن", callback_data=f"admin_delete_player_{user_id}")
+                InlineKeyboardButton("❌ حذف بازیکن", callback_data=f"admin_delete_{user_id}")
             ],
             [
                 InlineKeyboardButton("🔙 بازگشت", callback_data="admin_players")
             ]
         ]
-        return InlineKeyboardMarkup(keyboard)
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from config import Config
-
-class Keyboards:
-    def country_selection_keyboard(self):
-        """Create country selection keyboard"""
-        keyboard = []
-        row = []
-        
-        for country_code, country_name in Config.COUNTRIES.items():
-            flag = Config.COUNTRY_FLAGS.get(country_code, '🏳')
-            button = InlineKeyboardButton(
-                f"{flag} {country_name}",
-                callback_data=f"select_country_{country_code}"
-            )
-            row.append(button)
-            
-            if len(row) == 2:
-                keyboard.append(row)
-                row = []
-        
-        if row:
-            keyboard.append(row)
-        
-        return InlineKeyboardMarkup(keyboard)
-    
-    def main_menu_keyboard(self):
-        """Create main menu keyboard"""
-        keyboard = [
-            [
-                InlineKeyboardButton("💰 اقتصاد", callback_data="economy"),
-                InlineKeyboardButton("⚔️ نظامی", callback_data="military")
-            ],
-            [
-                InlineKeyboardButton("🤝 دیپلماسی", callback_data="diplomacy"),
-                InlineKeyboardButton("📊 منابع", callback_data="resources")
-            ]
-        ]
-        return InlineKeyboardMarkup(keyboard)
-    
-    def economy_menu_keyboard(self):
-        """Create economy menu keyboard"""
-        keyboard = [
-            [InlineKeyboardButton("🏗 ساخت و ساز", callback_data="buildings")],
-            [InlineKeyboardButton("🔙 بازگشت", callback_data="main_menu")]
-        ]
-        return InlineKeyboardMarkup(keyboard)
-    
-    def military_menu_keyboard(self):
-        """Create military menu keyboard"""
-        keyboard = [
-            [InlineKeyboardButton("🔫 تولید تسلیحات", callback_data="weapons")],
-            [InlineKeyboardButton("🔙 بازگشت", callback_data="main_menu")]
-        ]
-        return InlineKeyboardMarkup(keyboard)
-    
-    def diplomacy_menu_keyboard(self, current_user_id):
-        """Create diplomacy menu keyboard"""
-        keyboard = [
-            [InlineKeyboardButton("📬 ارسال منابع", callback_data="send_resources")],
-            [InlineKeyboardButton("📢 بیانیه رسمی", callback_data="official_statement")],
-            [InlineKeyboardButton("🔙 بازگشت", callback_data="main_menu")]
-        ]
-        return InlineKeyboardMarkup(keyboard)
-    
-    def buildings_menu_keyboard(self):
-        """Create buildings menu keyboard"""
-        keyboard = [
-            [
-                InlineKeyboardButton("⛏ معدن آهن", callback_data="build_iron_mine"),
-                InlineKeyboardButton("⛏ معدن مس", callback_data="build_copper_mine")
-            ],
-            [
-                InlineKeyboardButton("🛢 معدن نفت", callback_data="build_oil_mine"),
-                InlineKeyboardButton("⛽ معدن گاز", callback_data="build_gas_mine")
-            ],
-            [
-                InlineKeyboardButton("🔗 معدن آلومینیوم", callback_data="build_aluminum_mine"),
-                InlineKeyboardButton("🏆 معدن طلا", callback_data="build_gold_mine")
-            ],
-            [
-                InlineKeyboardButton("☢️ معدن اورانیوم", callback_data="build_uranium_mine"),
-                InlineKeyboardButton("🔋 معدن لیتیوم", callback_data="build_lithium_mine")
-            ],
-            [
-                InlineKeyboardButton("⚫ معدن زغال", callback_data="build_coal_mine"),
-                InlineKeyboardButton("🥈 معدن نقره", callback_data="build_silver_mine")
-            ],
-            [
-                InlineKeyboardButton("🏭 کارخانه اسلحه", callback_data="build_weapon_factory"),
-                InlineKeyboardButton("🏭 پالایشگاه", callback_data="build_refinery")
-            ],
-            [
-                InlineKeyboardButton("⚡ نیروگاه", callback_data="build_power_plant"),
-                InlineKeyboardButton("🌾 مزرعه گندم", callback_data="build_wheat_farm")
-            ],
-            [
-                InlineKeyboardButton("🪖 پادگان", callback_data="build_military_base"),
-                InlineKeyboardButton("🏘 مسکن", callback_data="build_housing")
-            ],
-            [InlineKeyboardButton("🔙 بازگشت", callback_data="economy")]
-        ]
-        return InlineKeyboardMarkup(keyboard)
-    
-    def weapons_menu_keyboard(self):
-        """Create weapons menu keyboard"""
-        keyboard = [
-            [
-                InlineKeyboardButton("🔫 تفنگ", callback_data="produce_rifle"),
-                InlineKeyboardButton("🚗 تانک", callback_data="produce_tank")
-            ],
-            [
-                InlineKeyboardButton("✈️ جنگنده", callback_data="produce_fighter_jet"),
-                InlineKeyboardButton("🚁 پهپاد", callback_data="produce_drone")
-            ],
-            [
-                InlineKeyboardButton("🚀 موشک", callback_data="produce_missile"),
-                InlineKeyboardButton("🚢 کشتی جنگی", callback_data="produce_warship")
-            ],
-            [
-                InlineKeyboardButton("🛡 پدافند هوایی", callback_data="produce_air_defense"),
-                InlineKeyboardButton("🚀 سپر موشکی", callback_data="produce_missile_shield")
-            ],
-            [InlineKeyboardButton("💻 سپر سایبری", callback_data="produce_cyber_shield")],
-            [InlineKeyboardButton("🔙 بازگشت", callback_data="military")]
-        ]
-        return InlineKeyboardMarkup(keyboard)
-    
-    def back_to_main_keyboard(self):
-        """Create back to main menu keyboard"""
-        keyboard = [[InlineKeyboardButton("🔙 بازگشت به منوی اصلی", callback_data="main_menu")]]
         return InlineKeyboardMarkup(keyboard)

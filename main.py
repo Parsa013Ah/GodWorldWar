@@ -13,6 +13,8 @@ from keyboards import Keyboards
 from admin import AdminPanel
 from economy import Economy
 from news import NewsChannel
+from combat import CombatSystem
+from countries import CountryManager
 from config import Config
 
 # Configure logging
@@ -30,6 +32,8 @@ class DragonRPBot:
         self.keyboards = Keyboards()
         self.admin = AdminPanel(self.db)
         self.economy = Economy(self.db)
+        self.combat = CombatSystem(self.db)
+        self.countries = CountryManager(self.db)
         self.news = NewsChannel()
         self.scheduler = AsyncIOScheduler()
         
@@ -58,7 +62,11 @@ class DragonRPBot:
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle all callback queries"""
         query = update.callback_query
-        await query.answer()
+        
+        try:
+            await query.answer()
+        except Exception as e:
+            logger.warning(f"Failed to answer callback query: {e}")
         
         user_id = query.from_user.id
         data = query.data
@@ -84,6 +92,8 @@ class DragonRPBot:
                 await self.handle_building_construction(query, context)
             elif data.startswith("produce_"):
                 await self.handle_weapon_production(query, context)
+            elif data == "select_attack_target":
+                await self.show_attack_targets(query, context)
             elif data.startswith("attack_"):
                 await self.handle_attack(query, context)
             elif data == "send_resources":
@@ -392,14 +402,58 @@ class DragonRPBot:
         keyboard = self.keyboards.diplomacy_menu_keyboard(user_id)
         await query.edit_message_text(menu_text, reply_markup=keyboard)
     
-    async def handle_attack(self, query, context):
-        """Handle attack initiation"""
+    async def show_attack_targets(self, query, context):
+        """Show available attack targets"""
         user_id = query.from_user.id
-        target_country = query.data.replace("attack_", "")
+        player = self.db.get_player(user_id)
         
-        # This would show attack options and handle combat
-        # Implementation would be quite complex with range checking, etc.
-        await query.edit_message_text("🚧 سیستم حمله در حال توسعه است...")
+        available_targets = self.combat.get_available_targets(user_id)
+        
+        if not available_targets:
+            await query.edit_message_text(
+                "⚔️ هیچ کشور قابل حمله‌ای یافت نشد!\n\n"
+                "💡 برای حمله به کشورهای دور، به تسلیحات دوربرد نیاز دارید."
+            )
+            return
+        
+        menu_text = f"⚔️ انتخاب هدف حمله - {player['country_name']}\n\n"
+        menu_text += "کشورهای قابل حمله:\n"
+        
+        for target in available_targets:
+            flag = Config.COUNTRY_FLAGS.get(target['country_code'], '🏳')
+            menu_text += f"{flag} {target['country_name']}\n"
+        
+        menu_text += "\nانتخاب کنید:"
+        
+        keyboard = self.keyboards.attack_targets_keyboard(available_targets)
+        await query.edit_message_text(menu_text, reply_markup=keyboard)
+    
+    async def handle_attack(self, query, context):
+        """Handle attack execution"""
+        user_id = query.from_user.id
+        target_id = int(query.data.replace("attack_", ""))
+        
+        attacker = self.db.get_player(user_id)
+        target = self.db.get_player(target_id)
+        
+        if not target:
+            await query.edit_message_text("❌ کشور هدف یافت نشد!")
+            return
+        
+        # Execute attack
+        result = self.combat.execute_attack(user_id, target_id)
+        
+        if not result['success'] and 'message' in result:
+            await query.edit_message_text(f"❌ {result['message']}")
+            return
+        
+        # Format battle report
+        battle_report = self.combat.format_battle_report(result)
+        
+        await query.edit_message_text(battle_report)
+        
+        # Send news to channel
+        await self.news.send_war_report(result)
     
     async def show_resources_menu(self, query, context):
         """Show resources overview menu"""
@@ -549,6 +603,10 @@ class DragonRPBot:
         
         # Initialize database
         self.db.initialize()
+        
+        # Set bot for news channel
+        bot = Bot(token=self.token)
+        self.news.set_bot(bot)
         
         # Setup application
         application = Application.builder().token(self.token).post_init(self.post_init).build()

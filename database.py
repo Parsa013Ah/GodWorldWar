@@ -346,6 +346,28 @@ class Database:
             conn.commit()
             return True
     
+    def update_weapon_count(self, user_id, weapon_type, new_count):
+        """Update weapon count"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(f'''
+                UPDATE weapons 
+                SET {weapon_type} = ? 
+                WHERE user_id = ?
+            ''', (new_count, user_id))
+            conn.commit()
+    
+    def update_player_soldiers(self, user_id, new_soldiers):
+        """Update player soldiers"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE players 
+                SET soldiers = ? 
+                WHERE user_id = ?
+            ''', (new_soldiers, user_id))
+            conn.commit()
+    
     def reset_all_data(self):
         """Reset all game data (admin function)"""
         with self.get_connection() as conn:

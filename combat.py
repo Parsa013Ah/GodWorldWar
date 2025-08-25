@@ -1,6 +1,6 @@
-import random
+
 import logging
-from datetime import datetime
+import random
 from config import Config
 
 logger = logging.getLogger(__name__)
@@ -9,460 +9,268 @@ class CombatSystem:
     def __init__(self, database):
         self.db = database
     
-    def calculate_attack_power(self, user_id, attack_type='mixed'):
-        """Calculate total attack power based on weapons"""
-        weapons = self.db.get_player_weapons(user_id)
-        total_power = 0
-        
-        attack_weapons = {
-            'ground': ['rifle', 'tank'],
-            'air': ['fighter_jet', 'drone'],
-            'naval': ['warship'],
-            'missile': ['missile'],
-            'mixed': ['rifle', 'tank', 'fighter_jet', 'drone', 'missile', 'warship']
-        }
-        
-        relevant_weapons = attack_weapons.get(attack_type, attack_weapons['mixed'])
-        
-        for weapon_type in relevant_weapons:
-            count = weapons.get(weapon_type, 0)
-            if weapon_type in Config.WEAPONS and count > 0:
-                weapon_power = Config.WEAPONS[weapon_type]['power']
-                total_power += weapon_power * count
-        
-        return total_power
-    
-    def calculate_defense_power(self, user_id, attack_type='mixed'):
-        """Calculate defense power against specific attack type"""
-        weapons = self.db.get_player_weapons(user_id)
-        total_defense = 0
-        
-        # Base defense from all weapons
-        base_defense = 0
-        for weapon_type, count in weapons.items():
-            if weapon_type in Config.WEAPONS and count > 0:
-                weapon_power = Config.WEAPONS[weapon_type]['power']
-                base_defense += weapon_power * count * 0.3  # 30% of weapon power for defense
-        
-        # Specific defense bonuses
-        defense_bonuses = {
-            'air': weapons.get('air_defense', 0) * 100,
-            'missile': weapons.get('missile_shield', 0) * 120,
-            'cyber': weapons.get('cyber_shield', 0) * 80
-        }
-        
-        # Apply specific defense bonus
-        if attack_type in defense_bonuses:
-            total_defense = base_defense + defense_bonuses[attack_type]
-        else:
-            total_defense = base_defense
-        
-        return int(total_defense)
-    
-    def calculate_weapon_range(self, user_id):
-        """Calculate maximum attack range based on weapons"""
-        weapons = self.db.get_player_weapons(user_id)
-        max_range = 50  # Base range for ground weapons
-        
-        weapon_ranges = {
-            'fighter_jet': 1000,
-            'drone': 1500,
-            'missile': 3000,
-            'warship': 1000
-        }
-        
-        for weapon_type, range_km in weapon_ranges.items():
-            if weapons.get(weapon_type, 0) > 0:
-                max_range = max(max_range, range_km)
-        
-        return max_range
-    
-    def can_reach_target(self, attacker_id, defender_id):
-        """Check if attacker can reach defender"""
+    def can_attack_country(self, attacker_id, defender_id):
+        """Check if attacker can attack defender"""
         attacker = self.db.get_player(attacker_id)
         defender = self.db.get_player(defender_id)
         
         if not attacker or not defender:
             return False, "کشور یافت نشد"
         
+        if attacker_id == defender_id:
+            return False, "نمی‌توانید به خودتان حمله کنید"
+        
         attacker_country = attacker['country_code']
         defender_country = defender['country_code']
         
-        # Check if countries are neighbors (always can attack)
+        # Check if neighbors
         if self.are_neighbors(attacker_country, defender_country):
-            return True, "کشورهای همسایه"
+            return True, "کشورهای همسایه - حمله مجاز"
         
-        # Check weapon range
-        max_range = self.calculate_weapon_range(attacker_id)
-        distance = self.get_country_distance(attacker_country, defender_country)
+        # Check long range weapons
+        weapons = self.db.get_player_weapons(attacker_id)
+        has_long_range = False
         
-        if max_range >= distance:
-            return True, f"برد کافی: {max_range}km >= {distance}km"
-        else:
-            return False, f"برد ناکافی: {max_range}km < {distance}km"
+        for weapon_type, count in weapons.items():
+            if count > 0 and weapon_type in Config.WEAPONS:
+                weapon_range = Config.WEAPONS[weapon_type].get('range', 0)
+                if weapon_range >= 3000:
+                    has_long_range = True
+                    break
+        
+        if has_long_range:
+            return True, "دارای تسلیحات با برد بالا"
+        
+        return False, "فاصله زیاد - نیاز به تسلیحات دوربرد"
     
     def are_neighbors(self, country1, country2):
-        """Check if countries are neighbors"""
-        # Simplified neighbor relationships
-        neighbors = {
-            'IR': ['TR', 'IQ', 'AF'],  # Iran
-            'TR': ['IR', 'SY', 'GR'],  # Turkey  
-            'RU': ['CN', 'KP', 'DE'],  # Russia
-            'CN': ['RU', 'KP', 'JP'],  # China
-            'US': ['MX'],  # USA
-            'MX': ['US'],  # Mexico
-            'FR': ['DE', 'ES', 'BE'],  # France
-            'DE': ['FR', 'RU', 'BE'],  # Germany
-            'ES': ['FR'],  # Spain
-            'BE': ['FR', 'DE'],  # Belgium
-            'JP': ['CN', 'KP'],  # Japan
-            'KP': ['CN', 'RU', 'JP'],  # North Korea
-            'EG': [],  # Egypt
-            'AR': [],  # Argentina
-        }
-        
-        return country2 in neighbors.get(country1, [])
-    
-    def get_country_distance(self, country1, country2):
-        """Get distance between countries in km"""
-        # Simplified distance matrix
-        distances = {
-            ('IR', 'US'): 12000,
-            ('IR', 'CN'): 3000,
-            ('IR', 'JP'): 6000,
-            ('US', 'CN'): 11000,
-            ('US', 'RU'): 8000,
-            ('DE', 'RU'): 1600,
-            ('FR', 'US'): 6000,
-            # Add more distances as needed
-        }
-        
-        # Try both directions
-        distance = distances.get((country1, country2)) or distances.get((country2, country1))
-        return distance or 5000  # Default distance
-    
-    def execute_battle(self, attacker_id, defender_id, attack_type='mixed'):
-        """Execute a complete battle"""
-        # Check if attack is possible
-        can_attack, reason = self.can_reach_target(attacker_id, defender_id)
-        if not can_attack:
-            return {
-                'success': False,
-                'message': f"حمله امکان‌پذیر نیست: {reason}"
-            }
-        
-        # Get player info
-        attacker = self.db.get_player(attacker_id)
-        defender = self.db.get_player(defender_id)
-        
-        # Calculate powers
-        attack_power = self.calculate_attack_power(attacker_id, attack_type)
-        defense_power = self.calculate_defense_power(defender_id, attack_type)
-        
-        if attack_power == 0:
-            return {
-                'success': False,
-                'message': "شما تسلیحات کافی برای حمله ندارید!"
-            }
-        
-        # Battle calculation with randomness
-        battle_result = self.simulate_battle(attack_power, defense_power)
-        
-        # Apply consequences
-        consequences = self.apply_battle_consequences(
-            attacker_id, defender_id, battle_result, attack_type
-        )
-        
-        # Log the battle
-        self.log_battle(attacker_id, defender_id, battle_result, consequences)
-        
-        # Prepare result message
-        result = {
-            'success': battle_result['attacker_wins'],
-            'attacker': attacker['country_name'],
-            'defender': defender['country_name'],
-            'attack_power': attack_power,
-            'defense_power': defense_power,
-            'damage_dealt': battle_result['damage'],
-            'attacker_losses': consequences['attacker_losses'],
-            'defender_losses': consequences['defender_losses'],
-            'resources_stolen': consequences.get('resources_stolen', {}),
-            'message': self.generate_battle_message(attacker, defender, battle_result, consequences)
-        }
-        
-        return result
-    
-    def simulate_battle(self, attack_power, defense_power):
-        """Simulate the battle with randomness"""
-        # Add randomness factors
-        attack_modifier = random.uniform(0.8, 1.2)
-        defense_modifier = random.uniform(0.8, 1.2)
-        
-        effective_attack = attack_power * attack_modifier
-        effective_defense = defense_power * defense_modifier
-        
-        # Calculate damage
-        raw_damage = effective_attack - effective_defense
-        
-        # Determine winner
-        attacker_wins = raw_damage > 0
-        
-        # Calculate actual damage (minimum 10% of attack power)
-        if attacker_wins:
-            damage = max(raw_damage, attack_power * 0.1)
-        else:
-            damage = max(abs(raw_damage), defense_power * 0.1)
-        
-        return {
-            'attacker_wins': attacker_wins,
-            'damage': int(damage),
-            'attack_modifier': attack_modifier,
-            'defense_modifier': defense_modifier
-        }
-    
-    def apply_battle_consequences(self, attacker_id, defender_id, battle_result, attack_type):
-        """Apply consequences of the battle"""
-        damage = battle_result['damage']
-        attacker_wins = battle_result['attacker_wins']
-        
-        attacker_losses = {}
-        defender_losses = {}
-        resources_stolen = {}
-        
-        if attacker_wins:
-            # Defender suffers major losses
-            defender_losses = self.calculate_defender_losses(defender_id, damage)
-            self.apply_losses(defender_id, defender_losses)
-            
-            # Attacker suffers minor losses
-            attacker_losses = self.calculate_attacker_losses(attacker_id, damage * 0.2)
-            self.apply_losses(attacker_id, attacker_losses)
-            
-            # Steal resources
-            resources_stolen = self.steal_resources(attacker_id, defender_id, damage)
-            
-        else:
-            # Attacker suffers major losses
-            attacker_losses = self.calculate_attacker_losses(attacker_id, damage)
-            self.apply_losses(attacker_id, attacker_losses)
-            
-            # Defender suffers minor losses
-            defender_losses = self.calculate_defender_losses(defender_id, damage * 0.3)
-            self.apply_losses(defender_id, defender_losses)
-        
-        return {
-            'attacker_losses': attacker_losses,
-            'defender_losses': defender_losses,
-            'resources_stolen': resources_stolen
-        }
-    
-    def calculate_defender_losses(self, user_id, damage):
-        """Calculate losses for defender"""
-        player = self.db.get_player(user_id)
-        weapons = self.db.get_player_weapons(user_id)
-        
-        losses = {
-            'soldiers': min(player['soldiers'], int(damage * 10)),
-            'weapons': {}
-        }
-        
-        # Random weapon losses
-        for weapon_type, count in weapons.items():
-            if count > 0 and weapon_type in Config.WEAPONS:
-                loss_chance = min(0.3, damage / 1000)  # Up to 30% loss chance
-                if random.random() < loss_chance:
-                    lost = min(count, random.randint(1, max(1, count // 5)))
-                    losses['weapons'][weapon_type] = lost
-        
-        return losses
-    
-    def calculate_attacker_losses(self, user_id, damage):
-        """Calculate losses for attacker"""
-        player = self.db.get_player(user_id)
-        weapons = self.db.get_player_weapons(user_id)
-        
-        losses = {
-            'soldiers': min(player['soldiers'], int(damage * 5)),
-            'weapons': {}
-        }
-        
-        # Smaller weapon losses for attacker
-        for weapon_type, count in weapons.items():
-            if count > 0 and weapon_type in Config.WEAPONS:
-                loss_chance = min(0.15, damage / 2000)  # Up to 15% loss chance
-                if random.random() < loss_chance:
-                    lost = min(count, random.randint(1, max(1, count // 10)))
-                    losses['weapons'][weapon_type] = lost
-        
-        return losses
-    
-    def apply_losses(self, user_id, losses):
-        """Apply calculated losses to player"""
-        player = self.db.get_player(user_id)
-        
-        # Apply soldier losses
-        new_soldiers = max(0, player['soldiers'] - losses['soldiers'])
-        self.db.update_player_income(
-            user_id, player['money'], player['population'], new_soldiers
-        )
-        
-        # Apply weapon losses
-        for weapon_type, lost_count in losses.get('weapons', {}).items():
-            # Reduce weapon count (would need a new DB method)
-            pass
-    
-    def steal_resources(self, attacker_id, defender_id, damage):
-        """Steal resources from defender to attacker"""
-        defender_resources = self.db.get_player_resources(defender_id)
-        stolen = {}
-        
-        steal_factor = min(0.3, damage / 1000)  # Up to 30% based on damage
-        
-        for resource, amount in defender_resources.items():
-            if resource != 'user_id' and amount > 0:
-                stolen_amount = int(amount * steal_factor * random.uniform(0.5, 1.0))
-                if stolen_amount > 0:
-                    stolen[resource] = stolen_amount
-                    
-                    # Remove from defender
-                    self.db.consume_resources(defender_id, {resource: stolen_amount})
-                    
-                    # Add to attacker
-                    self.db.add_resources(attacker_id, resource, stolen_amount)
-        
-        return stolen
-    
-    def generate_battle_message(self, attacker, defender, battle_result, consequences):
-        """Generate detailed battle report message"""
-        if battle_result['attacker_wins']:
-            message = f"🎯 حمله موفق!\n\n"
-            message += f"🏴 {attacker['country_name']} با موفقیت به {defender['country_name']} حمله کرد!\n\n"
-            
-            message += "💥 تلفات:\n"
-            message += f"⚔️ {defender['country_name']}: {consequences['defender_losses']['soldiers']} سرباز\n"
-            message += f"🛡 {attacker['country_name']}: {consequences['attacker_losses']['soldiers']} سرباز\n\n"
-            
-            if consequences.get('resources_stolen'):
-                message += "💰 منابع غارت شده:\n"
-                for resource, amount in consequences['resources_stolen'].items():
-                    message += f"• {resource}: {amount:,}\n"
-        else:
-            message = f"🛡 دفاع موفق!\n\n"
-            message += f"🏴 {defender['country_name']} حمله {attacker['country_name']} را دفع کرد!\n\n"
-            
-            message += "💥 تلفات:\n"
-            message += f"⚔️ {attacker['country_name']}: {consequences['attacker_losses']['soldiers']} سرباز\n"
-            message += f"🛡 {defender['country_name']}: {consequences['defender_losses']['soldiers']} سرباز\n"
-        
-        return message
-    
-    def log_battle(self, attacker_id, defender_id, battle_result, consequences):
-        """Log battle in database"""
-        # This would save detailed battle information to database
-        # Implementation depends on your wars table structure
-        pass
-import random
-import logging
-from config import Config
-
-logger = logging.getLogger(__name__)
-
-class CombatSystem:
-    def __init__(self, database):
-        self.db = database
+        """Check if two countries are neighbors"""
+        neighbors = Config.COUNTRY_NEIGHBORS.get(country1, [])
+        return country2 in neighbors
     
     def calculate_attack_power(self, user_id):
         """Calculate total attack power"""
         weapons = self.db.get_player_weapons(user_id)
         total_power = 0
         
-        for weapon_type, quantity in weapons.items():
-            if weapon_type == 'user_id':
-                continue
-            weapon_config = Config.WEAPONS.get(weapon_type, {})
-            power = weapon_config.get('power', 0)
-            total_power += power * quantity
+        for weapon_type, count in weapons.items():
+            if weapon_type in Config.WEAPONS and count > 0:
+                weapon_power = Config.WEAPONS[weapon_type]['power']
+                total_power += weapon_power * count
         
         return total_power
     
     def calculate_defense_power(self, user_id):
         """Calculate total defense power"""
         weapons = self.db.get_player_weapons(user_id)
-        buildings = self.db.get_player_buildings(user_id)
-        
         defense_power = 0
         
         # Defense weapons
-        for weapon_type, quantity in weapons.items():
-            if weapon_type == 'user_id':
-                continue
-            weapon_config = Config.WEAPONS.get(weapon_type, {})
-            if weapon_config.get('type') == 'defense':
-                power = weapon_config.get('power', 0)
-                defense_power += power * quantity
+        defense_weapons = ['air_defense', 'missile_shield', 'cyber_shield']
         
-        # Base defense from military bases
-        military_bases = buildings.get('military_base', 0)
-        defense_power += military_bases * 100
+        for weapon_type in defense_weapons:
+            count = weapons.get(weapon_type, 0)
+            if count > 0 and weapon_type in Config.WEAPONS:
+                weapon_power = Config.WEAPONS[weapon_type]['power']
+                defense_power += weapon_power * count
+        
+        # Add some defensive value from other weapons
+        for weapon_type, count in weapons.items():
+            if weapon_type not in defense_weapons and count > 0:
+                if weapon_type in Config.WEAPONS:
+                    weapon_power = Config.WEAPONS[weapon_type]['power']
+                    defense_power += weapon_power * count * 0.3  # 30% defensive value
         
         return defense_power
     
-    def can_attack(self, attacker_id, defender_id):
-        """Check if attacker can attack defender"""
+    def execute_attack(self, attacker_id, defender_id):
+        """Execute attack between countries"""
+        can_attack, reason = self.can_attack_country(attacker_id, defender_id)
+        if not can_attack:
+            return {'success': False, 'message': reason}
+        
         attacker = self.db.get_player(attacker_id)
         defender = self.db.get_player(defender_id)
         
-        if not attacker or not defender:
-            return False, "بازیکن پیدا نشد"
-        
-        # Check if countries are neighbors or have long range weapons
-        attacker_country = attacker['country_code']
-        defender_country = defender['country_code']
-        
-        are_neighbors = Config.are_countries_neighbors(attacker_country, defender_country)
-        
-        if are_neighbors:
-            return True, "کشورهای همسایه"
-        
-        # Check for long range weapons
-        weapons = self.db.get_player_weapons(attacker_id)
-        has_long_range = any(
-            Config.WEAPONS.get(weapon_type, {}).get('range', 0) >= 1000
-            for weapon_type, quantity in weapons.items()
-            if quantity > 0 and weapon_type != 'user_id'
-        )
-        
-        if has_long_range:
-            return True, "دارای سلاح برد بلند"
-        
-        return False, "فاصله زیاد و عدم وجود سلاح برد بلند"
-    
-    def simulate_battle(self, attacker_id, defender_id):
-        """Simulate a battle between two players"""
         attack_power = self.calculate_attack_power(attacker_id)
         defense_power = self.calculate_defense_power(defender_id)
         
-        # Apply randomness
-        attack_multiplier = random.uniform(0.8, 1.2)
-        defense_multiplier = random.uniform(0.8, 1.2)
+        if attack_power == 0:
+            return {'success': False, 'message': 'شما هیچ تسلیحاتی برای حمله ندارید!'}
         
-        final_attack = attack_power * attack_multiplier
-        final_defense = defense_power * defense_multiplier
+        # Battle calculation with randomness
+        random_factor = random.uniform(0.8, 1.2)
+        effective_attack = attack_power * random_factor
+        effective_defense = defense_power * random.uniform(0.9, 1.1)
         
-        # Determine winner
-        if final_attack > final_defense:
-            damage = final_attack - final_defense
-            return {
-                'winner': 'attacker',
-                'damage': int(damage),
-                'attack_power': int(final_attack),
-                'defense_power': int(final_defense)
-            }
+        damage = effective_attack - effective_defense
+        
+        result = {
+            'attacker_country': attacker['country_name'],
+            'defender_country': defender['country_name'],
+            'attack_power': attack_power,
+            'defense_power': defense_power,
+            'damage': damage,
+            'attacker_losses': {},
+            'defender_losses': {},
+            'stolen_resources': {}
+        }
+        
+        if damage > 0:
+            # Attack successful
+            result['success'] = True
+            result['winner'] = attacker['country_name']
+            
+            # Apply battle consequences
+            self._apply_successful_attack(attacker_id, defender_id, damage, result)
+            
         else:
-            damage = final_defense - final_attack
-            return {
-                'winner': 'defender',
-                'damage': int(damage),
-                'attack_power': int(final_attack),
-                'defense_power': int(final_defense)
-            }
+            # Attack failed
+            result['success'] = False
+            result['winner'] = defender['country_name']
+            
+            # Attacker suffers losses
+            self._apply_failed_attack(attacker_id, abs(damage), result)
+        
+        # Log the war
+        self._log_war(attacker_id, defender_id, result)
+        
+        return result
+    
+    def _apply_successful_attack(self, attacker_id, defender_id, damage, result):
+        """Apply consequences of successful attack"""
+        defender = self.db.get_player(defender_id)
+        defender_resources = self.db.get_player_resources(defender_id)
+        defender_weapons = self.db.get_player_weapons(defender_id)
+        
+        # Calculate losses
+        soldier_losses = min(defender['soldiers'], int(damage * 100))
+        weapon_loss_chance = 0.2
+        
+        # Defender weapon losses
+        for weapon_type, count in defender_weapons.items():
+            if count > 0 and random.random() < weapon_loss_chance:
+                losses = min(count, max(1, int(count * 0.1)))
+                result['defender_losses'][weapon_type] = losses
+                # Remove weapons from defender
+                new_count = count - losses
+                self.db.update_weapon_count(defender_id, weapon_type, new_count)
+        
+        # Steal resources
+        for resource_type, amount in defender_resources.items():
+            if resource_type != 'user_id' and amount > 0:
+                steal_amount = min(amount, int(damage * 50))
+                if steal_amount > 0:
+                    result['stolen_resources'][resource_type] = steal_amount
+                    # Transfer resources
+                    self.db.add_resources(attacker_id, resource_type, steal_amount)
+                    self.db.consume_resources(defender_id, {resource_type: steal_amount})
+        
+        # Update defender soldiers
+        new_soldiers = max(0, defender['soldiers'] - soldier_losses)
+        self.db.update_player_soldiers(defender_id, new_soldiers)
+        result['defender_losses']['soldiers'] = soldier_losses
+    
+    def _apply_failed_attack(self, attacker_id, damage, result):
+        """Apply consequences of failed attack"""
+        attacker = self.db.get_player(attacker_id)
+        attacker_weapons = self.db.get_player_weapons(attacker_id)
+        
+        # Attacker losses
+        soldier_losses = min(attacker['soldiers'], int(damage * 50))
+        weapon_loss_chance = 0.15
+        
+        # Attacker weapon losses
+        for weapon_type, count in attacker_weapons.items():
+            if count > 0 and random.random() < weapon_loss_chance:
+                losses = min(count, max(1, int(count * 0.05)))
+                result['attacker_losses'][weapon_type] = losses
+                # Remove weapons from attacker
+                new_count = count - losses
+                self.db.update_weapon_count(attacker_id, weapon_type, new_count)
+        
+        # Update attacker soldiers
+        new_soldiers = max(0, attacker['soldiers'] - soldier_losses)
+        self.db.update_player_soldiers(attacker_id, new_soldiers)
+        result['attacker_losses']['soldiers'] = soldier_losses
+    
+    def _log_war(self, attacker_id, defender_id, result):
+        """Log war in database"""
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    INSERT INTO wars (attacker_id, defender_id, attack_power, defense_power, result, damage_dealt)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (
+                    attacker_id, defender_id, 
+                    result['attack_power'], result['defense_power'],
+                    'success' if result['success'] else 'failed',
+                    result['damage']
+                ))
+                conn.commit()
+        except Exception as e:
+            logger.error(f"Error logging war: {e}")
+    
+    def get_available_targets(self, attacker_id):
+        """Get list of countries that can be attacked"""
+        all_players = self.db.get_all_players()
+        available_targets = []
+        
+        for player in all_players:
+            if player['user_id'] != attacker_id:
+                can_attack, reason = self.can_attack_country(attacker_id, player['user_id'])
+                if can_attack:
+                    available_targets.append(player)
+        
+        return available_targets
+    
+    def format_battle_report(self, result):
+        """Format battle report for display"""
+        attacker_flag = ""
+        defender_flag = ""
+        
+        # Find flags
+        for code, name in Config.COUNTRIES.items():
+            if name == result['attacker_country']:
+                attacker_flag = Config.COUNTRY_FLAGS.get(code, '🏳')
+            elif name == result['defender_country']:
+                defender_flag = Config.COUNTRY_FLAGS.get(code, '🏳')
+        
+        report = f"""⚔️ گزارش جنگ
+        
+{attacker_flag} {result['attacker_country']} VS {defender_flag} {result['defender_country']}
+
+🔥 قدرت حمله: {result['attack_power']:,}
+🛡 قدرت دفاع: {result['defense_power']:,}
+💥 خسارت: {result['damage']:,.0f}
+
+🏆 برنده: {result['winner']}
+"""
+        
+        if result['success']:
+            if result['stolen_resources']:
+                report += "\n💰 منابع غارت شده:\n"
+                for resource, amount in result['stolen_resources'].items():
+                    resource_name = Config.RESOURCES.get(resource, {}).get('name', resource)
+                    report += f"• {resource_name}: {amount:,}\n"
+            
+            if result['defender_losses']:
+                report += "\n💀 تلفات مدافع:\n"
+                for loss_type, amount in result['defender_losses'].items():
+                    if loss_type == 'soldiers':
+                        report += f"• سربازان: {amount:,}\n"
+                    else:
+                        weapon_name = Config.WEAPONS.get(loss_type, {}).get('name', loss_type)
+                        report += f"• {weapon_name}: {amount:,}\n"
+        else:
+            if result['attacker_losses']:
+                report += "\n💀 تلفات مهاجم:\n"
+                for loss_type, amount in result['attacker_losses'].items():
+                    if loss_type == 'soldiers':
+                        report += f"• سربازان: {amount:,}\n"
+                    else:
+                        weapon_name = Config.WEAPONS.get(loss_type, {}).get('name', loss_type)
+                        report += f"• {weapon_name}: {amount:,}\n"
+        
+        return report
