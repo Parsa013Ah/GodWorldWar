@@ -47,6 +47,9 @@ class DragonRPBot:
         """Handle /start command"""
         user_id = update.effective_user.id
         username = update.effective_user.username or update.effective_user.first_name
+        
+        # Log user info for admin setup
+        logger.info(f"User started bot - ID: {user_id}, Username: {username}")
 
         # Check if user already has a country
         player = self.db.get_player(user_id)
@@ -1417,6 +1420,9 @@ class DragonRPBot:
                     weapon_name = weapon_map.get(item_type, item_type)
                     self.db.add_weapon(player['user_id'], weapon_name, amount)
                     success_count += 1
+                else:
+                    logger.error(f"Unknown item type: {item_type}")
+                    continue
             except Exception as e:
                 logger.error(f"Error giving {item_type} to {player['country_name']}: {e}")
         
