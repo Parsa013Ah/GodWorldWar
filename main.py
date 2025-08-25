@@ -150,7 +150,7 @@ class DragonRPBot:
             elif data.startswith("send_to_"):
                 await self.handle_resource_transfer_transport_select(query, context)
             elif data.startswith("transfer_"):
-                await self.handle_resource_transfer(query, context)
+                await self.handle_transport_selection(query, context)
             elif data.startswith("use_transport_"):
                 await self.handle_transport_selection(query, context)
             elif data.startswith("convoy_"):
@@ -917,6 +917,7 @@ class DragonRPBot:
             ('stealth_transport', 'ترابری پنهان‌کار', '🥷', weapons.get('stealth_transport', 0))
         ]
 
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
         keyboard = []
         for transport_id, transport_name, transport_emoji, count in transport_options:
             if count > 0 or transport_id == 'none':
@@ -925,23 +926,40 @@ class DragonRPBot:
                     callback_data=f"transfer_{target_id}_{transport_id}"
                 )])
 
+        keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="send_resources")])
         await query.edit_message_text(menu_text, reply_markup=InlineKeyboardMarkup(keyboard))
 
 
     async def handle_transport_selection(self, query, context):
         """Handle the actual transport selection and resource transfer"""
         user_id = query.from_user.id
-        data_parts = query.data.replace("use_transport_", "").split("_")
-
-        if len(data_parts) < 3:
+        
+        # Handle both transfer_ and use_transport_ formats
+        if query.data.startswith("transfer_"):
+            data_parts = query.data.replace("transfer_", "").split("_")
+        elif query.data.startswith("use_transport_"):
+            data_parts = query.data.replace("use_transport_", "").split("_")
+        else:
             await query.edit_message_text("❌ داده نامعتبر!")
             return
 
-        target_id = int(data_parts[0])
-        transport_type = data_parts[1]
+        if len(data_parts) < 2:
+            await query.edit_message_text("❌ داده نامعتبر!")
+            return
+
+        try:
+            target_id = int(data_parts[0])
+            transport_type = data_parts[1]
+        except (ValueError, IndexError):
+            await query.edit_message_text("❌ داده‌های نامعتبر!", reply_markup=self.keyboards.back_to_main_keyboard())
+            return
 
         player = self.db.get_player(user_id)
         target = self.db.get_player(target_id)
+        
+        if not player or not target:
+            await query.edit_message_text("❌ کشور یافت نشد!", reply_markup=self.keyboards.back_to_main_keyboard())
+            return
         resources = self.db.get_player_resources(user_id)
 
         # Select 1000 units of the first available resource or money
@@ -1038,9 +1056,7 @@ class DragonRPBot:
         keyboard = self.keyboards.back_to_main_keyboard()
         await query.edit_message_text(success_text, reply_markup=keyboard)
 
-    async def handle_resource_transfer(self, query, context):
-        """Redirect to transport selection"""
-        await self.handle_resource_transfer_transport_select(query, context)
+    
 
     async def handle_convoy_action(self, query, context):
         """Handle convoy interception actions - show confirmation"""
