@@ -41,13 +41,13 @@ class GameLogic:
         if quantity <= 0:
             return {'success': False, 'message': 'تعداد باید بیشتر از صفر باشد!'}
 
-        building_cost = building_config['cost'] * quantity
+        total_cost = building_config['cost'] * quantity
         building_name = building_config['name']
 
-        if player['money'] < building_cost:
+        if player['money'] < total_cost:
             return {
-                'success': False, 
-                'message': f'پول کافی ندارید! نیاز: ${building_cost:,} برای {quantity} عدد، موجود: ${player["money"]:,}'
+                'success': False,
+                'message': f'پول کافی ندارید! نیاز: ${total_cost:,} برای {quantity} عدد، موجود: ${player["money"]:,}'
             }
 
         # Check requirements
@@ -62,21 +62,27 @@ class GameLogic:
                         'message': f'ابتدا باید {req_name} بسازید'
                     }
 
-        # Deduct money and add buildings
-        new_money = player['money'] - building_cost
-        self.db.update_player_money(user_id, new_money)
-        
-        # Add multiple buildings
+        # Check if this is first build
+        is_first_build = self.db.check_first_build(user_id, building_type)
+
+        # Build the structures
         for _ in range(quantity):
             self.db.add_building(user_id, building_type)
 
-        quantity_text = f'{quantity} عدد ' if quantity > 1 else ''
+        # Record first build
+        if is_first_build:
+            self.db.record_first_build(user_id, building_type)
+
+        # Update player money
+        new_money = player['money'] - total_cost
+        self.db.update_player_money(user_id, new_money)
+
         return {
             'success': True,
-            'message': f'{quantity_text}{building_name} با موفقیت ساخته شد!',
+            'message': f'✅ {quantity}x {building_name} با موفقیت ساخته شد!',
             'building_name': building_name,
-            'quantity': quantity,
-            'remaining_money': new_money
+            'remaining_money': new_money,
+            'is_first_build': is_first_build
         }
 
     def produce_weapon(self, user_id, weapon_type, quantity=1):
@@ -93,7 +99,7 @@ class GameLogic:
         if quantity <= 0:
             return {'success': False, 'message': 'تعداد باید بیشتر از صفر باشد!'}
 
-        weapon_cost = weapon_config['cost'] * quantity
+        total_cost = weapon_config['cost'] * quantity
         weapon_name = weapon_config['name']
         required_resources = weapon_config.get('resources', {})
 
@@ -103,10 +109,10 @@ class GameLogic:
             return {'success': False, 'message': 'برای تولید سلاح به کارخانه اسلحه نیاز دارید!'}
 
         # Check money
-        if player['money'] < weapon_cost:
+        if player['money'] < total_cost:
             return {
                 'success': False,
-                'message': f'پول کافی ندارید! نیاز: ${weapon_cost:,} برای {quantity} عدد، موجود: ${player["money"]:,}'
+                'message': f'پول کافی ندارید! نیاز: ${total_cost:,} برای {quantity} عدد، موجود: ${player["money"]:,}'
             }
 
         # Separate weapon requirements from resource requirements
@@ -136,25 +142,36 @@ class GameLogic:
 
         # Consume required weapons
         if weapon_requirements:
+            player_weapons = self.db.get_player_weapons(user_id) # Re-fetch in case it was modified
             for weapon_req, amount_req in weapon_requirements.items():
                 current_amount = player_weapons.get(weapon_req, 0)
                 new_amount = current_amount - amount_req
                 if new_amount < 0:
+                    # This check should ideally not be hit if player_weapons was up-to-date
+                    # but as a safeguard:
                     return {'success': False, 'message': 'سلاح‌های مورد نیاز کافی نیست!'}
                 self.db.update_weapon_count(user_id, weapon_req, new_amount)
 
-        # Deduct money and add weapons
-        new_money = player['money'] - weapon_cost
-        self.db.update_player_money(user_id, new_money)
+        # Check if this is first build
+        is_first_build = self.db.check_first_build(user_id, weapon_type)
+
+        # Add weapons to player
         self.db.add_weapon(user_id, weapon_type, quantity)
 
-        quantity_text = f'{quantity} عدد ' if quantity > 1 else ''
+        # Record first build
+        if is_first_build:
+            self.db.record_first_build(user_id, weapon_type)
+
+        # Update player money
+        new_money = player['money'] - total_cost
+        self.db.update_player_money(user_id, new_money)
+
         return {
             'success': True,
-            'message': f'{quantity_text}{weapon_name} با موفقیت تولید شد!',
+            'message': f'✅ {quantity}x {weapon_name} با موفقیت تولید شد!',
             'weapon_name': weapon_name,
-            'quantity': quantity,
-            'remaining_money': new_money
+            'remaining_money': new_money,
+            'is_first_build': is_first_build
         }
 
     def calculate_military_power(self, user_id):

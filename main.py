@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 class DragonRPBot:
     def __init__(self):
-        self.token = os.getenv("TELEGRAM_BOT_TOKEN", "8264945069:AAE2WYv463Sk0a52sS6hTvR6tzEs8WCmJtI")
+        self.token = os.getenv("TELEGRAM_BOT_TOKEN", "7315307921:AAHZGyLUDCR4XudiqdQCRtjYqjeODfdwChE")
         self.db = Database()
         self.game_logic = GameLogic(self.db)
         self.keyboards = Keyboards()
@@ -393,9 +393,10 @@ class DragonRPBot:
                 reply_markup=reply_markup
             )
 
-            # Send news to channel
+            # Send news to channel only for first build
             player = self.db.get_player(user_id)
-            await self.news.send_building_constructed(player['country_name'], result['building_name'])
+            if result.get('is_first_build', False):
+                await self.news.send_building_constructed(player['country_name'], result['building_name'])
         else:
             await query.edit_message_text(f"❌ {result['message']}", reply_markup=reply_markup)
 
@@ -558,9 +559,10 @@ class DragonRPBot:
                 reply_markup=reply_markup
             )
 
-            # Send news to channel
+            # Send news to channel only for first build
             player = self.db.get_player(user_id)
-            await self.news.send_weapon_produced(player['country_name'], result['weapon_name'])
+            if result.get('is_first_build', False):
+                await self.news.send_weapon_produced(player['country_name'], result['weapon_name'])
         else:
             await query.edit_message_text(f"❌ {result['message']}", reply_markup=reply_markup)
 

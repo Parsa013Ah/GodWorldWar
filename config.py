@@ -50,19 +50,97 @@ class Config:
 
     # Buildings configuration
     BUILDINGS = {
-        'iron_mine': {'name': 'معدن آهن', 'cost': 8000, 'income': 3200, 'resource': 'iron', 'production_rate': 53},
-        'copper_mine': {'name': 'معدن مس', 'cost': 10000, 'income': 4000, 'resource': 'copper', 'production_rate': 67},
-        'oil_mine': {'name': 'معدن نفت', 'cost': 12000, 'income': 4800, 'resource': 'oil', 'production_rate': 80},
-        'gas_mine': {'name': 'معدن گاز', 'cost': 11000, 'income': 4400, 'resource': 'gas', 'production_rate': 73},
-        'aluminum_mine': {'name': 'معدن آلومینیوم', 'cost': 9000, 'income': 3600, 'resource': 'aluminum', 'production_rate': 60},
-        'gold_mine': {'name': 'معدن طلا', 'cost': 15000, 'income': 6000, 'resource': 'gold', 'production_rate': 100},
-        'uranium_mine': {'name': 'معدن اورانیوم', 'cost': 20000, 'income': 8000, 'resource': 'uranium', 'production_rate': 133},
-        'lithium_mine': {'name': 'معدن لیتیوم', 'cost': 18000, 'income': 7200, 'resource': 'lithium', 'production_rate': 120},
-        'coal_mine': {'name': 'معدن زغال‌سنگ', 'cost': 8500, 'income': 3400, 'resource': 'coal', 'production_rate': 57},
-        'silver_mine': {'name': 'معدن نقره', 'cost': 14000, 'income': 5600, 'resource': 'silver', 'production_rate': 93},
-        'nitro_mine': {'name': 'معدن نیتر', 'cost': 9500, 'income': 3800, 'resource': 'nitro', 'production_rate': 63},
-        'sulfur_mine': {'name': 'معدن گوگرد', 'cost': 7500, 'income': 3000, 'resource': 'sulfur', 'production_rate': 50},
-        'titanium_mine': {'name': 'معدن تیتانیوم', 'cost': 25000, 'income': 10000, 'resource': 'titanium', 'production_rate': 167},
+        'iron_mine': {
+        'name': 'معدن آهن',
+        'cost': 80000,
+        'production': {'iron': 1000},
+        'income': 20000,
+        'emoji': '⛏'
+    },
+    'copper_mine': {
+        'name': 'معدن مس',
+        'cost': 100000,
+        'production': {'copper': 800},
+        'income': 25000,
+        'emoji': '⛏'
+    },
+    'oil_mine': {
+        'name': 'معدن نفت',
+        'cost': 120000,
+        'production': {'oil': 600},
+        'income': 30000,
+        'emoji': '🛢'
+    },
+    'gas_mine': {
+        'name': 'معدن گاز',
+        'cost': 110000,
+        'production': {'gas': 700},
+        'income': 27500,
+        'emoji': '⛽'
+    },
+    'aluminum_mine': {
+        'name': 'معدن آلومینیوم',
+        'cost': 90000,
+        'production': {'aluminum': 500},
+        'income': 22500,
+        'emoji': '🔗'
+    },
+    'gold_mine': {
+        'name': 'معدن طلا',
+        'cost': 150000,
+        'production': {'gold': 200},
+        'income': 37500,
+        'emoji': '🏆'
+    },
+    'uranium_mine': {
+        'name': 'معدن اورانیوم',
+        'cost': 690000,
+        'production': {'uranium': 12},
+        'income': 172500,
+        'emoji': '☢️'
+    },
+    'lithium_mine': {
+        'name': 'معدن لیتیوم',
+        'cost': 180000,
+        'production': {'lithium': 300},
+        'income': 45000,
+        'emoji': '🔋'
+    },
+    'coal_mine': {
+        'name': 'معدن زغال‌سنگ',
+        'cost': 85000,
+        'production': {'coal': 1200},
+        'income': 21250,
+        'emoji': '⚫'
+    },
+    'silver_mine': {
+        'name': 'معدن نقره',
+        'cost': 140000,
+        'production': {'silver': 400},
+        'income': 35000,
+        'emoji': '🥈'
+    },
+    'nitro_mine': {
+        'name': 'معدن نیتر',
+        'cost': 95000,
+        'production': {'nitro': 600},
+        'income': 23750,
+        'emoji': '💥'
+    },
+    'sulfur_mine': {
+        'name': 'معدن گوگرد',
+        'cost': 75000,
+        'production': {'sulfur': 900},
+        'income': 18750,
+        'emoji': '🌫'
+    },
+    'titanium_mine': {
+        'name': 'معدن تیتانیوم',
+        'cost': 250000,
+        'production': {'titanium': 18},
+        'income': 62500,
+        'emoji': '🛡'
+    },
         'weapon_factory': {'name': 'کارخانه اسلحه', 'cost': 15000, 'requirements': ['power_plant']},
         'refinery': {'name': 'پالایشگاه', 'cost': 10000},
         'power_plant': {'name': 'نیروگاه', 'cost': 9000},
@@ -126,14 +204,86 @@ class Config:
         'su35s': {'name': 'Su-35S', 'cost': 15000, 'power': 900, 'range': 2300, 'resources': {'titanium': 6, 'iron': 10, 'aluminum': 21, 'copper': 6, 'gold': 2}, 'category': 'advanced_jets'},
 
         # Transport and Logistics Equipment
-        'armored_truck': {'name': 'کامیون زرهی', 'cost': 450000, 'power': 200, 'convoy_security': 25, 'capacity': 1000, 'resources': {'iron': 30, 'aluminum': 15}, 'category': 'transport'},
-        'cargo_helicopter': {'name': 'هلیکوپتر باری', 'cost': 2200000, 'power': 800, 'convoy_security': 40, 'capacity': 2000, 'speed_bonus': 50, 'resources': {'aluminum': 25, 'iron': 20, 'copper': 10}, 'category': 'transport'},
-        'cargo_plane': {'name': 'هواپیمای باری', 'cost': 6500000, 'power': 1500, 'convoy_security': 60, 'capacity': 5000, 'speed_bonus': 75, 'resources': {'aluminum': 40, 'iron': 30, 'titanium': 8}, 'category': 'transport'},
-        'escort_frigate': {'name': 'ناوچه اسکورت', 'cost': 3800000, 'power': 2800, 'convoy_security': 80, 'naval_escort': True, 'resources': {'iron': 60, 'aluminum': 30, 'copper': 20}, 'category': 'transport'},
-        'logistics_drone': {'name': 'پهپاد لجستیک', 'cost': 850000, 'power': 400, 'convoy_security': 30, 'stealth': True, 'speed_bonus': 40, 'resources': {'aluminum': 15, 'lithium': 8, 'copper': 12}, 'category': 'transport'},
-        'heavy_transport': {'name': 'ترابری سنگین', 'cost': 1200000, 'power': 600, 'convoy_security': 45, 'capacity': 3000, 'resources': {'iron': 45, 'aluminum': 20, 'copper': 15}, 'category': 'transport'},
-        'supply_ship': {'name': 'کشتی تدارکات', 'cost': 4500000, 'power': 1200, 'convoy_security': 70, 'capacity': 8000, 'naval': True, 'resources': {'iron': 80, 'aluminum': 40, 'copper': 25}, 'category': 'transport'},
-        'stealth_transport': {'name': 'ترابری پنهان‌کار', 'cost': 8200000, 'power': 2000, 'convoy_security': 90, 'stealth': True, 'speed_bonus': 60, 'resources': {'titanium': 15, 'aluminum': 50, 'uranium': 5}, 'category': 'transport'}
+        'armored_truck': {
+        'name': 'کامیون زرهی',
+        'cost': 90000,
+        'category': 'transport',
+        'power': 0,
+        'defense': 15,
+        'transport_capacity': 1000,
+        'security_bonus': 20,
+        'emoji': '🚚'
+    },
+    'cargo_helicopter': {
+        'name': 'هلیکوپتر باری',
+        'cost': 120000,
+        'category': 'transport',
+        'power': 0,
+        'defense': 25,
+        'transport_capacity': 2000,
+        'security_bonus': 35,
+        'emoji': '🚁'
+    },
+    'cargo_plane': {
+        'name': 'هواپیمای باری',
+        'cost': 240000,
+        'category': 'transport',
+        'power': 0,
+        'defense': 40,
+        'transport_capacity': 5000,
+        'security_bonus': 50,
+        'emoji': '✈️'
+    },
+    'escort_frigate': {
+        'name': 'ناوچه اسکورت',
+        'cost': 300000,
+        'category': 'transport',
+        'power': 30,
+        'defense': 60,
+        'transport_capacity': 3000,
+        'security_bonus': 45,
+        'emoji': '🚢'
+    },
+    'logistics_drone': {
+        'name': 'پهپاد لجستیک',
+        'cost': 120000,
+        'category': 'transport',
+        'power': 15,
+        'defense': 20,
+        'transport_capacity': 800,
+        'security_bonus': 25,
+        'emoji': '🚁'
+    },
+    'heavy_transport': {
+        'name': 'ترابری سنگین',
+        'cost': 210000,
+        'category': 'transport',
+        'power': 0,
+        'defense': 30,
+        'transport_capacity': 4000,
+        'security_bonus': 30,
+        'emoji': '🚛'
+    },
+    'supply_ship': {
+        'name': 'کشتی تدارکات',
+        'cost': 450000,
+        'category': 'transport',
+        'power': 25,
+        'defense': 50,
+        'transport_capacity': 8000,
+        'security_bonus': 40,
+        'emoji': '🚢'
+    },
+    'stealth_transport': {
+        'name': 'ترابری پنهان‌کار',
+        'cost': 300000,
+        'category': 'transport',
+        'power': 20,
+        'defense': 80,
+        'transport_capacity': 3000,
+        'security_bonus': 70,
+        'emoji': '🥷'
+    }
     }
 
     # Resources configuration

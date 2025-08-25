@@ -284,6 +284,18 @@ class Database:
                 )
             ''')
 
+            # Build tracking table for preventing duplicate news
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS build_tracking (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    builder_id INTEGER NOT NULL,
+                    item_type TEXT NOT NULL,
+                    first_build_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(builder_id, item_type),
+                    FOREIGN KEY (builder_id) REFERENCES players (user_id)
+                )
+            ''')
+
             conn.commit()
             logger.info("Database initialized successfully")
 
@@ -411,6 +423,39 @@ class Database:
                 SET soldiers = ?
                 WHERE user_id = ?
             ''', (new_soldiers, user_id))
+            conn.commit()
+
+    def update_player_population(self, user_id, new_population):
+        """Update player's population"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE players 
+                SET population = ?
+                WHERE user_id = ?
+            ''', (new_population, user_id))
+            conn.commit()
+
+    def update_resource(self, user_id, resource_type, new_amount):
+        """Update specific resource amount"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(f'''
+                UPDATE resources 
+                SET {resource_type} = ?
+                WHERE user_id = ?
+            ''', (new_amount, user_id))
+            conn.commit()
+
+    def update_building_count(self, user_id, building_type, new_count):
+        """Update building count"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(f'''
+                UPDATE buildings 
+                SET {building_type} = ?
+                WHERE user_id = ?
+            ''', (new_count, user_id))
             conn.commit()
 
     def add_building(self, user_id, building_type):
@@ -705,6 +750,26 @@ class Database:
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT OR IGNORE INTO purchase_tracking (buyer_id, item_type)
+                VALUES (?, ?)
+            ''', (user_id, item_type))
+            conn.commit()
+
+    def check_first_build(self, user_id, item_type):
+        """Check if this is user's first build of this item type"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT id FROM build_tracking WHERE builder_id = ? AND item_type = ?',
+                (user_id, item_type)
+            )
+            return cursor.fetchone() is None
+
+    def record_first_build(self, user_id, item_type):
+        """Record first build of an item type"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT OR IGNORE INTO build_tracking (builder_id, item_type)
                 VALUES (?, ?)
             ''', (user_id, item_type))
             conn.commit()
