@@ -304,14 +304,14 @@ class Marketplace:
             conn.commit()
 
         return {'success': True, 'message': 'آگهی لغو شد و اقلام بازگردانده شد.'}
-    
+
     def delete_listing(self, seller_id, listing_id):
         """Delete a listing (for admins or after sold out/cancelled)"""
         listing = self.get_listing(listing_id)
 
         if not listing:
             return {'success': False, 'message': 'آگهی فروش یافت نشد!'}
-        
+
         # Only allow deletion if not active, or by admin (assuming seller_id could be admin if special logic)
         if listing['status'] == 'active':
              return {'success': False, 'message': 'آگهی فعال را نمی‌توان حذف کرد!'}
@@ -324,19 +324,20 @@ class Marketplace:
         return {'success': True, 'message': 'آگهی با موفقیت حذف شد.'}
 
     def get_listings_by_category(self, category):
-        """Get active listings by category"""
-        with self.db.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                SELECT l.*, p.country_name as seller_country
-                FROM market_listings l
-                JOIN players p ON l.seller_id = p.user_id
-                WHERE l.category = ? AND l.status = 'active'
-                ORDER BY l.created_at DESC
-                LIMIT 20
-            ''', (category,))
+        """Get marketplace listings by category"""
+        query = """
+        SELECT l.*, p.country_name as seller_country
+        FROM marketplace_listings l
+        JOIN players p ON l.seller_id = p.user_id
+        WHERE l.item_type = ? AND l.status = 'active'
+        ORDER BY l.created_at DESC
+        """
 
-            return [dict(row) for row in cursor.fetchall()]
+        cursor = self.db.get_connection().cursor()
+        cursor.execute(query, (category,))
+        results = cursor.fetchall()
+
+        return [dict(row) for row in results]
 
     def get_player_listings(self, player_id):
         """Get player's listings"""

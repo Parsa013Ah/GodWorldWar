@@ -8,7 +8,7 @@ class Config:
 
     # Admin configuration
     ADMIN_CONFIG = {
-        'default_admin_ids': [123456789, 987654321]  # Replace with actual admin user IDs
+        'default_admin_ids': [123456789, 5283015101]  # Replace with actual admin user IDs
     }
 
     # Countries with flags

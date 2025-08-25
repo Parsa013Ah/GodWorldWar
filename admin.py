@@ -282,12 +282,14 @@ class AdminPanel:
         return False
 import logging
 from config import Config
+from keyboards import Keyboards
 
 logger = logging.getLogger(__name__)
 
 class AdminPanel:
     def __init__(self, database):
         self.db = database
+        self.keyboards = Keyboards()
         self.admin_ids = Config.ADMIN_CONFIG['default_admin_ids']
     
     def is_admin(self, user_id):
@@ -304,7 +306,9 @@ class AdminPanel:
         
         action = query.data.replace("admin_", "")
         
-        if action == "stats":
+        if action == "panel":
+            await self.show_admin_panel(query)
+        elif action == "stats":
             await self.show_game_stats(query)
         elif action == "reset":
             await self.confirm_reset(query)
@@ -312,6 +316,17 @@ class AdminPanel:
             await self.show_admin_logs(query)
         else:
             await query.edit_message_text("❌ دستور ادمین نامعتبر!")
+    
+    async def show_admin_panel(self, query):
+        """Show main admin panel"""
+        admin_text = """👑 پنل مدیریت DragonRP
+
+🎮 سیستم مدیریت کامل بازی
+
+انتخاب کنید:"""
+        
+        keyboard = self.keyboards.admin_panel_keyboard()
+        await query.edit_message_text(admin_text, reply_markup=keyboard)
     
     async def show_game_stats(self, query):
         """Show game statistics"""

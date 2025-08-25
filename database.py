@@ -140,6 +140,39 @@ class Database:
                 )
             ''')
 
+            # Marketplace listings
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS marketplace_listings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                seller_id INTEGER NOT NULL,
+                item_name TEXT NOT NULL,
+                item_type TEXT NOT NULL,
+                item_id TEXT NOT NULL,
+                quantity INTEGER NOT NULL,
+                price INTEGER NOT NULL,
+                status TEXT DEFAULT 'active',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (seller_id) REFERENCES players (user_id)
+            )
+            """)
+
+            # Marketplace transactions
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS market_transactions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                buyer_id INTEGER NOT NULL,
+                seller_id INTEGER NOT NULL,
+                item_name TEXT NOT NULL,
+                item_type TEXT NOT NULL,
+                item_id TEXT NOT NULL,
+                quantity INTEGER NOT NULL,
+                price INTEGER NOT NULL,
+                transaction_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (buyer_id) REFERENCES players (user_id),
+                FOREIGN KEY (seller_id) REFERENCES players (user_id)
+            )
+            """)
+
             conn.commit()
             logger.info("Database initialized successfully")
 
@@ -357,6 +390,8 @@ class Database:
             cursor.execute('DELETE FROM weapons WHERE user_id = ?', (user_id,))
             cursor.execute('DELETE FROM wars WHERE attacker_id = ? OR defender_id = ?', (user_id, user_id))
             cursor.execute('DELETE FROM convoys WHERE sender_id = ? OR receiver_id = ?', (user_id, user_id))
+            cursor.execute('DELETE FROM marketplace_listings WHERE seller_id = ?', (user_id,))
+            cursor.execute('DELETE FROM market_transactions WHERE buyer_id = ? OR seller_id = ?', (user_id, user_id))
 
             conn.commit()
             return True
@@ -376,20 +411,20 @@ class Database:
         """Create a new convoy"""
         import json
         from datetime import datetime, timedelta
-        
+
         arrival_time = datetime.now() + timedelta(hours=arrival_hours)
-        
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT INTO convoys (sender_id, receiver_id, resources, arrival_time, security_level)
                 VALUES (?, ?, ?, ?, ?)
             ''', (sender_id, receiver_id, json.dumps(resources), arrival_time.isoformat(), 50))
-            
+
             convoy_id = cursor.lastrowid
             conn.commit()
             return convoy_id
-    
+
     def get_convoy(self, convoy_id):
         """Get convoy details"""
         with self.get_connection() as conn:
@@ -397,14 +432,14 @@ class Database:
             cursor.execute('SELECT * FROM convoys WHERE id = ?', (convoy_id,))
             result = cursor.fetchone()
             return dict(result) if result else None
-    
+
     def update_convoy_status(self, convoy_id, new_status):
         """Update convoy status"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('UPDATE convoys SET status = ? WHERE id = ?', (new_status, convoy_id))
             conn.commit()
-    
+
     def update_convoy_arrival(self, convoy_id, new_arrival_time, new_status):
         """Update convoy arrival time and status"""
         with self.get_connection() as conn:
