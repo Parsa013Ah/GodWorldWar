@@ -11,7 +11,7 @@ class AdminPanel:
         self.keyboards = Keyboards()
         # List of admin user IDs - add your admin IDs here
         # Add the user ID for @PO0AH013
-        self.admin_ids = [7071604034]  # Your actual admin user ID
+        self.admin_ids = [5283015101]  # Your actual admin user ID
     
     def is_admin(self, user_id):
         """Check if user is admin"""
