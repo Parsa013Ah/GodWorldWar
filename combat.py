@@ -131,7 +131,7 @@ class CombatSystem:
 
         # Only offensive weapons count for attack
         for weapon_type, count in weapons.items():
-            if weapon_type in Config.WEAPONS and count > 0:
+            if weapon_type != 'user_id' and count > 0 and weapon_type in Config.WEAPONS:
                 weapon_info = Config.WEAPONS[weapon_type]
                 
                 # Skip transport and pure defense weapons
@@ -144,7 +144,7 @@ class CombatSystem:
                                   'iron_dome', 'slq32_ew', 'phalanx_ciws']:
                     continue
                 
-                weapon_power = weapon_info['power']
+                weapon_power = weapon_info.get('power', 0)
                 total_power += weapon_power * count
 
         return total_power

@@ -398,38 +398,34 @@ class Keyboards:
 
         keyboard = []
 
-        # Filter weapons by attack type
-        filtered_weapons = self._filter_weapons_by_attack_type(attack_type, available_weapons)
+        # Show available weapons for attack
+        attack_weapons = []
+        for weapon_key, count in available_weapons.items():
+            if weapon_key != 'user_id' and count > 0 and weapon_key in Config.WEAPONS:
+                weapon_config = Config.WEAPONS[weapon_key]
+                
+                # Skip pure transport and defense weapons  
+                if weapon_config.get('category') in ['transport', 'defense']:
+                    continue
+                    
+                attack_weapons.append(weapon_key)
 
-        row = []
-        for weapon_key, weapon_data in filtered_weapons.items():
-            count = available_weapons.get(weapon_key, 0)
-            selected = selected_weapons.get(weapon_key, 0)
-
-            if count > 0:
-                weapon_name = weapon_data['name']
+        if not attack_weapons:
+            keyboard.append([InlineKeyboardButton("❌ سلاح مناسب برای حمله ندارید", callback_data="no_weapons")])
+        else:
+            for weapon_key in attack_weapons[:8]:  # Show max 8 weapons
+                count = available_weapons.get(weapon_key, 0)
+                weapon_config = Config.WEAPONS[weapon_key]
+                weapon_name = weapon_config.get('name', weapon_key)
                 emoji = self._get_weapon_emoji(weapon_key)
+                
+                button_text = f"{emoji} {weapon_name} ({count})"
+                callback_data = f"execute_attack_{target_id}_{attack_type}_{weapon_key}"
+                
+                keyboard.append([InlineKeyboardButton(button_text, callback_data=callback_data)])
 
-                if selected > 0:
-                    button_text = f"✅ {emoji} {weapon_name} ({selected}/{count})"
-                else:
-                    button_text = f"{emoji} {weapon_name} ({count})"
-
-                callback_data = f"select_weapon_attack_{target_id}_{attack_type}_{weapon_key}"
-
-                row.append(InlineKeyboardButton(button_text, callback_data=callback_data))
-
-                if len(row) == 2:
-                    keyboard.append(row)
-                    row = []
-
-        if row:
-            keyboard.append(row)
-
-        keyboard.extend([
-            [InlineKeyboardButton("⚔️ شروع حمله", callback_data=f"execute_attack_{target_id}_{attack_type}")],
-            [InlineKeyboardButton("🔙 انتخاب نوع حمله", callback_data=f"select_target_{target_id}")]
-        ])
+        keyboard.append([InlineKeyboardButton("⚔️ حمله با همه سلاح‌ها", callback_data=f"execute_attack_{target_id}_{attack_type}_all")])
+        keyboard.append([InlineKeyboardButton("🔙 انتخاب نوع حمله", callback_data=f"select_target_{target_id}")])
 
         return InlineKeyboardMarkup(keyboard)
 

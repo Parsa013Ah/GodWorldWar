@@ -154,7 +154,10 @@ class DragonRPBot:
             elif data.startswith("use_transport_"):
                 await self.handle_transport_selection(query, context)
             elif data.startswith("convoy_"):
-                await self.handle_convoy_action(query, context)
+                if data.startswith("convoy_escort_"):
+                    await self.handle_convoy_escort(query, context)
+                else:
+                    await self.handle_convoy_action(query, context)
             elif data.startswith("confirm_convoy_"):
                 await self.handle_convoy_confirmation(query, context)
             elif data == "alliances":
@@ -773,6 +776,11 @@ class DragonRPBot:
         """Handle actual attack execution"""
         user_id = query.from_user.id
         data_parts = query.data.split("_")
+        
+        if len(data_parts) < 4:
+            await query.edit_message_text("❌ داده‌های حمله نامعتبر!")
+            return
+            
         target_id = int(data_parts[2])
         attack_type = data_parts[3]
         weapon_selection = data_parts[4] if len(data_parts) > 4 else "all"
@@ -784,14 +792,22 @@ class DragonRPBot:
             await query.edit_message_text("❌ کشور هدف یافت نشد!")
             return
 
-        # Check if attacker has any weapons
+        # Check if attacker has any offensive weapons
         available_weapons = self.db.get_player_weapons(user_id)
-        has_weapons = any(count > 0 for weapon, count in available_weapons.items() if weapon != 'user_id')
+        has_offensive_weapons = False
+        
+        for weapon_type, count in available_weapons.items():
+            if weapon_type != 'user_id' and count > 0 and weapon_type in Config.WEAPONS:
+                weapon_config = Config.WEAPONS[weapon_type]
+                # Skip pure transport and defense weapons
+                if weapon_config.get('category') not in ['transport', 'defense']:
+                    has_offensive_weapons = True
+                    break
 
-        if not has_weapons:
+        if not has_offensive_weapons:
             await query.edit_message_text(
-                "❌ شما هیچ تسلیحاتی برای حمله ندارید!\n\n"
-                "ابتدا از بخش تسلیحات، سلاح‌هایی تولید کنید."
+                "❌ شما هیچ سلاح تهاجمی برای حمله ندارید!\n\n"
+                "ابتدا از بخش تسلیحات، سلاح‌های تهاجمی تولید کنید."
             )
             return
 
@@ -1239,6 +1255,69 @@ class DragonRPBot:
 
         keyboard = self.keyboards.convoy_private_confirmation_keyboard(convoy_id, action_type)
         await update.message.reply_text(confirmation_text, reply_markup=keyboard)
+
+    async def handle_convoy_escort(self, query, context):
+        """Handle convoy escort request"""
+        user_id = query.from_user.id
+        convoy_id = int(query.data.replace("convoy_escort_", ""))
+        
+        # Get convoy details
+        convoy = self.db.get_convoy(convoy_id)
+        if not convoy:
+            await query.edit_message_text("❌ محموله یافت نشد!")
+            return
+            
+        # Check if convoy is still in transit
+        if convoy['status'] != 'in_transit':
+            await query.edit_message_text("❌ این محموله دیگر در حال حرکت نیست!")
+            return
+            
+        # Check if user can escort (not sender/receiver)
+        if convoy['sender_id'] == user_id or convoy['receiver_id'] == user_id:
+            await query.edit_message_text("❌ نمی‌توانید محموله خودتان را اسکورت کنید!")
+            return
+            
+        player = self.db.get_player(user_id)
+        weapons = self.db.get_player_weapons(user_id)
+        
+        # Check available escort equipment
+        escort_equipment = {
+            'fighter_jet': weapons.get('fighter_jet', 0),
+            'tank': weapons.get('tank', 0), 
+            'warship': weapons.get('warship', 0),
+            'drone': weapons.get('drone', 0)
+        }
+        
+        has_equipment = any(count > 0 for count in escort_equipment.values())
+        
+        if not has_equipment:
+            await query.edit_message_text("❌ شما تجهیزات مناسب برای اسکورت ندارید!")
+            return
+            
+        escort_text = f"""🛡 اسکورت محموله
+
+🚚 محموله #{convoy_id}
+🛡 امنیت فعلی: {convoy['security_level']}%
+
+💪 تجهیزات اسکورت شما:
+✈️ جنگنده: {escort_equipment['fighter_jet']}
+🚗 تانک: {escort_equipment['tank']}
+🚢 کشتی جنگی: {escort_equipment['warship']}
+🚁 پهپاد: {escort_equipment['drone']}
+
+⚠️ اسکورت محموله هزینه سوخت دارد!
+
+آیا می‌خواهید این محموله را اسکورت کنید؟"""
+        
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        keyboard = [
+            [
+                InlineKeyboardButton("✅ شروع اسکورت", callback_data=f"confirm_escort_{convoy_id}"),
+                InlineKeyboardButton("❌ انصراف", callback_data="main_menu")
+            ]
+        ]
+        
+        await query.edit_message_text(escort_text, reply_markup=InlineKeyboardMarkup(keyboard))
 
     async def send_convoy_action_news(self, user_id: int, convoy_id: int, result: dict):
         """Send news about convoy action result"""
@@ -2256,7 +2335,7 @@ oil 300
 📝 متن بیانیه:
 {statement_text}
 
-🕐 زمان: {datetime.now().strftime('%Y-%m-%d %H:%M')}"""
+🕐 زمان: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}"""
 
         await self.news.send_text_message(statement_message)
 
