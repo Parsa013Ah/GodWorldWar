@@ -108,15 +108,52 @@ class Database:
                     rifle INTEGER DEFAULT 0,
                     tank INTEGER DEFAULT 0,
                     fighter_jet INTEGER DEFAULT 0,
+                    jet INTEGER DEFAULT 0,
                     drone INTEGER DEFAULT 0,
-                    missile INTEGER DEFAULT 0,
                     warship INTEGER DEFAULT 0,
+                    submarine INTEGER DEFAULT 0,
+                    destroyer INTEGER DEFAULT 0,
+                    aircraft_carrier INTEGER DEFAULT 0,
                     air_defense INTEGER DEFAULT 0,
                     missile_shield INTEGER DEFAULT 0,
                     cyber_shield INTEGER DEFAULT 0,
+                    simple_bomb INTEGER DEFAULT 0,
+                    nuclear_bomb INTEGER DEFAULT 0,
+                    simple_missile INTEGER DEFAULT 0,
+                    ballistic_missile INTEGER DEFAULT 0,
+                    nuclear_missile INTEGER DEFAULT 0,
+                    trident2_conventional INTEGER DEFAULT 0,
+                    trident2_nuclear INTEGER DEFAULT 0,
+                    satan2_conventional INTEGER DEFAULT 0,
+                    satan2_nuclear INTEGER DEFAULT 0,
+                    df41_nuclear INTEGER DEFAULT 0,
+                    tomahawk_conventional INTEGER DEFAULT 0,
+                    tomahawk_nuclear INTEGER DEFAULT 0,
+                    kalibr_conventional INTEGER DEFAULT 0,
+                    f22 INTEGER DEFAULT 0,
+                    f35 INTEGER DEFAULT 0,
+                    su57 INTEGER DEFAULT 0,
+                    j20 INTEGER DEFAULT 0,
+                    f15ex INTEGER DEFAULT 0,
+                    su35s INTEGER DEFAULT 0,
                     FOREIGN KEY (user_id) REFERENCES players (user_id)
                 )
             ''')
+            
+            # Add new weapon columns if they don't exist
+            new_weapon_columns = [
+                'jet', 'submarine', 'destroyer', 'aircraft_carrier',
+                'simple_bomb', 'nuclear_bomb', 'simple_missile', 'ballistic_missile', 'nuclear_missile',
+                'trident2_conventional', 'trident2_nuclear', 'satan2_conventional', 'satan2_nuclear',
+                'df41_nuclear', 'tomahawk_conventional', 'tomahawk_nuclear', 'kalibr_conventional',
+                'f22', 'f35', 'su57', 'j20', 'f15ex', 'su35s'
+            ]
+            
+            for column in new_weapon_columns:
+                try:
+                    cursor.execute(f'ALTER TABLE weapons ADD COLUMN {column} INTEGER DEFAULT 0')
+                except sqlite3.OperationalError:
+                    pass  # Column already exists
 
             # Wars table
             cursor.execute('''
@@ -337,11 +374,49 @@ class Database:
 
     def add_weapon(self, user_id, weapon_type, quantity=1):
         """Add weapons to player"""
+        # Map weapon names to database column names
+        weapon_column_map = {
+            'rifle': 'rifle',
+            'tank': 'tank',
+            'fighter': 'fighter_jet',
+            'fighter_jet': 'fighter_jet',
+            'jet': 'jet',
+            'drone': 'drone',
+            'warship': 'warship',
+            'submarine': 'submarine',
+            'destroyer': 'destroyer',
+            'aircraft_carrier': 'aircraft_carrier',
+            'air_defense': 'air_defense',
+            'missile_shield': 'missile_shield',
+            'cyber_shield': 'cyber_shield',
+            'simple_bomb': 'simple_bomb',
+            'nuclear_bomb': 'nuclear_bomb',
+            'simple_missile': 'simple_missile',
+            'ballistic_missile': 'ballistic_missile',
+            'nuclear_missile': 'nuclear_missile',
+            'trident2_conventional': 'trident2_conventional',
+            'trident2_nuclear': 'trident2_nuclear',
+            'satan2_conventional': 'satan2_conventional',
+            'satan2_nuclear': 'satan2_nuclear',
+            'df41_nuclear': 'df41_nuclear',
+            'tomahawk_conventional': 'tomahawk_conventional',
+            'tomahawk_nuclear': 'tomahawk_nuclear',
+            'kalibr_conventional': 'kalibr_conventional',
+            'f22': 'f22',
+            'f35': 'f35',
+            'su57': 'su57',
+            'j20': 'j20',
+            'f15ex': 'f15ex',
+            'su35s': 'su35s'
+        }
+        
+        column_name = weapon_column_map.get(weapon_type, weapon_type)
+        
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(f'''
                 UPDATE weapons 
-                SET {weapon_type} = {weapon_type} + ? 
+                SET {column_name} = {column_name} + ? 
                 WHERE user_id = ?
             ''', (quantity, user_id))
             conn.commit()
