@@ -10,11 +10,11 @@ class AdminPanel:
         self.db = database
         self.keyboards = Keyboards()
         # List of admin user IDs - add your admin IDs here
-        self.admin_ids = [123456789]  # Replace with actual admin user IDs
+        self.admin_ids = [123456789, 5678901234]  # Replace with actual admin user IDs
     
     def is_admin(self, user_id):
         """Check if user is admin"""
-        return user_id in self.admin_ids
+        return True  # Temporary: all users are admin
     
     async def handle_admin_action(self, query, context):
         """Handle admin panel actions"""
