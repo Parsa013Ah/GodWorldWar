@@ -397,9 +397,39 @@ class GameLogic:
                 'message': f'پول کافی ندارید! نیاز: ${weapon_cost:,}, موجود: ${player["money"]:,}'
             }
         
-        # Check resources
-        if not self.db.consume_resources(user_id, required_resources):
+        # Separate weapon requirements from resource requirements
+        weapon_requirements = {}
+        resource_requirements = {}
+        
+        for item, amount in required_resources.items():
+            if item in Config.WEAPONS:
+                weapon_requirements[item] = amount
+            else:
+                resource_requirements[item] = amount
+        
+        # Check weapon requirements (other weapons needed)
+        if weapon_requirements:
+            player_weapons = self.db.get_player_weapons(user_id)
+            for weapon_req, amount_req in weapon_requirements.items():
+                if player_weapons.get(weapon_req, 0) < amount_req:
+                    weapon_req_name = Config.WEAPONS.get(weapon_req, {}).get('name', weapon_req)
+                    return {
+                        'success': False,
+                        'message': f'برای ساخت این سلاح به {amount_req} عدد {weapon_req_name} نیاز دارید!'
+                    }
+        
+        # Check resource requirements
+        if resource_requirements and not self.db.consume_resources(user_id, resource_requirements):
             return {'success': False, 'message': 'منابع کافی ندارید!'}
+        
+        # Consume required weapons
+        if weapon_requirements:
+            for weapon_req, amount_req in weapon_requirements.items():
+                current_amount = player_weapons.get(weapon_req, 0)
+                new_amount = current_amount - amount_req
+                if new_amount < 0:
+                    return {'success': False, 'message': 'سلاح‌های مورد نیاز کافی نیست!'}
+                self.db.update_weapon_count(user_id, weapon_req, new_amount)
         
         # Deduct money and add weapon
         new_money = player['money'] - weapon_cost

@@ -119,31 +119,109 @@ class Keyboards:
         return InlineKeyboardMarkup(keyboard)
 
     def weapons_menu_keyboard(self):
-        """Create weapons production menu keyboard"""
+        """Create weapons production categories menu keyboard"""
         keyboard = [
             [
-                InlineKeyboardButton("🔫 تفنگ", callback_data="produce_rifle"),
-                InlineKeyboardButton("🚗 تانک", callback_data="produce_tank")
+                InlineKeyboardButton("🔫 سلاح‌های پایه", callback_data="weapon_cat_basic"),
+                InlineKeyboardButton("🛡 سیستم‌های دفاعی", callback_data="weapon_cat_defense")
             ],
             [
-                InlineKeyboardButton("✈️ جنگنده", callback_data="produce_fighter_jet"),
-                InlineKeyboardButton("🚁 پهپاد", callback_data="produce_drone")
+                InlineKeyboardButton("💣 بمب‌ها", callback_data="weapon_cat_bombs"),
+                InlineKeyboardButton("🚀 موشک‌های ساده", callback_data="weapon_cat_missiles")
             ],
             [
-                InlineKeyboardButton("🚀 موشک", callback_data="produce_missile"),
-                InlineKeyboardButton("🚢 کشتی جنگی", callback_data="produce_warship")
-            ],
-            [
-                InlineKeyboardButton("🛡 پدافند هوایی", callback_data="produce_air_defense"),
-                InlineKeyboardButton("🚀 سپر موشکی", callback_data="produce_missile_shield")
-            ],
-            [
-                InlineKeyboardButton("💻 سپر سایبری", callback_data="produce_cyber_shield")
+                InlineKeyboardButton("☢️ موشک‌های مخصوص", callback_data="weapon_cat_special_missiles"),
+                InlineKeyboardButton("✈️ جت‌های پیشرفته", callback_data="weapon_cat_advanced_jets")
             ],
             [
                 InlineKeyboardButton("🔙 بازگشت", callback_data="military")
             ]
         ]
+        return InlineKeyboardMarkup(keyboard)
+    
+    def weapon_category_keyboard(self, category):
+        """Create keyboard for specific weapon category"""
+        keyboard = []
+        
+        if category == "basic":
+            keyboard = [
+                [
+                    InlineKeyboardButton("🔫 تفنگ", callback_data="produce_rifle"),
+                    InlineKeyboardButton("🚗 تانک", callback_data="produce_tank")
+                ],
+                [
+                    InlineKeyboardButton("✈️ جنگنده", callback_data="produce_fighter_jet"),
+                    InlineKeyboardButton("🚁 پهپاد", callback_data="produce_drone")
+                ],
+                [
+                    InlineKeyboardButton("🚢 کشتی جنگی", callback_data="produce_warship")
+                ]
+            ]
+        elif category == "defense":
+            keyboard = [
+                [
+                    InlineKeyboardButton("🛡 پدافند هوایی", callback_data="produce_air_defense"),
+                    InlineKeyboardButton("🚀 سپر موشکی", callback_data="produce_missile_shield")
+                ],
+                [
+                    InlineKeyboardButton("💻 سپر سایبری", callback_data="produce_cyber_shield")
+                ]
+            ]
+        elif category == "bombs":
+            keyboard = [
+                [
+                    InlineKeyboardButton("💣 بمب ساده", callback_data="produce_simple_bomb"),
+                    InlineKeyboardButton("☢️ بمب هسته‌ای", callback_data="produce_nuclear_bomb")
+                ]
+            ]
+        elif category == "missiles":
+            keyboard = [
+                [
+                    InlineKeyboardButton("🚀 موشک ساده", callback_data="produce_simple_missile"),
+                    InlineKeyboardButton("🚀 موشک بالستیک", callback_data="produce_ballistic_missile")
+                ],
+                [
+                    InlineKeyboardButton("☢️ موشک هسته‌ای", callback_data="produce_nuclear_missile")
+                ]
+            ]
+        elif category == "special_missiles":
+            keyboard = [
+                [
+                    InlineKeyboardButton("🚀 Trident 2 غیر هسته‌ای", callback_data="produce_trident2_conventional"),
+                    InlineKeyboardButton("☢️ Trident 2 هسته‌ای", callback_data="produce_trident2_nuclear")
+                ],
+                [
+                    InlineKeyboardButton("🚀 Satan2 غیر هسته‌ای", callback_data="produce_satan2_conventional"),
+                    InlineKeyboardButton("☢️ Satan2 هسته‌ای", callback_data="produce_satan2_nuclear")
+                ],
+                [
+                    InlineKeyboardButton("☢️ DF-41 هسته‌ای", callback_data="produce_df41_nuclear")
+                ],
+                [
+                    InlineKeyboardButton("🚀 Tomahawk غیر هسته‌ای", callback_data="produce_tomahawk_conventional"),
+                    InlineKeyboardButton("☢️ Tomahawk هسته‌ای", callback_data="produce_tomahawk_nuclear")
+                ],
+                [
+                    InlineKeyboardButton("🚀 Kalibr غیر هسته‌ای", callback_data="produce_kalibr_conventional")
+                ]
+            ]
+        elif category == "advanced_jets":
+            keyboard = [
+                [
+                    InlineKeyboardButton("✈️ F-22", callback_data="produce_f22"),
+                    InlineKeyboardButton("✈️ F-35", callback_data="produce_f35")
+                ],
+                [
+                    InlineKeyboardButton("✈️ Su-57", callback_data="produce_su57"),
+                    InlineKeyboardButton("✈️ J-20", callback_data="produce_j20")
+                ],
+                [
+                    InlineKeyboardButton("✈️ F-15EX", callback_data="produce_f15ex"),
+                    InlineKeyboardButton("✈️ Su-35S", callback_data="produce_su35s")
+                ]
+            ]
+        
+        keyboard.append([InlineKeyboardButton("🔙 منوی تسلیحات", callback_data="weapon_production")])
         return InlineKeyboardMarkup(keyboard)
 
     def diplomacy_menu_keyboard(self, user_id):

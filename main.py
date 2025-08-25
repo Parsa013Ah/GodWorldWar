@@ -92,8 +92,10 @@ class DragonRPBot:
                 await self.show_resources_menu(query, context)
             elif data == "buildings":
                 await self.show_buildings_menu(query, context)
-            elif data == "weapons":
+            elif data == "weapons" or data == "weapon_production":
                 await self.show_weapons_menu(query, context)
+            elif data.startswith("weapon_cat_"):
+                await self.show_weapon_category(query, context)
             elif data.startswith("build_"):
                 await self.handle_building_construction(query, context)
             elif data.startswith("produce_"):
@@ -205,14 +207,15 @@ class DragonRPBot:
 📊 منابع:
 🔩 آهن: {stats['resources'].get('iron', 0):,}
 🥉 مس: {stats['resources'].get('copper', 0):,}
-🛢 نفت خام: {stats['resources'].get('oil', 0):,}
-⛽ گاز: {stats['resources'].get('gas', 0):,}
+🛢 نفت: {stats['resources'].get('oil', 0):,}
 🔗 آلومینیوم: {stats['resources'].get('aluminum', 0):,}
 🏆 طلا: {stats['resources'].get('gold', 0):,}
 ☢️ اورانیوم: {stats['resources'].get('uranium', 0):,}
 🔋 لیتیوم: {stats['resources'].get('lithium', 0):,}
 ⚫ زغال‌سنگ: {stats['resources'].get('coal', 0):,}
-🥈 نقره: {stats['resources'].get('silver', 0):,}
+💥 نیتر: {stats['resources'].get('nitro', 0):,}
+🌫 گوگرد: {stats['resources'].get('sulfur', 0):,}
+🛡 تیتانیوم: {stats['resources'].get('titanium', 0):,}
 
 انتخاب کنید:"""
 
@@ -243,14 +246,15 @@ class DragonRPBot:
 📊 منابع:
 🔩 آهن: {stats['resources'].get('iron', 0):,}
 🥉 مس: {stats['resources'].get('copper', 0):,}
-🛢 نفت خام: {stats['resources'].get('oil', 0):,}
-⛽ گاز: {stats['resources'].get('gas', 0):,}
+🛢 نفت: {stats['resources'].get('oil', 0):,}
 🔗 آلومینیوم: {stats['resources'].get('aluminum', 0):,}
 🏆 طلا: {stats['resources'].get('gold', 0):,}
 ☢️ اورانیوم: {stats['resources'].get('uranium', 0):,}
 🔋 لیتیوم: {stats['resources'].get('lithium', 0):,}
 ⚫ زغال‌سنگ: {stats['resources'].get('coal', 0):,}
-🥈 نقره: {stats['resources'].get('silver', 0):,}
+💥 نیتر: {stats['resources'].get('nitro', 0):,}
+🌫 گوگرد: {stats['resources'].get('sulfur', 0):,}
+🛡 تیتانیوم: {stats['resources'].get('titanium', 0):,}
 
 انتخاب کنید:"""
 
@@ -373,7 +377,7 @@ class DragonRPBot:
         await query.edit_message_text(menu_text, reply_markup=keyboard)
 
     async def show_weapons_menu(self, query, context):
-        """Show weapon production menu"""
+        """Show weapon production categories menu"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
         resources = self.db.get_player_resources(user_id)
@@ -386,25 +390,62 @@ class DragonRPBot:
 🔩 آهن: {resources['iron']:,}
 🥉 مس: {resources['copper']:,}
 🛢 نفت: {resources['oil']:,}
-⛽ گاز: {resources['gas']:,}
 🔗 آلومینیوم: {resources['aluminum']:,}
+🏆 طلا: {resources['gold']:,}
 ☢️ اورانیوم: {resources['uranium']:,}
 🔋 لیتیوم: {resources['lithium']:,}
+⚫ زغال‌سنگ: {resources['coal']:,}
+💥 نیتر: {resources['nitro']:,}
+🌫 گوگرد: {resources['sulfur']:,}
+🛡 تیتانیوم: {resources['titanium']:,}
 
 💡 برای تولید تسلیحات به کارخانه اسلحه نیاز دارید!
 
-🔫 تسلیحات قابل تولید:
-• تفنگ - $1,000 + آهن
-• تانک - $10,000 + آهن + سوخت
-• جنگنده - $25,000 + آلومینیوم + سوخت
-• پهپاد - $20,000 + لیتیوم + سوخت
-• موشک - $50,000 + اورانیوم + سوخت
-• کشتی جنگی - $40,000 + آهن + سوخت
-• پدافند هوایی - $30,000 + مس + آهن
-• سپر موشکی - $35,000 + اورانیوم + آهن
-• سپر سایبری - $20,000 + لیتیوم + مس"""
+🎯 دسته‌بندی سلاح‌ها:
+• سلاح‌های پایه: تفنگ، تانک، جنگنده، پهپاد
+• بمب‌ها: بمب ساده، بمب هسته‌ای
+• موشک‌ها: موشک ساده، بالستیک، هسته‌ای
+• موشک‌های مخصوص: Trident، Satan2، DF-41، Tomahawk
+• جت‌های پیشرفته: F-22، F-35، Su-57، J-20"""
 
         keyboard = self.keyboards.weapons_menu_keyboard()
+        await query.edit_message_text(menu_text, reply_markup=keyboard)
+    
+    async def show_weapon_category(self, query, context):
+        """Show weapons in specific category"""
+        user_id = query.from_user.id
+        player = self.db.get_player(user_id)
+        resources = self.db.get_player_resources(user_id)
+        
+        category = query.data.replace("weapon_cat_", "")
+        
+        category_names = {
+            'basic': 'سلاح‌های پایه',
+            'defense': 'سیستم‌های دفاعی',
+            'bombs': 'بمب‌ها',
+            'missiles': 'موشک‌های ساده',
+            'special_missiles': 'موشک‌های مخصوص',
+            'advanced_jets': 'جت‌های پیشرفته'
+        }
+        
+        menu_text = f"""🔫 {category_names.get(category, 'سلاح‌ها')} - {player['country_name']}
+
+💰 پول: ${player['money']:,}
+
+📊 منابع کلیدی:
+🔩 آهن: {resources['iron']:,}
+🥉 مس: {resources['copper']:,}
+🔗 آلومینیوم: {resources['aluminum']:,}
+🏆 طلا: {resources['gold']:,}
+☢️ اورانیوم: {resources['uranium']:,}
+🛡 تیتانیوم: {resources['titanium']:,}
+💥 نیتر: {resources['nitro']:,}
+🌫 گوگرد: {resources['sulfur']:,}
+⚫ زغال‌سنگ: {resources['coal']:,}
+
+انتخاب کنید:"""
+
+        keyboard = self.keyboards.weapon_category_keyboard(category)
         await query.edit_message_text(menu_text, reply_markup=keyboard)
 
     async def handle_weapon_production(self, query, context):
