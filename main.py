@@ -1010,7 +1010,7 @@ class DragonRPBot:
 
         try:
             target_id = int(data_parts[0])
-            transport_type = data_parts[1]
+            transport_type = "_".join(data_parts[1:])  # Join all remaining parts for multi-word transport names
         except (ValueError, IndexError):
             await query.edit_message_text("❌ داده‌های نامعتبر!", reply_markup=self.keyboards.back_to_main_keyboard())
             return
@@ -1052,14 +1052,33 @@ class DragonRPBot:
             weapons = self.db.get_player_weapons(user_id)
             available_count = weapons.get(transport_type, 0)
             if available_count < 1:
-                # Debug info for the user
+                # Debug info for the user - show all transport weapons for debugging
+                all_transports = {
+                    'armored_truck': weapons.get('armored_truck', 0),
+                    'cargo_helicopter': weapons.get('cargo_helicopter', 0), 
+                    'cargo_plane': weapons.get('cargo_plane', 0),
+                    'escort_frigate': weapons.get('escort_frigate', 0),
+                    'logistics_drone': weapons.get('logistics_drone', 0),
+                    'heavy_transport': weapons.get('heavy_transport', 0),
+                    'supply_ship': weapons.get('supply_ship', 0),
+                    'stealth_transport': weapons.get('stealth_transport', 0)
+                }
+                
                 debug_text = f"""❌ وسیله حمل‌ونقل انتخابی در دسترس نیست!
 
 🔍 جزئیات:
 • وسیله انتخابی: {transport_type}
 • تعداد موجود: {available_count}
 
-💡 برای استفاده از وسایل نقلیه، ابتدا باید آنها را از بخش سلاح‌سازی بسازید یا از بازار خریداری کنید."""
+📊 تمام وسایل حمل‌ونقل شما:
+🚚 کامیون زرهی: {all_transports['armored_truck']}
+🚁 هلیکوپتر باری: {all_transports['cargo_helicopter']}
+✈️ هواپیمای باری: {all_transports['cargo_plane']}
+🚢 ناوچه اسکورت: {all_transports['escort_frigate']}
+🛸 پهپاد لجستیک: {all_transports['logistics_drone']}
+🚛 ترابری سنگین: {all_transports['heavy_transport']}
+🚢 کشتی تدارکات: {all_transports['supply_ship']}
+🥷 ترابری پنهان‌کار: {all_transports['stealth_transport']}"""
 
                 await query.edit_message_text(debug_text, reply_markup=self.keyboards.back_to_main_keyboard())
                 return
