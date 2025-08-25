@@ -360,7 +360,7 @@ class Keyboards:
                 InlineKeyboardButton("⚡ حمله سایبری", callback_data=f"attack_type_{target_id}_cyber")
             ],
             [
-                InlineKeyboardButton("🔙 انتخاب هدف دیگر", callback_data="select_attack_target")
+                InlineKeyboardButton("🔙 انتخاب هدف دیگر", callback_data=f"select_attack_target")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
@@ -382,7 +382,7 @@ class Keyboards:
 
             if count > 0:
                 weapon_name = weapon_data['name']
-                emoji = self._get_weapon_emoji(weapon_key, weapon_data.get('category', ''))
+                emoji = self._get_weapon_emoji(weapon_key)
 
                 if selected > 0:
                     button_text = f"✅ {emoji} {weapon_name} ({selected}/{count})"
@@ -705,3 +705,15 @@ class Keyboards:
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
+
+    def _get_weapon_emoji(self, weapon_key):
+        """Get appropriate emoji for weapon"""
+        emoji_map = {
+            'rifle': '🔫', 'tank': '🚗', 'fighter_jet': '✈️', 'drone': '🚁',
+            'warship': '🚢', 'air_defense': '🛡', 'missile_shield': '🚀',
+            'cyber_shield': '💻', 'f22': '✈️', 'f35': '✈️', 'su57': '✈️',
+            'j20': '✈️', 'missile': '🚀', 'nuclear_missile': '☢️',
+            'armored_truck': '🚛', 'cargo_helicopter': '🚁', 'cargo_plane': '✈️',
+            'stealth_transport': '🛸'
+        }
+        return emoji_map.get(weapon_key, '⚔️')

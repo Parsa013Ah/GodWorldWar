@@ -580,14 +580,14 @@ class DragonRPBot:
         user_id = query.from_user.id
         data_parts = query.data.split("_")
         
-        if len(data_parts) != 4:
+        if len(data_parts) < 4:
             await query.edit_message_text("❌ داده نامعتبر!")
             return
             
-        # Format: quantity_type_item_amount
+        # Format: quantity_type_item_amount (may have underscores in item name)
         item_type = data_parts[1]  # weapon or building
-        item_name = data_parts[2]  # specific item
-        quantity = int(data_parts[3])  # amount
+        quantity = int(data_parts[-1])  # amount (last part)
+        item_name = "_".join(data_parts[2:-1])  # everything between type and amount
         
         if item_type == "weapon":
             result = self.game_logic.produce_weapon(user_id, item_name, quantity)

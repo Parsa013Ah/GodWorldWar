@@ -71,12 +71,17 @@ class Config:
         'housing': {'name': 'مسکن', 'cost': 50000, 'capacity': 10000}
     }
 
-    # Weapons configuration
-    WEAPONS = {
-        # Basic military equipment
-        'rifle': {'name': 'تفنگ', 'cost': 1500, 'power': 5, 'range': 300, 'resources': {'iron': 5, 'copper': 2}, 'category': 'basic'},
-        'tank': {'name': 'تانک', 'cost': 850000, 'power': 1200, 'range': 500, 'resources': {'iron': 50, 'copper': 15, 'aluminum': 10}, 'category': 'ground'},
-        'fighter': {'name': 'جنگنده', 'cost': 2800000, 'power': 2400, 'range': 1500, 'resources': {'aluminum': 30, 'iron': 20, 'copper': 10}, 'category': 'air'},
+    # Import weapons from modular system
+    try:
+        from weapons import ALL_WEAPONS, WEAPON_CATEGORIES
+        WEAPONS = ALL_WEAPONS
+        WEAPON_CATS = WEAPON_CATEGORIES
+    except ImportError:
+        # Fallback to basic weapons if modular system not available
+        WEAPONS = {
+            'rifle': {'name': 'تفنگ', 'cost': 1500, 'power': 5, 'range': 300, 'resources': {'iron': 5, 'copper': 2}, 'category': 'basic'},
+            'tank': {'name': 'تانک', 'cost': 850000, 'power': 1200, 'range': 500, 'resources': {'iron': 50, 'copper': 15, 'aluminum': 10}, 'category': 'basic'}
+        } 'cost': 2800000, 'power': 2400, 'range': 1500, 'resources': {'aluminum': 30, 'iron': 20, 'copper': 10}, 'category': 'air'},
         'jet': {'name': 'جت جنگی', 'cost': 4500000, 'power': 3200, 'range': 2000, 'resources': {'aluminum': 40, 'iron': 25, 'copper': 15, 'titanium': 5}, 'category': 'air'},
         'drone': {'name': 'پهپاد نظامی', 'cost': 180000, 'power': 800, 'range': 1000, 'resources': {'aluminum': 10, 'copper': 8, 'lithium': 5}, 'category': 'air'},
 
