@@ -101,10 +101,12 @@ class DragonRPBot:
                 await self.show_weapon_category(query, context)
             elif data.startswith("build_"):
                 await self.handle_building_construction(query, context)
-            elif data.startswith("produce_"):
-                await self.handle_weapon_production(query, context)
-            elif data.startswith("select_weapon_"):
-                await self.show_weapon_quantity_selection(query, context)
+            elif data.startswith("produce_") or data.startswith("select_weapon_"):
+                # Check if it's quantity selection or direct production
+                if data.count("_") > 1:  # select_weapon_rifle format
+                    await self.show_weapon_quantity_selection(query, context)
+                else:  # produce_rifle format
+                    await self.handle_weapon_production(query, context)
             elif data.startswith("select_building_"):
                 await self.show_building_quantity_selection(query, context)
             elif data.startswith("quantity_"):
@@ -127,6 +129,8 @@ class DragonRPBot:
                 await self.show_military_power(query, context)
             elif data == "propose_peace":
                 await self.show_propose_peace(query, context)
+            elif data == "intercept_convoys":
+                await self.show_convoy_interception_menu(query, context)
             elif data.startswith("send_to_"):
                 await self.handle_resource_transfer_target(query, context)
             elif data.startswith("transfer_"):
@@ -496,7 +500,16 @@ class DragonRPBot:
     async def handle_weapon_production(self, query, context):
         """Handle weapon production"""
         user_id = query.from_user.id
-        weapon_type = query.data.replace("produce_", "")
+        callback_data = query.data
+        
+        # Handle different callback formats
+        if callback_data.startswith("produce_"):
+            weapon_type = callback_data.replace("produce_", "")
+        elif callback_data.startswith("select_weapon_"):
+            weapon_type = callback_data.replace("select_weapon_", "")
+        else:
+            await query.edit_message_text("❌ داده نامعتبر!")
+            return
 
         result = self.game_logic.produce_weapon(user_id, weapon_type)
 
@@ -620,6 +633,12 @@ class DragonRPBot:
         for country in all_countries:
             if country['user_id'] != user_id:
                 menu_text += f"🏴 {country['country_name']} - {country['username']}\n"
+
+        menu_text += "\n💡 قابلیت‌های دیپلماسی:"
+        menu_text += "\n• ارسال منابع امن"
+        menu_text += "\n• دزدی محموله‌های درحال انتقال"
+        menu_text += "\n• بیانیه رسمی"
+        menu_text += "\n• پیشنهاد صلح"
 
         menu_text += "\nانتخاب کنید:"
 
@@ -1152,6 +1171,66 @@ class DragonRPBot:
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await query.edit_message_text(menu_text, reply_markup=reply_markup)
+
+    async def show_convoy_interception_menu(self, query, context):
+        """Show convoy interception menu"""
+        user_id = query.from_user.id
+        player = self.db.get_player(user_id)
+
+        # Get active convoys
+        active_convoys = self.convoy.get_active_convoys()
+        
+        if not active_convoys:
+            await query.edit_message_text(
+                f"""🏴‍☠️ دزدی محموله - {player['country_name']}
+
+❌ هیچ محموله‌ای درحال انتقال نیست!
+
+💡 محموله‌ها هنگام ارسال منابع بین کشورها ایجاد می‌شوند.
+شما می‌توانید آنها را متوقف کرده یا محتویاتشان را بدزدید.
+
+🔙 برای بازگشت دکمه زیر را فشار دهید.""",
+                reply_markup=self.keyboards.back_to_diplomacy_keyboard()
+            )
+            return
+
+        menu_text = f"""🏴‍☠️ دزدی محموله - {player['country_name']}
+
+🚛 محموله‌های فعال:
+
+"""
+
+        keyboard = []
+        for convoy in active_convoys[:10]:  # نمایش حداکثر 10 محموله
+            try:
+                sender_country = convoy.get('sender_country', 'نامعتبر')
+                receiver_country = convoy.get('receiver_country', 'نامعتبر')
+                resource_type = convoy.get('resource_type', 'نامعتبر')
+                amount = convoy.get('amount', 0)
+                security_level = convoy.get('security_level', 0)
+                
+                menu_text += f"""
+🚛 {sender_country} → {receiver_country}
+📦 {resource_type}: {amount:,}
+🛡 امنیت: {security_level}%
+"""
+
+                convoy_id = convoy.get('id', 0)
+                keyboard.extend([
+                    [
+                        InlineKeyboardButton(f"⛔ توقف محموله", callback_data=f"convoy_stop_{convoy_id}"),
+                        InlineKeyboardButton(f"🏴‍☠️ دزدی محموله", callback_data=f"convoy_steal_{convoy_id}")
+                    ]
+                ])
+                
+            except Exception as e:
+                logger.error(f"Error processing convoy {convoy}: {e}")
+                continue
+
+        keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="diplomacy")])
+        
+        from telegram import InlineKeyboardMarkup
+        await query.edit_message_text(menu_text, reply_markup=InlineKeyboardMarkup(keyboard))
 
     async def propose_peace(self, query, context):
         """Show propose peace menu"""

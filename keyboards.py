@@ -250,19 +250,19 @@ class Keyboards:
         """Create diplomacy menu keyboard"""
         keyboard = [
             [
-                InlineKeyboardButton("⚔️ حمله به کشور", callback_data="select_attack_target"),
+                InlineKeyboardButton("⚔️ انتخاب هدف حمله", callback_data="select_attack_target"),
                 InlineKeyboardButton("📬 ارسال منابع", callback_data="send_resources")
             ],
             [
-                InlineKeyboardButton("🤝 اتحادها", callback_data="alliances"),
-                InlineKeyboardButton("🛒 فروشگاه", callback_data="marketplace")
+                InlineKeyboardButton("🏴‍☠️ دزدی محموله", callback_data="intercept_convoys"),
+                InlineKeyboardButton("📢 بیانیه رسمی", callback_data="official_statement")
             ],
             [
                 InlineKeyboardButton("🕊 پیشنهاد صلح", callback_data="propose_peace"),
-                InlineKeyboardButton("🏴 بیانیه رسمی", callback_data="official_statement")
+                InlineKeyboardButton("🤝 اتحادها", callback_data="alliances")
             ],
             [
-                InlineKeyboardButton("🔙 بازگشت", callback_data="main_menu")
+                InlineKeyboardButton("🔙 بازگشت به منوی اصلی", callback_data="main_menu")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
@@ -340,7 +340,7 @@ class Keyboards:
 
         keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="diplomacy")])
         return InlineKeyboardMarkup(keyboard)
-    
+
     def attack_type_selection_keyboard(self, target_id):
         """Create keyboard for attack type selection"""
         keyboard = [
@@ -361,60 +361,60 @@ class Keyboards:
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
-    
+
     def weapon_selection_keyboard(self, target_id, attack_type, available_weapons, selected_weapons=None):
         """Create keyboard for weapon selection in attack"""
         if selected_weapons is None:
             selected_weapons = {}
-            
+
         keyboard = []
-        
+
         # Filter weapons by attack type
         filtered_weapons = self._filter_weapons_by_attack_type(attack_type, available_weapons)
-        
+
         row = []
         for weapon_key, weapon_data in filtered_weapons.items():
             count = available_weapons.get(weapon_key, 0)
             selected = selected_weapons.get(weapon_key, 0)
-            
+
             if count > 0:
                 weapon_name = weapon_data['name']
                 emoji = self._get_weapon_emoji(weapon_key, weapon_data.get('category', ''))
-                
+
                 if selected > 0:
                     button_text = f"✅ {emoji} {weapon_name} ({selected}/{count})"
                 else:
                     button_text = f"{emoji} {weapon_name} ({count})"
-                    
+
                 callback_data = f"select_weapon_attack_{target_id}_{attack_type}_{weapon_key}"
-                
+
                 row.append(InlineKeyboardButton(button_text, callback_data=callback_data))
-                
+
                 if len(row) == 2:
                     keyboard.append(row)
                     row = []
-        
+
         if row:
             keyboard.append(row)
-            
+
         keyboard.extend([
             [InlineKeyboardButton("⚔️ شروع حمله", callback_data=f"execute_attack_{target_id}_{attack_type}")],
             [InlineKeyboardButton("🔙 انتخاب نوع حمله", callback_data=f"select_target_{target_id}")]
         ])
-        
+
         return InlineKeyboardMarkup(keyboard)
-    
+
     def _filter_weapons_by_attack_type(self, attack_type, available_weapons):
         """Filter weapons based on attack type"""
         filtered = {}
-        
+
         for weapon_key, count in available_weapons.items():
             if weapon_key in Config.WEAPONS and count > 0:
                 weapon_data = Config.WEAPONS[weapon_key]
                 category = weapon_data.get('category', '')
-                
+
                 include_weapon = False
-                
+
                 if attack_type == "mixed":
                     include_weapon = True
                 elif attack_type == "ground" and category in ['basic', 'ground', 'defense', 'transport']:
@@ -427,10 +427,10 @@ class Keyboards:
                     include_weapon = True
                 elif attack_type == "cyber" and category in ['defense']:
                     include_weapon = True
-                
+
                 if include_weapon:
                     filtered[weapon_key] = weapon_data
-        
+
         return filtered
 
     def send_resources_targets_keyboard(self, countries):
@@ -463,9 +463,16 @@ class Keyboards:
         return InlineKeyboardMarkup(keyboard)
 
     def back_to_main_keyboard(self):
-        """Simple back to main menu keyboard"""
+        """Create back to main menu keyboard"""
         keyboard = [
-            [InlineKeyboardButton("🔙 منوی اصلی", callback_data="main_menu")]
+            [InlineKeyboardButton("🔙 بازگشت به منوی اصلی", callback_data="main_menu")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def back_to_diplomacy_keyboard(self):
+        """Create back to diplomacy menu keyboard"""
+        keyboard = [
+            [InlineKeyboardButton("🔙 بازگشت به دیپلماسی", callback_data="diplomacy")]
         ]
         return InlineKeyboardMarkup(keyboard)
 
