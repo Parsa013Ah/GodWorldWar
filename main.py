@@ -103,6 +103,12 @@ class DragonRPBot:
                 await self.handle_building_construction(query, context)
             elif data.startswith("produce_"):
                 await self.handle_weapon_production(query, context)
+            elif data.startswith("select_weapon_"):
+                await self.show_weapon_quantity_selection(query, context)
+            elif data.startswith("select_building_"):
+                await self.show_building_quantity_selection(query, context)
+            elif data.startswith("quantity_"):
+                await self.handle_quantity_selection(query, context)
             elif data == "select_attack_target":
                 await self.show_attack_targets(query, context)
             elif data == "attack_menu":
@@ -506,6 +512,100 @@ class DragonRPBot:
         else:
             await query.edit_message_text(f"❌ {result['message']}")
 
+    async def show_weapon_quantity_selection(self, query, context):
+        """Show quantity selection for weapon production"""
+        user_id = query.from_user.id
+        weapon_type = query.data.replace("select_weapon_", "")
+        
+        player = self.db.get_player(user_id)
+        weapon_config = Config.WEAPONS.get(weapon_type)
+        
+        if not weapon_config:
+            await query.edit_message_text("❌ نوع سلاح نامعتبر است!")
+            return
+            
+        weapon_name = weapon_config['name']
+        weapon_cost = weapon_config['cost']
+        
+        menu_text = f"""🔫 انتخاب تعداد - {weapon_name}
+        
+💰 پول شما: ${player['money']:,}
+💲 قیمت هر واحد: ${weapon_cost:,}
+
+چند عدد می‌خواهید تولید کنید؟"""
+
+        keyboard = self.keyboards.quantity_selection_keyboard("weapon", weapon_type)
+        await query.edit_message_text(menu_text, reply_markup=keyboard)
+
+    async def show_building_quantity_selection(self, query, context):
+        """Show quantity selection for building construction"""
+        user_id = query.from_user.id
+        building_type = query.data.replace("select_building_", "")
+        
+        player = self.db.get_player(user_id)
+        building_config = Config.BUILDINGS.get(building_type)
+        
+        if not building_config:
+            await query.edit_message_text("❌ نوع ساختمان نامعتبر است!")
+            return
+            
+        building_name = building_config['name']
+        building_cost = building_config['cost']
+        
+        menu_text = f"""🏗 انتخاب تعداد - {building_name}
+        
+💰 پول شما: ${player['money']:,}
+💲 قیمت هر واحد: ${building_cost:,}
+
+چند عدد می‌خواهید بسازید؟"""
+
+        keyboard = self.keyboards.quantity_selection_keyboard("building", building_type)
+        await query.edit_message_text(menu_text, reply_markup=keyboard)
+
+    async def handle_quantity_selection(self, query, context):
+        """Handle quantity selection for production/construction"""
+        user_id = query.from_user.id
+        data_parts = query.data.split("_")
+        
+        if len(data_parts) != 4:
+            await query.edit_message_text("❌ داده نامعتبر!")
+            return
+            
+        # Format: quantity_type_item_amount
+        item_type = data_parts[1]  # weapon or building
+        item_name = data_parts[2]  # specific item
+        quantity = int(data_parts[3])  # amount
+        
+        if item_type == "weapon":
+            result = self.game_logic.produce_weapon(user_id, item_name, quantity)
+            
+            if result['success']:
+                await query.edit_message_text(
+                    f"✅ {result['message']}\n\n"
+                    f"💰 پول باقی‌مانده: ${result['remaining_money']:,}"
+                )
+                
+                # Send news to channel
+                player = self.db.get_player(user_id)
+                await self.news.send_weapon_produced(player['country_name'], result['weapon_name'])
+            else:
+                await query.edit_message_text(f"❌ {result['message']}")
+                
+        elif item_type == "building":
+            result = self.game_logic.build_structure(user_id, item_name, quantity)
+            
+            if result['success']:
+                await query.edit_message_text(
+                    f"✅ {result['message']}\n\n"
+                    f"💰 پول باقی‌مانده: ${result['remaining_money']:,}"
+                )
+                
+                # Send news to channel
+                player = self.db.get_player(user_id)
+                await self.news.send_building_constructed(player['country_name'], result['building_name'])
+            else:
+                await query.edit_message_text(f"❌ {result['message']}")
+
     async def show_diplomacy_menu(self, query, context):
         """Show diplomacy menu"""
         user_id = query.from_user.id
@@ -565,7 +665,7 @@ class DragonRPBot:
             return
 
         # Execute attack
-        result = self.combat.execute_attack(user_id, target_id)
+        result = self.combat.schedule_delayed_attack(user_id, target_id)
 
         if not result['success'] and 'message' in result:
             await query.edit_message_text(f"❌ {result['message']}")
@@ -1350,6 +1450,26 @@ class DragonRPBot:
         await self.news.send_income_cycle_complete()
         logger.info("Income cycle completed")
 
+    async def process_pending_attacks(self):
+        """Process pending attacks that are due"""
+        try:
+            results = self.combat.process_pending_attacks()
+            
+            for result in results:
+                # Send news about completed attacks
+                attacker = self.db.get_player(result['attacker_id'])
+                defender = self.db.get_player(result['defender_id'])
+                
+                if result['result']['success']:
+                    await self.news.send_war_news(
+                        attacker['country_name'], 
+                        defender['country_name'], 
+                        result['result']
+                    )
+                    
+        except Exception as e:
+            logger.error(f"Error processing pending attacks: {e}")
+
     def setup_scheduler(self):
         """Setup the automated scheduler"""
         # 6-hour income cycle
@@ -1360,7 +1480,17 @@ class DragonRPBot:
             name='6-hour income cycle',
             replace_existing=True
         )
-        logger.info("Scheduler configured - 6-hour income cycle active")
+        
+        # Process pending attacks every minute
+        self.scheduler.add_job(
+            func=self.process_pending_attacks,
+            trigger=IntervalTrigger(minutes=1),
+            id='pending_attacks',
+            name='Process pending attacks',
+            replace_existing=True
+        )
+        
+        logger.info("Scheduler configured - 6-hour income cycle and pending attacks active")
 
     async def start_scheduler(self):
         """Start the scheduler within async context"""

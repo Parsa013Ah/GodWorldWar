@@ -2,6 +2,8 @@
 import logging
 import random
 from config import Config
+from datetime import datetime, timedelta
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +50,81 @@ class CombatSystem:
         neighbors = Config.COUNTRY_NEIGHBORS.get(country1, [])
         return country2 in neighbors
     
+    def get_country_region(self, country_code):
+        """Get the region of a country"""
+        for region, countries in Config.COUNTRY_DISTANCE_CATEGORY.items():
+            if country_code in countries:
+                return region
+        return 'unknown'
+    
+    def calculate_travel_time(self, attacker_id, attacker_country, defender_country):
+        """Calculate travel time for attack based on distance and equipment"""
+        base_time = 0
+        
+        # Check if neighbors (10 minutes)
+        if self.are_neighbors(attacker_country, defender_country):
+            base_time = Config.COMBAT_TIMING['neighbor_time']
+        else:
+            # Check if same region (25 minutes)
+            attacker_region = self.get_country_region(attacker_country)
+            defender_region = self.get_country_region(defender_country)
+            
+            if attacker_region == defender_region and attacker_region != 'unknown':
+                base_time = Config.COMBAT_TIMING['regional_time']
+            else:
+                # Different continents (40 minutes)
+                base_time = Config.COMBAT_TIMING['intercontinental_time']
+        
+        # Calculate speed bonuses from equipment
+        weapons = self.db.get_player_weapons(attacker_id)
+        speed_reduction = 0
+        
+        # Fast jets reduce travel time
+        fast_jets = ['f22', 'f35', 'su57', 'j20', 'f15ex', 'su35s', 'fighter', 'jet']
+        for jet_type in fast_jets:
+            count = weapons.get(jet_type, 0)
+            speed_reduction += count * Config.COMBAT_TIMING['speed_bonus_per_jet']
+        
+        # Transport equipment reduces travel time
+        transport_equipment = ['cargo_helicopter', 'cargo_plane', 'stealth_transport', 'logistics_drone']
+        for transport_type in transport_equipment:
+            count = weapons.get(transport_type, 0)
+            speed_reduction += count * Config.COMBAT_TIMING['speed_bonus_per_transport']
+        
+        # Apply speed reduction (minimum 5 minutes)
+        final_time = max(5, base_time - speed_reduction)
+        
+        return int(final_time)
+    
+    def process_pending_attacks(self):
+        """Process all pending attacks that are due"""
+        pending_attacks = self.db.get_pending_attacks_due()
+        
+        results = []
+        for attack in pending_attacks:
+            try:
+                # Mark as executing
+                self.db.update_pending_attack_status(attack['id'], 'executing')
+                
+                # Execute the attack
+                result = self.execute_attack(attack['attacker_id'], attack['defender_id'])
+                
+                # Mark as completed
+                self.db.update_pending_attack_status(attack['id'], 'completed')
+                
+                results.append({
+                    'attack_id': attack['id'],
+                    'result': result,
+                    'attacker_id': attack['attacker_id'],
+                    'defender_id': attack['defender_id']
+                })
+                
+            except Exception as e:
+                logger.error(f"Error executing pending attack {attack['id']}: {e}")
+                self.db.update_pending_attack_status(attack['id'], 'failed')
+        
+        return results
+    
     def calculate_attack_power(self, user_id):
         """Calculate total attack power"""
         weapons = self.db.get_player_weapons(user_id)
@@ -83,6 +160,39 @@ class CombatSystem:
         
         return defense_power
     
+    def schedule_delayed_attack(self, attacker_id, defender_id, attack_type="mixed"):
+        """Schedule a delayed attack based on travel time"""
+        can_attack, reason = self.can_attack_country(attacker_id, defender_id)
+        if not can_attack:
+            return {'success': False, 'message': reason}
+
+        attacker = self.db.get_player(attacker_id)
+        defender = self.db.get_player(defender_id)
+        
+        # Calculate travel time
+        travel_time = self.calculate_travel_time(attacker_id, attacker['country_code'], defender['country_code'])
+        attack_time = datetime.now() + timedelta(minutes=travel_time)
+        
+        # Create pending attack
+        attack_data = {
+            'attacker_id': attacker_id,
+            'defender_id': defender_id,
+            'attack_type': attack_type,
+            'travel_time': travel_time,
+            'attack_time': attack_time.isoformat(),
+            'status': 'traveling'
+        }
+        
+        attack_id = self.db.create_pending_attack(attack_data)
+        
+        return {
+            'success': True,
+            'attack_id': attack_id,
+            'travel_time': travel_time,
+            'attack_time': attack_time,
+            'message': f'نیروهای شما به سمت {defender["country_name"]} در حرکت هستند! زمان رسیدن: {travel_time} دقیقه'
+        }
+
     def execute_attack(self, attacker_id, defender_id):
         """Execute attack between countries"""
         can_attack, reason = self.can_attack_country(attacker_id, defender_id)
@@ -156,10 +266,11 @@ class CombatSystem:
                 new_count = count - losses
                 self.db.update_weapon_count(defender_id, weapon_type, new_count)
         
-        # Steal resources
+        # Steal resources (only 15% of defender's resources)
         for resource_type, amount in defender_resources.items():
             if resource_type != 'user_id' and amount > 0:
-                steal_amount = min(amount, int(damage * 50))
+                # Calculate 15% of defender's resources
+                steal_amount = int(amount * 0.15)
                 if steal_amount > 0:
                     result['stolen_resources'][resource_type] = steal_amount
                     # Transfer resources

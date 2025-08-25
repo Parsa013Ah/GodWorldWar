@@ -30,21 +30,24 @@ class GameLogic:
             'weapons': weapons
         }
 
-    def build_structure(self, user_id, building_type):
-        """Build a structure for player"""
+    def build_structure(self, user_id, building_type, quantity=1):
+        """Build structures for player"""
         player = self.db.get_player(user_id)
         building_config = Config.BUILDINGS.get(building_type)
 
         if not building_config:
             return {'success': False, 'message': 'نوع ساختمان نامعتبر است'}
 
-        building_cost = building_config['cost']
+        if quantity <= 0:
+            return {'success': False, 'message': 'تعداد باید بیشتر از صفر باشد!'}
+
+        building_cost = building_config['cost'] * quantity
         building_name = building_config['name']
 
         if player['money'] < building_cost:
             return {
                 'success': False, 
-                'message': f'پول کافی ندارید! نیاز: ${building_cost:,}, موجود: ${player["money"]:,}'
+                'message': f'پول کافی ندارید! نیاز: ${building_cost:,} برای {quantity} عدد، موجود: ${player["money"]:,}'
             }
 
         # Check requirements
@@ -59,20 +62,25 @@ class GameLogic:
                         'message': f'ابتدا باید {req_name} بسازید'
                     }
 
-        # Deduct money and add building
+        # Deduct money and add buildings
         new_money = player['money'] - building_cost
         self.db.update_player_money(user_id, new_money)
-        self.db.add_building(user_id, building_type)
+        
+        # Add multiple buildings
+        for _ in range(quantity):
+            self.db.add_building(user_id, building_type)
 
+        quantity_text = f'{quantity} عدد ' if quantity > 1 else ''
         return {
             'success': True,
-            'message': f'{building_name} با موفقیت ساخته شد!',
+            'message': f'{quantity_text}{building_name} با موفقیت ساخته شد!',
             'building_name': building_name,
+            'quantity': quantity,
             'remaining_money': new_money
         }
 
-    def produce_weapon(self, user_id, weapon_type):
-        """Produce a weapon for player"""
+    def produce_weapon(self, user_id, weapon_type, quantity=1):
+        """Produce weapons for player"""
         player = self.db.get_player(user_id)
         if not player:
             return {'success': False, 'message': 'بازیکن یافت نشد!'}
@@ -82,7 +90,10 @@ class GameLogic:
         if not weapon_config:
             return {'success': False, 'message': 'نوع سلاح نامعتبر است'}
 
-        weapon_cost = weapon_config['cost']
+        if quantity <= 0:
+            return {'success': False, 'message': 'تعداد باید بیشتر از صفر باشد!'}
+
+        weapon_cost = weapon_config['cost'] * quantity
         weapon_name = weapon_config['name']
         required_resources = weapon_config.get('resources', {})
 
@@ -95,7 +106,7 @@ class GameLogic:
         if player['money'] < weapon_cost:
             return {
                 'success': False,
-                'message': f'پول کافی ندارید! نیاز: ${weapon_cost:,}, موجود: ${player["money"]:,}'
+                'message': f'پول کافی ندارید! نیاز: ${weapon_cost:,} برای {quantity} عدد، موجود: ${player["money"]:,}'
             }
 
         # Separate weapon requirements from resource requirements
@@ -104,9 +115,9 @@ class GameLogic:
 
         for item, amount in required_resources.items():
             if item in Config.WEAPONS:
-                weapon_requirements[item] = amount
+                weapon_requirements[item] = amount * quantity
             else:
-                resource_requirements[item] = amount
+                resource_requirements[item] = amount * quantity
 
         # Check weapon requirements (other weapons needed)
         if weapon_requirements:
@@ -116,7 +127,7 @@ class GameLogic:
                     weapon_req_name = Config.WEAPONS.get(weapon_req, {}).get('name', weapon_req)
                     return {
                         'success': False,
-                        'message': f'برای ساخت این سلاح به {amount_req} عدد {weapon_req_name} نیاز دارید!'
+                        'message': f'برای ساخت {quantity} عدد این سلاح به {amount_req} عدد {weapon_req_name} نیاز دارید!'
                     }
 
         # Check resource requirements
@@ -132,15 +143,17 @@ class GameLogic:
                     return {'success': False, 'message': 'سلاح‌های مورد نیاز کافی نیست!'}
                 self.db.update_weapon_count(user_id, weapon_req, new_amount)
 
-        # Deduct money and add weapon
+        # Deduct money and add weapons
         new_money = player['money'] - weapon_cost
         self.db.update_player_money(user_id, new_money)
-        self.db.add_weapon(user_id, weapon_type, 1)
+        self.db.add_weapon(user_id, weapon_type, quantity)
 
+        quantity_text = f'{quantity} عدد ' if quantity > 1 else ''
         return {
             'success': True,
-            'message': f'{weapon_name} با موفقیت تولید شد!',
+            'message': f'{quantity_text}{weapon_name} با موفقیت تولید شد!',
             'weapon_name': weapon_name,
+            'quantity': quantity,
             'remaining_money': new_money
         }
 

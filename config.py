@@ -112,11 +112,23 @@ class Config:
 
         # Advanced fighter jets
         'f22': {'name': 'F-22', 'cost': 20000, 'power': 980, 'range': 3000, 'resources': {'titanium': 9, 'iron': 15, 'aluminum': 30, 'copper': 9, 'gold': 3}, 'category': 'advanced_jets'},
+        'strategic_bomber': {'name': 'بمب‌افکن استراتژیک', 'cost': 8500000, 'power': 4500, 'range': 4500, 'resources': {'aluminum': 60, 'titanium': 25, 'fuel': 50}, 'category': 'air'},
+        'icbm': {'name': 'موشک قاره‌پیما', 'cost': 25000000, 'power': 6000, 'range': 15000, 'resources': {'uranium': 30, 'titanium': 20, 'fuel': 40}, 'category': 'special_missiles'},
         'f35': {'name': 'F-35', 'cost': 18000, 'power': 950, 'range': 2800, 'resources': {'titanium': 9, 'iron': 10, 'aluminum': 21, 'copper': 6, 'gold': 2}, 'category': 'advanced_jets'},
         'su57': {'name': 'Su-57', 'cost': 18000, 'power': 940, 'range': 2700, 'resources': {'titanium': 9, 'iron': 10, 'aluminum': 21, 'copper': 6, 'gold': 2}, 'category': 'advanced_jets'},
         'j20': {'name': 'J-20', 'cost': 15000, 'power': 920, 'range': 2500, 'resources': {'titanium': 9, 'iron': 10, 'aluminum': 21, 'copper': 6, 'gold': 2}, 'category': 'advanced_jets'},
         'f15ex': {'name': 'F-15EX', 'cost': 15000, 'power': 910, 'range': 2400, 'resources': {'titanium': 6, 'iron': 15, 'aluminum': 30, 'copper': 9, 'gold': 3}, 'category': 'advanced_jets'},
-        'su35s': {'name': 'Su-35S', 'cost': 15000, 'power': 900, 'range': 2300, 'resources': {'titanium': 6, 'iron': 10, 'aluminum': 21, 'copper': 6, 'gold': 2}, 'category': 'advanced_jets'}
+        'su35s': {'name': 'Su-35S', 'cost': 15000, 'power': 900, 'range': 2300, 'resources': {'titanium': 6, 'iron': 10, 'aluminum': 21, 'copper': 6, 'gold': 2}, 'category': 'advanced_jets'},
+
+        # Transport and Logistics Equipment
+        'armored_truck': {'name': 'کامیون زرهی', 'cost': 450000, 'power': 200, 'convoy_security': 25, 'capacity': 1000, 'resources': {'iron': 30, 'aluminum': 15}, 'category': 'transport'},
+        'cargo_helicopter': {'name': 'هلیکوپتر باری', 'cost': 2200000, 'power': 800, 'convoy_security': 40, 'capacity': 2000, 'speed_bonus': 50, 'resources': {'aluminum': 25, 'iron': 20, 'copper': 10}, 'category': 'transport'},
+        'cargo_plane': {'name': 'هواپیمای باری', 'cost': 6500000, 'power': 1500, 'convoy_security': 60, 'capacity': 5000, 'speed_bonus': 75, 'resources': {'aluminum': 40, 'iron': 30, 'titanium': 8}, 'category': 'transport'},
+        'escort_frigate': {'name': 'ناوچه اسکورت', 'cost': 3800000, 'power': 2800, 'convoy_security': 80, 'naval_escort': True, 'resources': {'iron': 60, 'aluminum': 30, 'copper': 20}, 'category': 'transport'},
+        'logistics_drone': {'name': 'پهپاد لجستیک', 'cost': 850000, 'power': 400, 'convoy_security': 30, 'stealth': True, 'speed_bonus': 40, 'resources': {'aluminum': 15, 'lithium': 8, 'copper': 12}, 'category': 'transport'},
+        'heavy_transport': {'name': 'ترابری سنگین', 'cost': 1200000, 'power': 600, 'convoy_security': 45, 'capacity': 3000, 'resources': {'iron': 45, 'aluminum': 20, 'copper': 15}, 'category': 'transport'},
+        'supply_ship': {'name': 'کشتی تدارکات', 'cost': 4500000, 'power': 1200, 'convoy_security': 70, 'capacity': 8000, 'naval': True, 'resources': {'iron': 80, 'aluminum': 40, 'copper': 25}, 'category': 'transport'},
+        'stealth_transport': {'name': 'ترابری پنهان‌کار', 'cost': 8200000, 'power': 2000, 'convoy_security': 90, 'stealth': True, 'speed_bonus': 60, 'resources': {'titanium': 15, 'aluminum': 50, 'uranium': 5}, 'category': 'transport'}
     }
 
     # Resources configuration
@@ -178,6 +190,28 @@ class Config:
         'long_range_threshold_km': 3000,
         'base_defense_multiplier': 0.3,
         'weapon_loss_chance': 0.2
+    }
+
+    # Distance-based combat timing (in minutes)
+    COMBAT_TIMING = {
+        'neighbor_time': 10,        # همسایه - 10 دقیقه
+        'regional_time': 25,        # منطقه‌ای - 25 دقیقه  
+        'intercontinental_time': 40, # بین قاره‌ای - 40 دقیقه
+        'speed_bonus_per_jet': 0.5,  # کاهش زمان برای هر جت
+        'speed_bonus_per_transport': 0.3  # کاهش زمان برای تجهیزات حمل‌ونقل
+    }
+
+    # Country distance categories
+    COUNTRY_DISTANCE_CATEGORY = {
+        # Regional groups (25 minutes base travel time)
+        'middle_east': ['IR', 'TR', 'IQ', 'SA', 'EG', 'AF', 'PK'],
+        'north_america': ['US', 'CA', 'MX'],
+        'europe': ['FR', 'DE', 'ES', 'BE', 'IT', 'GB'],
+        'east_asia': ['CN', 'JP', 'KP'],
+        'south_america': ['AR', 'BR'],
+        'oceania': ['AU'],
+        'eurasia': ['RU'],
+        'south_asia': ['IN']
     }
 
     # Bot configuration

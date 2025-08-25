@@ -84,7 +84,7 @@ class Keyboards:
                 InlineKeyboardButton("🥈 معدن نقره - $56K", callback_data="build_silver_mine")
             ],
             [
-                InlineKeyboardButton("🏭 کارخانه اسلحه", callback_data="build_weapon_factory"),
+                InlineKeyboardButton("🏭 کارخانه اسلحه", callback_data="select_building_weapon_factory"),
                 InlineKeyboardButton("⚡ نیروگاه", callback_data="build_power_plant")
             ],
             [
@@ -134,6 +134,9 @@ class Keyboards:
                 InlineKeyboardButton("✈️ جت‌های پیشرفته", callback_data="weapon_cat_advanced_jets")
             ],
             [
+                InlineKeyboardButton("🚛 تجهیزات حمل و نقل", callback_data="weapon_cat_transport")
+            ],
+            [
                 InlineKeyboardButton("🔙 بازگشت", callback_data="military")
             ]
         ]
@@ -146,42 +149,42 @@ class Keyboards:
         if category == "basic":
             keyboard = [
                 [
-                    InlineKeyboardButton("🔫 تفنگ", callback_data="produce_rifle"),
-                    InlineKeyboardButton("🚗 تانک", callback_data="produce_tank")
+                    InlineKeyboardButton("🔫 تفنگ", callback_data="select_weapon_rifle"),
+                    InlineKeyboardButton("🚗 تانک", callback_data="select_weapon_tank")
                 ],
                 [
-                    InlineKeyboardButton("✈️ جنگنده", callback_data="produce_fighter_jet"),
-                    InlineKeyboardButton("🚁 پهپاد", callback_data="produce_drone")
+                    InlineKeyboardButton("✈️ جنگنده", callback_data="select_weapon_fighter_jet"),
+                    InlineKeyboardButton("🚁 پهپاد", callback_data="select_weapon_drone")
                 ],
                 [
-                    InlineKeyboardButton("🚢 کشتی جنگی", callback_data="produce_warship")
+                    InlineKeyboardButton("🚢 کشتی جنگی", callback_data="select_weapon_warship")
                 ]
             ]
         elif category == "defense":
             keyboard = [
                 [
-                    InlineKeyboardButton("🛡 پدافند هوایی", callback_data="produce_air_defense"),
-                    InlineKeyboardButton("🚀 سپر موشکی", callback_data="produce_missile_shield")
+                    InlineKeyboardButton("🛡 پدافند هوایی", callback_data="select_weapon_air_defense"),
+                    InlineKeyboardButton("🚀 سپر موشکی", callback_data="select_weapon_missile_shield")
                 ],
                 [
-                    InlineKeyboardButton("💻 سپر سایبری", callback_data="produce_cyber_shield")
+                    InlineKeyboardButton("💻 سپر سایبری", callback_data="select_weapon_cyber_shield")
                 ]
             ]
         elif category == "bombs":
             keyboard = [
                 [
-                    InlineKeyboardButton("💣 بمب ساده", callback_data="produce_simple_bomb"),
-                    InlineKeyboardButton("☢️ بمب هسته‌ای", callback_data="produce_nuclear_bomb")
+                    InlineKeyboardButton("💣 بمب ساده", callback_data="select_weapon_simple_bomb"),
+                    InlineKeyboardButton("☢️ بمب هسته‌ای", callback_data="select_weapon_nuclear_bomb")
                 ]
             ]
         elif category == "missiles":
             keyboard = [
                 [
-                    InlineKeyboardButton("🚀 موشک ساده", callback_data="produce_simple_missile"),
-                    InlineKeyboardButton("🚀 موشک بالستیک", callback_data="produce_ballistic_missile")
+                    InlineKeyboardButton("🚀 موشک ساده", callback_data="select_weapon_simple_missile"),
+                    InlineKeyboardButton("🚀 موشک بالستیک", callback_data="select_weapon_ballistic_missile")
                 ],
                 [
-                    InlineKeyboardButton("☢️ موشک هسته‌ای", callback_data="produce_nuclear_missile")
+                    InlineKeyboardButton("☢️ موشک هسته‌ای", callback_data="select_weapon_nuclear_missile")
                 ]
             ]
         elif category == "special_missiles":
@@ -208,16 +211,35 @@ class Keyboards:
         elif category == "advanced_jets":
             keyboard = [
                 [
-                    InlineKeyboardButton("✈️ F-22", callback_data="produce_f22"),
-                    InlineKeyboardButton("✈️ F-35", callback_data="produce_f35")
+                    InlineKeyboardButton("✈️ F-22", callback_data="select_weapon_f22"),
+                    InlineKeyboardButton("✈️ F-35", callback_data="select_weapon_f35")
                 ],
                 [
-                    InlineKeyboardButton("✈️ Su-57", callback_data="produce_su57"),
-                    InlineKeyboardButton("✈️ J-20", callback_data="produce_j20")
+                    InlineKeyboardButton("✈️ Su-57", callback_data="select_weapon_su57"),
+                    InlineKeyboardButton("✈️ J-20", callback_data="select_weapon_j20")
                 ],
                 [
-                    InlineKeyboardButton("✈️ F-15EX", callback_data="produce_f15ex"),
-                    InlineKeyboardButton("✈️ Su-35S", callback_data="produce_su35s")
+                    InlineKeyboardButton("✈️ F-15EX", callback_data="select_weapon_f15ex"),
+                    InlineKeyboardButton("✈️ Su-35S", callback_data="select_weapon_su35s")
+                ]
+            ]
+        elif category == "transport":
+            keyboard = [
+                [
+                    InlineKeyboardButton("🚛 کامیون زرهی", callback_data="select_weapon_armored_truck"),
+                    InlineKeyboardButton("🚁 هلیکوپتر باری", callback_data="select_weapon_cargo_helicopter")
+                ],
+                [
+                    InlineKeyboardButton("✈️ هواپیمای باری", callback_data="select_weapon_cargo_plane"),
+                    InlineKeyboardButton("🛡 ناوچه اسکورت", callback_data="select_weapon_escort_frigate")
+                ],
+                [
+                    InlineKeyboardButton("🚁 پهپاد لجستیک", callback_data="select_weapon_logistics_drone"),
+                    InlineKeyboardButton("🚚 ترابری سنگین", callback_data="select_weapon_heavy_transport")
+                ],
+                [
+                    InlineKeyboardButton("🚢 کشتی تدارکات", callback_data="select_weapon_supply_ship"),
+                    InlineKeyboardButton("🥷 ترابری پنهان‌کار", callback_data="select_weapon_stealth_transport")
                 ]
             ]
 
@@ -312,12 +334,104 @@ class Keyboards:
             flag = Config.COUNTRY_FLAGS.get(target['country_code'], '🏳')
             button = InlineKeyboardButton(
                 f"{flag} {target['country_name']}",
-                callback_data=f"attack_{target['user_id']}"
+                callback_data=f"select_target_{target['user_id']}"
             )
             keyboard.append([button])
 
         keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="diplomacy")])
         return InlineKeyboardMarkup(keyboard)
+    
+    def attack_type_selection_keyboard(self, target_id):
+        """Create keyboard for attack type selection"""
+        keyboard = [
+            [
+                InlineKeyboardButton("🌀 حمله ترکیبی", callback_data=f"attack_type_{target_id}_mixed"),
+                InlineKeyboardButton("🏔 حمله زمینی", callback_data=f"attack_type_{target_id}_ground")
+            ],
+            [
+                InlineKeyboardButton("✈️ حمله هوایی", callback_data=f"attack_type_{target_id}_air"),
+                InlineKeyboardButton("⚓ حمله دریایی", callback_data=f"attack_type_{target_id}_naval")
+            ],
+            [
+                InlineKeyboardButton("🚀 حمله موشکی", callback_data=f"attack_type_{target_id}_missile"),
+                InlineKeyboardButton("⚡ حمله سایبری", callback_data=f"attack_type_{target_id}_cyber")
+            ],
+            [
+                InlineKeyboardButton("🔙 انتخاب هدف دیگر", callback_data="select_attack_target")
+            ]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+    
+    def weapon_selection_keyboard(self, target_id, attack_type, available_weapons, selected_weapons=None):
+        """Create keyboard for weapon selection in attack"""
+        if selected_weapons is None:
+            selected_weapons = {}
+            
+        keyboard = []
+        
+        # Filter weapons by attack type
+        filtered_weapons = self._filter_weapons_by_attack_type(attack_type, available_weapons)
+        
+        row = []
+        for weapon_key, weapon_data in filtered_weapons.items():
+            count = available_weapons.get(weapon_key, 0)
+            selected = selected_weapons.get(weapon_key, 0)
+            
+            if count > 0:
+                weapon_name = weapon_data['name']
+                emoji = self._get_weapon_emoji(weapon_key, weapon_data.get('category', ''))
+                
+                if selected > 0:
+                    button_text = f"✅ {emoji} {weapon_name} ({selected}/{count})"
+                else:
+                    button_text = f"{emoji} {weapon_name} ({count})"
+                    
+                callback_data = f"select_weapon_attack_{target_id}_{attack_type}_{weapon_key}"
+                
+                row.append(InlineKeyboardButton(button_text, callback_data=callback_data))
+                
+                if len(row) == 2:
+                    keyboard.append(row)
+                    row = []
+        
+        if row:
+            keyboard.append(row)
+            
+        keyboard.extend([
+            [InlineKeyboardButton("⚔️ شروع حمله", callback_data=f"execute_attack_{target_id}_{attack_type}")],
+            [InlineKeyboardButton("🔙 انتخاب نوع حمله", callback_data=f"select_target_{target_id}")]
+        ])
+        
+        return InlineKeyboardMarkup(keyboard)
+    
+    def _filter_weapons_by_attack_type(self, attack_type, available_weapons):
+        """Filter weapons based on attack type"""
+        filtered = {}
+        
+        for weapon_key, count in available_weapons.items():
+            if weapon_key in Config.WEAPONS and count > 0:
+                weapon_data = Config.WEAPONS[weapon_key]
+                category = weapon_data.get('category', '')
+                
+                include_weapon = False
+                
+                if attack_type == "mixed":
+                    include_weapon = True
+                elif attack_type == "ground" and category in ['basic', 'ground', 'defense', 'transport']:
+                    include_weapon = True
+                elif attack_type == "air" and category in ['air', 'advanced_jets', 'transport']:
+                    include_weapon = True
+                elif attack_type == "naval" and category in ['naval', 'transport']:
+                    include_weapon = True
+                elif attack_type == "missile" and category in ['missiles', 'special_missiles']:
+                    include_weapon = True
+                elif attack_type == "cyber" and category in ['defense']:
+                    include_weapon = True
+                
+                if include_weapon:
+                    filtered[weapon_key] = weapon_data
+        
+        return filtered
 
     def send_resources_targets_keyboard(self, countries):
         """Create send resources targets keyboard"""
@@ -557,6 +671,27 @@ class Keyboards:
             [
                 InlineKeyboardButton("⛔ توقف محموله", callback_data=f"convoy_stop_{convoy_id}"),
                 InlineKeyboardButton("💰 سرقت محموله", callback_data=f"convoy_steal_{convoy_id}")
+            ]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def quantity_selection_keyboard(self, item_type, item_name):
+        """کیبورد انتخاب تعداد برای ساخت سلاح یا ساختمان"""
+        keyboard = [
+            [
+                InlineKeyboardButton("1 عدد", callback_data=f"quantity_{item_type}_{item_name}_1"),
+                InlineKeyboardButton("5 عدد", callback_data=f"quantity_{item_type}_{item_name}_5")
+            ],
+            [
+                InlineKeyboardButton("10 عدد", callback_data=f"quantity_{item_type}_{item_name}_10"),
+                InlineKeyboardButton("25 عدد", callback_data=f"quantity_{item_type}_{item_name}_25")
+            ],
+            [
+                InlineKeyboardButton("50 عدد", callback_data=f"quantity_{item_type}_{item_name}_50"),
+                InlineKeyboardButton("100 عدد", callback_data=f"quantity_{item_type}_{item_name}_100")
+            ],
+            [
+                InlineKeyboardButton("🔙 بازگشت", callback_data="weapons" if item_type == "weapon" else "buildings")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)

@@ -1,5 +1,6 @@
 import logging
 import asyncio
+import random
 from telegram import Bot
 from telegram.error import TelegramError
 from config import Config
@@ -11,6 +12,64 @@ class NewsChannel:
     def __init__(self):
         self.channel_id = Config.BOT_CONFIG['news_channel']
         self.bot = None
+        
+        # Message templates for variety
+        self.player_joined_templates = [
+            "🎮 بازیکن جدید!\n\n{flag} <b>{country}</b> توسط {username} تصرف شد!\n\nجمعیت اولیه: 1,000,000 نفر\nسرمایه اولیه: $100,000\n\nخوش آمدید به جنگ جهانی! 🌍",
+            "🌟 کشور جدید آزاد شد!\n\n{flag} <b>{country}</b> با رهبری {username} استقلال کسب کرد!\n\nجمعیت: 1,000,000 نفر\nبودجه: $100,000\n\nبه دنیای درگون RP خوش آمدید! 🎯",
+            "⚡ تولد یک قدرت جدید!\n\n{flag} <b>{country}</b> زیر کنترل {username} آمد!\n\nآمار اولیه:\n👥 جمعیت: 1,000,000\n💰 سرمایه: $100,000\n\nمبارک باشد! 🎊",
+            "🚀 ظهور رهبر جدید!\n\n{flag} دولت <b>{country}</b> توسط {username} تشکیل شد!\n\nوضعیت کشور:\n📊 جمعیت: 1,000,000 نفر\n💳 بودجه: $100,000\n\nموفق باشید! 🏆",
+            "🌍 کشور تازه‌ای به نقشه اضافه شد!\n\n{flag} <b>{country}</b> با قیادت {username} فعال شد!\n\n📈 آمار:\n- جمعیت: 1,000,000\n- بودجه: $100,000\n\nبه خانواده بزرگ ما خوش آمدید! 🤗",
+            "🔥 انقلاب سیاسی!\n\n{flag} <b>{country}</b> تحت فرمان {username} قرار گرفت!\n\nمنابع کشور:\n• جمعیت: 1,000,000\n• بودجه: $100,000\n\nعصری نو آغاز شد! ⭐",
+            "👑 تاجگذاری جدید!\n\n{flag} {username} بر تخت <b>{country}</b> تکیه زد!\n\n🏰 امپراتوری:\n📊 جمعیت: 1M نفر\n💰 خزانه: $100K\n\nسلطنت جدید آغاز شد! 👑",
+            "🗺 گسترش نقشه!\n\n{flag} <b>{country}</b> با حاکمیت {username} به دنیا پیوست!\n\n📈 پارامترهای اولیه:\n👥 مردم: 1,000,000\n💳 اقتصاد: $100,000\n\nبه مرزهای جدید خوش آمدید! 🌐",
+            "💫 ستاره‌ای جدید در افق!\n\n{flag} <b>{country}</b> زیر نظر {username} درخشان شد!\n\n✨ شروع باشکوه:\n• 1,000,000 شهروند\n• $100,000 سرمایه\n\nآینده‌ای روشن در انتظار! 🌅",
+            "🌊 موج تغییر!\n\n{flag} <b>{country}</b> با رهبری {username} متحول شد!\n\n⚡ قدرت نوین:\n📊 مردم: 1M\n💰 بودجه: $100K\n\nتحول بزرگ شروع شد! 🚀"
+        ]
+        
+        self.building_templates = [
+            "🏗 توسعه عظیم زیرساخت!\n\n{flag} <b>{country}</b> یک {emoji} <b>{building}</b> مدرن احداث کرد!\n\n📈 اقتصاد قدرتمندتر شد!\n💰 درآمد آینده افزایش یافت!\n🌟 پیشرفت چشمگیر!",
+            "🔨 سرمایه‌گذاری بزرگ!\n\n{flag} <b>{country}</b> با ساخت {emoji} <b>{building}</b> اقتصاد خود را تقویت کرد!\n\n📊 ظرفیت تولید افزایش یافت\n⚡ کارایی بهبود پیدا کرد\n💎 آینده‌ای درخشان!",
+            "🏭 انقلاب صنعتی!\n\n{flag} در <b>{country}</b> یک {emoji} <b>{building}</b> پیشرفته راه‌اندازی شد!\n\n🚀 تکنولوژی مدرن\n📈 رشد اقتصادی\n🌟 توسعه پایدار",
+            "⚡ پروژه ملی کامل شد!\n\n{flag} <b>{country}</b> موفق به تکمیل {emoji} <b>{building}</b> شد!\n\n🎯 هدف‌گذاری موفق\n💪 اقتصاد مقاوم\n🏆 پیشرفت قابل توجه",
+            "🌟 دستاورد جدید!\n\n{flag} کشور <b>{country}</b> با افتتاح {emoji} <b>{building}</b> گامی بزرگ برداشت!\n\n🔥 توسعه سریع\n📊 بهره‌وری بالا\n💰 سودآوری مطمئن"
+        ]
+        
+        self.weapon_templates = {
+            'basic': [
+                "⚔️ تقویت ارتش\n\n{flag} <b>{country}</b> یک {emoji} <b>{weapon}</b> جدید تولید کرد!\n\n💪 قدرت نظامی افزایش یافت!\n🛡 آمادگی دفاعی بالا رفت!",
+                "🔫 ارتقای تسلیحات\n\n{flag} <b>{country}</b> موفق به ساخت {emoji} <b>{weapon}</b> شد!\n\n⚡ قدرت رزمی بهبود یافت\n🎯 ظرفیت دفاعی افزایش یافت",
+                "⚔️ تجهیز نیروهای مسلح\n\n{flag} ارتش <b>{country}</b> به {emoji} <b>{weapon}</b> مجهز شد!\n\n🔥 آمادگی رزمی بالا\n💪 قدرت بازدارندگی"
+            ],
+            'nuclear': [
+                "☢️ خبر فوری - سلاح هسته‌ای!\n\n{flag} <b>{country}</b> یک {emoji} <b>{weapon}</b> تولید کرد!\n\n🚨 این کشور به باشگاه هسته‌ای پیوست!\n⚡ قدرت نظامی فوق‌العاده افزایش یافت!\n🌍 تعادل قدرت جهانی تغییر کرد!",
+                "☢️ انقلاب هسته‌ای!\n\n{flag} <b>{country}</b> وارد عصر هسته‌ای شد!\n\n💥 {emoji} <b>{weapon}</b> تولید شد\n🌍 قدرت جهانی جدید\n⚡ بازدارندگی نهایی",
+                "🚨 هشدار هسته‌ای!\n\n{flag} <b>{country}</b> قدرت هسته‌ای کسب کرد!\n\n☢️ {emoji} <b>{weapon}</b> آماده\n🌟 تکنولوژی پیشرفته\n💪 قدرت استراتژیک"
+            ],
+            'missile': [
+                "🚀 توسعه موشکی پیشرفته!\n\n{flag} <b>{country}</b> یک {emoji} <b>{weapon}</b> مدرن تولید کرد!\n\n🎯 فناوری موشکی پیشرفته\n🌐 قابلیت حمله دوربرد\n💪 قدرت راهبردی بالا",
+                "🚀 پیشرفت موشکی!\n\n{flag} <b>{country}</b> به فناوری موشکی دست یافت!\n\n💥 {emoji} <b>{weapon}</b> تکمیل شد\n🎯 دقت بالا\n⚡ سرعت فوق‌صوت",
+                "🌐 قدرت موشکی!\n\n{flag} <b>{country}</b> ظرفیت موشکی خود را ارتقا داد!\n\n🚀 {emoji} <b>{weapon}</b> عملیاتی\n💫 تکنولوژی مدرن\n🏆 برتری تاکتیکی"
+            ],
+            'aircraft': [
+                "✈️ جنگنده نسل پنجم!\n\n{flag} <b>{country}</b> یک {emoji} <b>{weapon}</b> فوق پیشرفته تولید کرد!\n\n🔥 فناوری استلث\n⚡ قدرت هوایی برتر\n🌟 تکنولوژی نظامی مدرن",
+                "🛩 برتری هوایی!\n\n{flag} <b>{country}</b> نیروی هوایی خود را تقویت کرد!\n\n✈️ {emoji} <b>{weapon}</b> آماده پرواز\n⚡ سرعت فوق‌صوت\n🎯 دقت بالا",
+                "🌟 تکنولوژی هوایی!\n\n{flag} <b>{country}</b> به فناوری پیشرفته دست یافت!\n\n✈️ {emoji} <b>{weapon}</b> تحویل شد\n🔥 قابلیت استلث\n💪 قدرت رزمی بالا"
+            ]
+        }
+        
+        self.war_templates = {
+            'victory': [
+                "🏆 پیروزی قاطع!\n\n{attacker_flag} <b>{attacker}</b> ⚔️ {defender_flag} <b>{defender}</b>\n\n🔥 نیروی حمله: {attack_power:,}\n🛡 نیروی دفاع: {defense_power:,}\n\n✨ حمله موفقیت‌آمیز بود!",
+                "⚡ شکست کامل!\n\n{attacker_flag} <b>{attacker}</b> 💥 {defender_flag} <b>{defender}</b>\n\n⚔️ قدرت حمله: {attack_power:,}\n🛡 قدرت دفاع: {defense_power:,}\n\n🎯 پیروزی درخشان!",
+                "💥 نبرد تاریخی!\n\n{attacker_flag} <b>{attacker}</b> VS {defender_flag} <b>{defender}</b>\n\n🔥 حمله: {attack_power:,}\n🛡 دفاع: {defense_power:,}\n\n🏆 غلبه کامل!"
+            ],
+            'defeat': [
+                "🛡 دفاع قهرمانانه!\n\n{attacker_flag} <b>{attacker}</b> ⚔️ {defender_flag} <b>{defender}</b>\n\n🔥 نیروی حمله: {attack_power:,}\n🛡 نیروی دفاع: {defense_power:,}\n\n💪 مقاومت موفق!",
+                "🏰 مقاومت شکست‌ناپذیر!\n\n{attacker_flag} <b>{attacker}</b> 💥 {defender_flag} <b>{defender}</b>\n\n⚔️ قدرت حمله: {attack_power:,}\n🛡 قدرت دفاع: {defense_power:,}\n\n✋ حمله دفع شد!",
+                "⚡ دفاع موفق!\n\n{attacker_flag} <b>{attacker}</b> VS {defender_flag} <b>{defender}</b>\n\n🔥 حمله: {attack_power:,}\n🛡 دفاع: {defense_power:,}\n\n🛡 پایداری کامل!"
+            ]
+        }
 
     def set_bot(self, bot):
         """Set bot instance"""
@@ -32,24 +91,17 @@ class NewsChannel:
 
     async def send_player_joined(self, country_name, username):
         """Send player joined news"""
-        # Find country flag
-        country_flag = "🏳"
-        for code, name in Config.COUNTRIES.items():
-            if name == country_name:
-                country_flag = Config.COUNTRY_FLAGS.get(code, "🏳")
-                break
-
-        message = f"""🎮 بازیکن جدید!
-
-{country_flag} <b>{country_name}</b> توسط {username} تصرف شد!
-
-جمعیت اولیه: 1,000,000 نفر
-سرمایه اولیه: $100,000
-
-خوش آمدید به جنگ جهانی! 🌍
-
-───────────────"""
-
+        country_flag = self.get_country_flag(country_name)
+        
+        # Select random template
+        template = random.choice(self.player_joined_templates)
+        message = template.format(
+            flag=country_flag,
+            country=country_name,
+            username=username
+        )
+        
+        message += "\n\n───────────────"
         await self.send_news(message)
 
     async def send_building_constructed(self, country_name, building_name):
@@ -65,24 +117,23 @@ class NewsChannel:
         }
         
         building_emoji = building_emojis.get(building_name.replace(' ', '_').lower(), '🏗')
-
-        message = f"""🏗 توسعه عظیم زیرساخت!
-
-{country_flag} <b>{country_name}</b> یک {building_emoji} <b>{building_name}</b> مدرن احداث کرد!
-
-📈 اقتصاد قدرتمندتر شد!
-💰 درآمد آینده افزایش یافت!
-🌟 پیشرفت چشمگیر!
-
-───────────────"""
-
+        
+        # Select random template
+        template = random.choice(self.building_templates)
+        message = template.format(
+            flag=country_flag,
+            country=country_name,
+            emoji=building_emoji,
+            building=building_name
+        )
+        
+        message += "\n\n───────────────"
         await self.send_news(message)
 
     async def send_weapon_produced(self, country_name, weapon_name):
         """Send weapon production news"""
         country_flag = self.get_country_flag(country_name)
 
-        # Special messages for different weapon types
         weapon_emojis = {
             'تفنگ': '🔫', 'تانک': '🚗', 'جنگنده': '✈️', 'پهپاد': '🚁',
             'کشتی جنگی': '🚢', 'بمب ساده': '💣', 'بمب هسته‌ای ساده': '☢️',
@@ -97,47 +148,24 @@ class NewsChannel:
         
         weapon_emoji = weapon_emojis.get(weapon_name, '⚔️')
         
-        # Special messages for nuclear weapons
+        # Determine weapon category and select appropriate template
         if 'هسته‌ای' in weapon_name:
-            message = f"""☢️ خبر فوری - سلاح هسته‌ای!
-
-{country_flag} <b>{country_name}</b> یک {weapon_emoji} <b>{weapon_name}</b> تولید کرد!
-
-🚨 این کشور به باشگاه هسته‌ای پیوست!
-⚡ قدرت نظامی فوق‌العاده افزایش یافت!
-🌍 تعادل قدرت جهانی تغییر کرد!
-
-───────────────"""
+            template = random.choice(self.weapon_templates['nuclear'])
         elif any(name in weapon_name for name in ['Trident', 'Satan2', 'DF-41', 'Tomahawk', 'Kalibr']):
-            message = f"""🚀 توسعه موشکی پیشرفته!
-
-{country_flag} <b>{country_name}</b> یک {weapon_emoji} <b>{weapon_name}</b> مدرن تولید کرد!
-
-🎯 فناوری موشکی پیشرفته
-🌐 قابلیت حمله دوربرد
-💪 قدرت راهبردی بالا
-
-───────────────"""
+            template = random.choice(self.weapon_templates['missile'])
         elif any(name in weapon_name for name in ['F-22', 'F-35', 'Su-57', 'J-20', 'F-15']):
-            message = f"""✈️ جنگنده نسل پنجم!
-
-{country_flag} <b>{country_name}</b> یک {weapon_emoji} <b>{weapon_name}</b> فوق پیشرفته تولید کرد!
-
-🔥 فناوری استلث
-⚡ قدرت هوایی برتر
-🌟 تکنولوژی نظامی مدرن
-
-───────────────"""
+            template = random.choice(self.weapon_templates['aircraft'])
         else:
-            message = f"""⚔️ تقویت ارتش
-
-{country_flag} <b>{country_name}</b> یک {weapon_emoji} <b>{weapon_name}</b> جدید تولید کرد!
-
-💪 قدرت نظامی افزایش یافت!
-🛡 آمادگی دفاعی بالا رفت!
-
-───────────────"""
-
+            template = random.choice(self.weapon_templates['basic'])
+            
+        message = template.format(
+            flag=country_flag,
+            country=country_name,
+            emoji=weapon_emoji,
+            weapon=weapon_name
+        )
+        
+        message += "\n\n───────────────"
         await self.send_news(message)
 
     async def send_war_report(self, battle_result):
@@ -145,26 +173,20 @@ class NewsChannel:
         attacker_flag = self.get_country_flag(battle_result['attacker_country'])
         defender_flag = self.get_country_flag(battle_result['defender_country'])
 
+        # Select appropriate template based on battle outcome
         if battle_result['success']:
-            result_emoji = "🏆"
-            result_text = f"🎯 {attacker_flag} <b>{battle_result['attacker_country']}</b> پیروز شد!"
-            victory_desc = "✨ حمله موفقیت‌آمیز بود!"
+            template = random.choice(self.war_templates['victory'])
         else:
-            result_emoji = "🛡"
-            result_text = f"🏰 {defender_flag} <b>{battle_result['defender_country']}</b> مقاومت کرد!"
-            victory_desc = "💪 دفاع قهرمانانه بود!"
-
-        message = f"""⚔️ نبرد بزرگ {result_emoji}
-
-{attacker_flag} <b>{battle_result['attacker_country']}</b> 
-⚡ حمله به ⚡
-{defender_flag} <b>{battle_result['defender_country']}</b>
-
-🔥 نیروی حمله: {battle_result['attack_power']:,}
-🛡 نیروی دفاع: {battle_result['defense_power']:,}
-
-{result_text}
-{victory_desc}"""
+            template = random.choice(self.war_templates['defeat'])
+            
+        message = template.format(
+            attacker_flag=attacker_flag,
+            attacker=battle_result['attacker_country'],
+            defender_flag=defender_flag,
+            defender=battle_result['defender_country'],
+            attack_power=battle_result['attack_power'],
+            defense_power=battle_result['defense_power']
+        )
 
         # Add losses information
         if battle_result['success'] and battle_result.get('stolen_resources'):

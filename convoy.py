@@ -13,21 +13,32 @@ class ConvoySystem:
         self.db = database
         
     def calculate_convoy_security(self, sender_id, resources_value):
-        """Calculate convoy security based on sender's military power"""
+        """Calculate convoy security based on sender's military power and transport equipment"""
         weapons = self.db.get_player_weapons(sender_id)
         
-        # Calculate escort power
+        # Calculate escort power from military weapons
         escort_power = 0
         escort_power += weapons.get('tank', 0) * 15
         escort_power += weapons.get('fighter_jet', 0) * 25
         escort_power += weapons.get('warship', 0) * 40
         escort_power += weapons.get('drone', 0) * 20
         
+        # Calculate transport equipment bonus
+        transport_bonus = 0
+        transport_bonus += weapons.get('armored_truck', 0) * 25        # Direct convoy security
+        transport_bonus += weapons.get('cargo_helicopter', 0) * 40
+        transport_bonus += weapons.get('cargo_plane', 0) * 60
+        transport_bonus += weapons.get('escort_frigate', 0) * 80
+        transport_bonus += weapons.get('logistics_drone', 0) * 30
+        transport_bonus += weapons.get('heavy_transport', 0) * 45
+        transport_bonus += weapons.get('supply_ship', 0) * 70
+        transport_bonus += weapons.get('stealth_transport', 0) * 90
+        
         # Base security from resources value
         base_security = min(resources_value / 1000, 100)
         
-        # Total security (0-100%)
-        total_security = min(base_security + (escort_power / 10), 95)
+        # Total security (0-95%)
+        total_security = min(base_security + (escort_power / 10) + (transport_bonus / 10), 95)
         
         return int(total_security)
     
@@ -41,6 +52,14 @@ class ConvoySystem:
         intercept_power += weapons.get('drone', 0) * 25
         intercept_power += weapons.get('missile', 0) * 50
         intercept_power += weapons.get('warship', 0) * 35
+        
+        # Advanced jets are better at interception
+        intercept_power += weapons.get('f22', 0) * 60
+        intercept_power += weapons.get('f35', 0) * 55
+        intercept_power += weapons.get('su57', 0) * 58
+        intercept_power += weapons.get('j20', 0) * 52
+        intercept_power += weapons.get('f15ex', 0) * 50
+        intercept_power += weapons.get('su35s', 0) * 48
         
         # Need minimum power to attempt interception
         min_power_needed = convoy_security * 2

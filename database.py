@@ -146,7 +146,9 @@ class Database:
                 'simple_bomb', 'nuclear_bomb', 'simple_missile', 'ballistic_missile', 'nuclear_missile',
                 'trident2_conventional', 'trident2_nuclear', 'satan2_conventional', 'satan2_nuclear',
                 'df41_nuclear', 'tomahawk_conventional', 'tomahawk_nuclear', 'kalibr_conventional',
-                'f22', 'f35', 'su57', 'j20', 'f15ex', 'su35s'
+                'f22', 'f35', 'su57', 'j20', 'f15ex', 'su35s',
+                'armored_truck', 'cargo_helicopter', 'cargo_plane', 'escort_frigate',
+                'logistics_drone', 'heavy_transport', 'supply_ship', 'stealth_transport'
             ]
             
             for column in new_weapon_columns:
@@ -184,6 +186,22 @@ class Database:
                     status TEXT DEFAULT 'in_transit',
                     FOREIGN KEY (sender_id) REFERENCES players (user_id),
                     FOREIGN KEY (receiver_id) REFERENCES players (user_id)
+                )
+            ''')
+
+            # Pending attacks table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS pending_attacks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    attacker_id INTEGER NOT NULL,
+                    defender_id INTEGER NOT NULL,
+                    attack_type TEXT DEFAULT 'mixed',
+                    travel_time INTEGER NOT NULL,
+                    departure_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    attack_time TIMESTAMP NOT NULL,
+                    status TEXT DEFAULT 'traveling',
+                    FOREIGN KEY (attacker_id) REFERENCES players (user_id),
+                    FOREIGN KEY (defender_id) REFERENCES players (user_id)
                 )
             ''')
 
@@ -407,7 +425,15 @@ class Database:
             'su57': 'su57',
             'j20': 'j20',
             'f15ex': 'f15ex',
-            'su35s': 'su35s'
+            'su35s': 'su35s',
+            'armored_truck': 'armored_truck',
+            'cargo_helicopter': 'cargo_helicopter',
+            'cargo_plane': 'cargo_plane',
+            'escort_frigate': 'escort_frigate',
+            'logistics_drone': 'logistics_drone',
+            'heavy_transport': 'heavy_transport',
+            'supply_ship': 'supply_ship',
+            'stealth_transport': 'stealth_transport'
         }
         
         column_name = weapon_column_map.get(weapon_type, weapon_type)
@@ -548,13 +574,58 @@ class Database:
             ''', (new_arrival_time, new_status, convoy_id))
             conn.commit()
 
+    def create_pending_attack(self, attack_data):
+        """Create a new pending attack"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO pending_attacks (attacker_id, defender_id, attack_type, travel_time, attack_time, status)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (
+                attack_data['attacker_id'],
+                attack_data['defender_id'], 
+                attack_data['attack_type'],
+                attack_data['travel_time'],
+                attack_data['attack_time'],
+                attack_data['status']
+            ))
+            conn.commit()
+            return cursor.lastrowid
+
+    def get_pending_attack(self, attack_id):
+        """Get pending attack details"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM pending_attacks WHERE id = ?', (attack_id,))
+            result = cursor.fetchone()
+            return dict(result) if result else None
+
+    def get_pending_attacks_due(self):
+        """Get all pending attacks that are due for execution"""
+        from datetime import datetime
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            current_time = datetime.now().isoformat()
+            cursor.execute('''
+                SELECT * FROM pending_attacks 
+                WHERE attack_time <= ? AND status = 'traveling'
+            ''', (current_time,))
+            return [dict(row) for row in cursor.fetchall()]
+
+    def update_pending_attack_status(self, attack_id, new_status):
+        """Update pending attack status"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('UPDATE pending_attacks SET status = ? WHERE id = ?', (new_status, attack_id))
+            conn.commit()
+
     def reset_all_data(self):
         """Reset all game data (admin function)"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
 
             # Drop and recreate all game tables
-            tables = ['players', 'resources', 'buildings', 'weapons', 'wars', 'convoys', 
+            tables = ['players', 'resources', 'buildings', 'weapons', 'wars', 'convoys', 'pending_attacks', 
                      'alliances', 'alliance_members', 'alliance_invitations',
                      'market_listings', 'market_transactions']
             for table in tables:
