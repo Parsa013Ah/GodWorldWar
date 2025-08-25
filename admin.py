@@ -22,71 +22,42 @@ class AdminPanel:
     async def handle_admin_action(self, query, context):
         """Handle admin panel actions"""
         user_id = query.from_user.id
-
         if not self.is_admin(user_id):
-            await query.edit_message_text("❌ شما دسترسی ادمین ندارید!")
+            await query.edit_message_text("❌ شما مجاز به این عمل نیستید!")
             return
 
-        data = query.data.replace("admin_", "")
+        action = query.data.replace("admin_", "")
 
-        if data == "panel":
-            await self.show_admin_panel(query, context)
-        elif data == "stats":
-            await self.show_game_stats(query, context)
-        elif data == "players":
-            await self.show_players_management(query, context)
-        elif data == "logs":
-            await self.show_admin_logs(query, context)
-        elif data == "reset":
-            await self.show_reset_confirmation(query, context)
-        elif data == "reset_confirm":
-            await self.reset_game_data(query, context)
-        elif data.startswith("player_"):
-            await self.show_player_management(query, context, data)
-        elif data.startswith("delete_player_"):
-            await self.delete_player(query, context, data)
-        elif data.startswith("penalty_"): # Fixed callback data prefix
-            penalty_parts = data.split("_", 1)
-            if len(penalty_parts) > 1:
-                country_name = penalty_parts[1]
-                # Find player by country name
-                all_players = self.db.get_all_players()
-                player = None
-                for p in all_players:
-                    if p['country_name'] == country_name:
-                        player = p
-                        break
-
-                if not player:
-                    await query.edit_message_text(f"❌ کشور {country_name} یافت نشد!")
-                    return
-
-            # Show penalty confirmation
-                penalty_keyboard = [
-                    [InlineKeyboardButton("💰 جریمه مالی", callback_data=f"penalty_money_{player['user_id']}")],
-                    [InlineKeyboardButton("📦 کسر منابع", callback_data=f"penalty_resources_{player['user_id']}")],
-                    [InlineKeyboardButton("⚔️ کسر تسلیحات", callback_data=f"penalty_weapons_{player['user_id']}")],
-                    [InlineKeyboardButton("🔙 بازگشت", callback_data="admin_panel")]
-                ]
-
-                await query.edit_message_text(
-                    f"⚠️ کشور {player['country_name']} به دلیل رعایت نکردن قوانین جریمه خواهد شد.\n\nنوع جریمه را انتخاب کنید:",
-                    reply_markup=InlineKeyboardMarkup(penalty_keyboard)
-                )
-            else:
-                await query.edit_message_text("❌ داده جریمه نامعتبر!")
-                return
-        elif data.startswith("reset_country_"):
-            await self.reset_country(query, context, data)
-        elif data.startswith("penalty_money_") or data.startswith("penalty_resources_") or data.startswith("penalty_weapons_"):
-            await self.handle_penalty_action(query, context, data)
-        elif data.startswith("confirm_reset_"):
-            user_id = int(data.replace("confirm_reset_", ""))
-            await self.confirm_country_reset(query, context, user_id)
-        elif data == "country_reset":
-            await self.show_country_reset_menu(query, context)
+        if action == "panel":
+            await self.show_admin_panel(query)
+        elif action == "stats":
+            await self.show_game_stats(query)
+        elif action == "players":
+            await self.show_players_management(query)
+        elif action == "logs":
+            await self.show_admin_logs(query)
+        elif action == "reset":
+            await self.show_reset_confirmation(query)
+        elif action == "reset_confirm":
+            await self.reset_game_data(query)
+        elif action == "infinite_resources":
+            await self.give_infinite_resources(query)
+        elif action == "country_reset":
+            await self.show_country_reset_menu(query)
+        elif action == "give_items":
+            await self.show_give_items_menu(query)
+        elif action.startswith("player_"):
+            player_id = int(action.replace("player_", ""))
+            await self.show_player_actions(query, player_id)
+        elif action.startswith("delete_"):
+            player_id = int(action.replace("delete_", ""))
+            await self.delete_player_confirm(query, player_id)
+        elif action.startswith("view_"):
+            player_id = int(action.replace("view_", ""))
+            await self.view_player_full(query, player_id)
         else:
-            await query.edit_message_text("❌ دستور ادمین نامعتبر!")
+            await query.edit_message_text("❌ دستور نامعتبر!")
+            return
 
     async def show_admin_panel(self, query, context):
         """Show main admin panel"""
@@ -281,27 +252,66 @@ class AdminPanel:
 
     async def reset_game_data(self, query, context):
         """Reset all game data"""
-        admin_id = query.from_user.id
+        user_id = query.from_user.id
 
-        # Perform reset
-        success = self.db.reset_all_data()
+        try:
+            success = self.db.reset_all_data()
 
-        if success:
-            # Log admin action
-            self.db.log_admin_action(
-                admin_id,
-                "RESET_GAME",
-                None,
-                "Complete game reset performed"
-            )
+            if success:
+                # Log admin action
+                self.db.log_admin_action(
+                    user_id,
+                    "RESET_GAME",
+                    None,
+                    "Complete game reset performed"
+                )
 
+                await query.edit_message_text(
+                    "✅ بازی با موفقیت ریست شد!\n\n"
+                    "تمام داده‌ها حذف شدند و بازی آماده شروع مجدد است.",
+                    reply_markup=self.keyboards.back_to_main_keyboard()
+                )
+            else:
+                await query.edit_message_text("❌ خطا در ریست بازی!")
+
+        except Exception as e:
+            logger.error(f"Error in reset_game_data: {e}")
             await query.edit_message_text(
-                "✅ بازی با موفقیت ریست شد!\n\n"
-                "تمام داده‌ها حذف شدند و بازی آماده شروع مجدد است.",
+                "❌ خطای سیستمی در ریست!",
                 reply_markup=self.keyboards.back_to_main_keyboard()
             )
-        else:
-            await query.edit_message_text("❌ خطا در ریست بازی!")
+            
+    async def give_infinite_resources(self, query):
+        """Give infinite resources to all players"""
+        user_id = query.from_user.id
+
+        try:
+            success = self.db.give_infinite_resources_to_all_players()
+
+            if success:
+                self.db.log_admin_action(user_id, "GIVE_INFINITE_RESOURCES", None, "Infinite resources to all players")
+                await query.edit_message_text(
+                    "✅ منابع و پول بینهایت به همه بازیکنان داده شد!\n\n"
+                    "💰 پول: 1,000,000,000 دلار\n"
+                    "📊 منابع: 1,000,000 از هر نوع\n"
+                    "👥 جمعیت: 50,000,000\n"
+                    "⚔️ سربازان: 10,000,000\n"
+                    "🏗 ساختمان‌ها: 100 از هر نوع معدن، 50 از بقیه",
+                    reply_markup=self.keyboards.back_to_main_keyboard()
+                )
+            else:
+                await query.edit_message_text(
+                    "❌ خطا در دادن منابع بینهایت!",
+                    reply_markup=self.keyboards.back_to_main_keyboard()
+                )
+
+        except Exception as e:
+            logger.error(f"Error in give_infinite_resources: {e}")
+            await query.edit_message_text(
+                "❌ خطای سیستمی!",
+                reply_markup=self.keyboards.back_to_main_keyboard()
+            )
+
 
     def setup_handlers(self, application):
         """Setup admin-specific handlers"""

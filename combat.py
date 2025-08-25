@@ -142,7 +142,8 @@ class CombatSystem:
         defense_power = 0
 
         # Defense weapons
-        defense_weapons = ['air_defense', 'missile_shield', 'cyber_shield']
+        defense_weapons = ['air_defense', 'missile_shield', 'cyber_shield', 's500_defense', 
+                          'thaad_defense', 's400_defense', 'iron_dome', 'slq32_ew', 'phalanx_ciws']
 
         for weapon_type in defense_weapons:
             count = weapons.get(weapon_type, 0)
@@ -152,7 +153,7 @@ class CombatSystem:
 
         # Add some defensive value from other weapons
         for weapon_type, count in weapons.items():
-            if weapon_type not in defense_weapons and count > 0:
+            if weapon_type not in defense_weapons and weapon_type != 'user_id' and count > 0:
                 if weapon_type in Config.WEAPONS:
                     weapon_power = Config.WEAPONS[weapon_type]['power']
                     defense_power += weapon_power * count * 0.3  # 30% defensive value

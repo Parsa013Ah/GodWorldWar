@@ -888,6 +888,65 @@ class Database:
             conn.commit()
             cursor.close()
 
+    def give_infinite_resources_to_all_players(self):
+        """Give infinite money and resources to all players for testing"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Give 1 billion money to all players
+                cursor.execute("UPDATE players SET money = 1000000000, population = 50000000, soldiers = 10000000")
+                
+                # Give massive resources to all players
+                cursor.execute("""
+                    UPDATE resources SET 
+                    iron = 1000000,
+                    copper = 1000000,
+                    oil = 1000000,
+                    gas = 1000000,
+                    aluminum = 1000000,
+                    gold = 1000000,
+                    uranium = 1000000,
+                    lithium = 1000000,
+                    coal = 1000000,
+                    silver = 1000000,
+                    fuel = 1000000,
+                    nitro = 1000000,
+                    sulfur = 1000000,
+                    titanium = 1000000
+                """)
+                
+                # Give lots of buildings to all players
+                cursor.execute("""
+                    UPDATE buildings SET 
+                    iron_mine = 100,
+                    copper_mine = 100,
+                    oil_mine = 100,
+                    gas_mine = 100,
+                    aluminum_mine = 100,
+                    gold_mine = 100,
+                    uranium_mine = 100,
+                    lithium_mine = 100,
+                    coal_mine = 100,
+                    silver_mine = 100,
+                    nitro_mine = 100,
+                    sulfur_mine = 100,
+                    titanium_mine = 100,
+                    weapon_factory = 50,
+                    refinery = 50,
+                    power_plant = 50,
+                    wheat_farm = 50,
+                    military_base = 50,
+                    housing = 50
+                """)
+                
+                conn.commit()
+                logger.info("Infinite resources given to all players for testing")
+                return True
+        except Exception as e:
+            logger.error(f"Error giving infinite resources: {e}")
+            return False
+
     def clear_test_data(self):
         """Clear test data from database"""
         try:

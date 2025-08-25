@@ -93,7 +93,7 @@ class NewsChannel:
         """Send convoy news with optional keyboard and detailed cargo info"""
         try:
             full_message = f"🚛 انتقال منابع\n\n{message}"
-            
+
             if cargo_details:
                 full_message += "\n\n📦 جزئیات محموله:"
                 for item, amount in cargo_details.items():
@@ -105,7 +105,7 @@ class NewsChannel:
                         resource_name = resource_config.get('name', item)
                         resource_emoji = resource_config.get('emoji', '📦')
                         full_message += f"\n{resource_emoji} {resource_name}: {amount:,}"
-            
+
             if keyboard:
                 await self.bot.send_message(
                     chat_id=self.channel_id,
@@ -161,7 +161,7 @@ class NewsChannel:
             emoji=building_emoji,
             building=building_name
         )
-        
+
         if quantity > 1:
             message = message.replace(f"یک {building_emoji} <b>{building_name}</b>", f"<b>{quantity:,} عدد</b> {building_emoji} <b>{building_name}</b>")
 
@@ -202,7 +202,7 @@ class NewsChannel:
             emoji=weapon_emoji,
             weapon=weapon_name
         )
-        
+
         if quantity > 1:
             message = message.replace(f"یک {weapon_emoji} <b>{weapon_name}</b>", f"<b>{quantity:,} عدد</b> {weapon_emoji} <b>{weapon_name}</b>")
 
@@ -242,32 +242,32 @@ class NewsChannel:
         await self.send_news(message)
 
     async def send_official_statement(self, country_name, statement, with_penalty_button=False):
-        """Send official statement with optional penalty button"""
-        country_flag = self.get_country_flag(country_name)
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
-
+        """Send official statement to news channel"""
         message = f"""📢 بیانیه رسمی
 
-{country_flag}کشور: <b>{country_name}</b>
-📅 {current_time}
+🏛 <b>{country_name}</b>
 
-"{statement}"
+💬 {statement}
 
-───────────────"""
+🗓 {datetime.now().strftime('%Y-%m-%d %H:%M')}"""
 
+        keyboard = None
         if with_penalty_button:
             from telegram import InlineKeyboardButton, InlineKeyboardMarkup
             keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("⚠️ جریمه کشور", callback_data=f"admin_penalty_{country_name}")]
+                [
+                    InlineKeyboardButton("💰 جریمه مالی", callback_data=f"penalty_money_{country_name}"),
+                    InlineKeyboardButton("📦 مصادره منابع", callback_data=f"penalty_resources_{country_name}")
+                ],
+                [
+                    InlineKeyboardButton("⚔️ مصادره تسلیحات", callback_data=f"penalty_weapons_{country_name}")
+                ]
             ])
-            await self.bot.send_message(
-                chat_id=self.channel_id,
-                text=message,
-                parse_mode='HTML',
-                reply_markup=keyboard
-            )
+
+        if keyboard:
+            await self.send_message_with_keyboard(message, keyboard)
         else:
-            await self.send_news(message)
+            await self.send_text_message(message)
 
     async def send_resource_transfer(self, sender_country, receiver_country, transfer_description, travel_time):
         """Send resource transfer news"""
@@ -394,3 +394,69 @@ class NewsChannel:
 
         except Exception as e:
             logger.error(f"Error sending marketplace news: {e}")
+
+    async def send_war_news(self, attacker_country, defender_country, result):
+        """Send war news to channel"""
+        if result['success']:
+            message = f"""⚔️ پیروزی در جنگ!
+
+🏛 <b>{attacker_country}</b> در حمله به <b>{defender_country}</b> پیروز شد!
+
+💥 قدرت حمله: {result['attack_power']:,}
+🛡 قدرت دفاع: {result['defense_power']:,}
+💀 خسارت وارده: {result['damage']:,.0f}
+
+🏆 برنده: {attacker_country}"""
+
+            if result.get('stolen_resources'):
+                message += "\n\n💰 منابع غارت شده:"
+                for resource, amount in result['stolen_resources'].items():
+                    message += f"\n• {resource}: {amount:,}"
+
+        else:
+            message = f"""🛡 دفاع موفق!
+
+🏛 <b>{defender_country}</b> از حمله <b>{attacker_country}</b> دفاع کرد!
+
+💥 قدرت حمله: {result['attack_power']:,}
+🛡 قدرت دفاع: {result['defense_power']:,}
+
+🏆 برنده: {defender_country}"""
+
+            if result.get('attacker_losses'):
+                message += "\n\n💀 تلفات مهاجم:"
+                for loss_type, amount in result['attacker_losses'].items():
+                    if loss_type == 'soldiers':
+                        message += f"\n• سربازان: {amount:,}"
+                    else:
+                        message += f"\n• {loss_type}: {amount:,}"
+
+        await self.send_text_message(message)
+
+    async def send_official_statement(self, country_name, statement, with_penalty_button=False):
+        """Send official statement to news channel"""
+        message = f"""📢 بیانیه رسمی
+
+🏛 <b>{country_name}</b>
+
+💬 {statement}
+
+🗓 {datetime.now().strftime('%Y-%m-%d %H:%M')}"""
+
+        keyboard = None
+        if with_penalty_button:
+            from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+            keyboard = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("💰 جریمه مالی", callback_data=f"penalty_money_{country_name}"),
+                    InlineKeyboardButton("📦 مصادره منابع", callback_data=f"penalty_resources_{country_name}")
+                ],
+                [
+                    InlineKeyboardButton("⚔️ مصادره تسلیحات", callback_data=f"penalty_weapons_{country_name}")
+                ]
+            ])
+
+        if keyboard:
+            await self.send_message_with_keyboard(message, keyboard)
+        else:
+            await self.send_text_message(message)

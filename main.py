@@ -1317,6 +1317,35 @@ class DragonRPBot:
         else:
             await query.edit_message_text("❌ دستور نامعتبر!")
 
+    async def show_defense_status(self, query, context):
+        """Show defense status"""
+        user_id = query.from_user.id
+        player = self.db.get_player(user_id)
+        weapons = self.db.get_player_weapons(user_id)
+        
+        # Calculate defense power
+        defense_power = self.combat.calculate_defense_power(user_id)
+        
+        defense_text = f"""🛡 وضعیت دفاعی - {player['country_name']}
+
+💪 قدرت دفاع کل: {defense_power:,}
+
+🛡 سیستم‌های دفاعی:
+🛡 پدافند هوایی: {weapons.get('air_defense', 0)}
+🚀 سپر موشکی: {weapons.get('missile_shield', 0)}
+💻 سپر سایبری: {weapons.get('cyber_shield', 0)}
+🛡 پدافند S-500: {weapons.get('s500_defense', 0)}
+🛡 پدافند THAAD: {weapons.get('thaad_defense', 0)}
+🛡 پدافند S-400: {weapons.get('s400_defense', 0)}
+🛡 پدافند Iron Dome: {weapons.get('iron_dome', 0)}
+🛡 پدافند SLQ-32: {weapons.get('slq32_ew', 0)}
+🛡 توپخانه Phalanx: {weapons.get('phalanx_ciws', 0)}
+
+💡 سیستم‌های دفاعی از کشور شما در برابر حملات محافظت می‌کنند."""
+
+        keyboard = self.keyboards.back_to_military_keyboard()
+        await query.edit_message_text(defense_text, reply_markup=keyboard)
+
     async def show_military_power(self, query, context):
         """Show military power calculation"""
         user_id = query.from_user.id

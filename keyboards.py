@@ -64,36 +64,43 @@ class Keyboards:
         """Create buildings menu keyboard"""
         keyboard = [
             [
-                InlineKeyboardButton("⛏ معدن آهن - $32K", callback_data="build_iron_mine"),
-                InlineKeyboardButton("⛏ معدن مس - $40K", callback_data="build_copper_mine")
+                InlineKeyboardButton("⛏ معدن آهن - $80K", callback_data="build_iron_mine"),
+                InlineKeyboardButton("⛏ معدن مس - $100K", callback_data="build_copper_mine")
             ],
             [
-                InlineKeyboardButton("🛢 معدن نفت - $48K", callback_data="build_oil_mine"),
-                InlineKeyboardButton("⛽ معدن گاز - $44K", callback_data="build_gas_mine")
+                InlineKeyboardButton("🛢 معدن نفت - $120K", callback_data="build_oil_mine"),
+                InlineKeyboardButton("⛽ معدن گاز - $110K", callback_data="build_gas_mine")
             ],
             [
-                InlineKeyboardButton("🔗 معدن آلومینیوم - $36K", callback_data="build_aluminum_mine"),
-                InlineKeyboardButton("🏆 معدن طلا - $60K", callback_data="build_gold_mine")
+                InlineKeyboardButton("🔗 معدن آلومینیوم - $90K", callback_data="build_aluminum_mine"),
+                InlineKeyboardButton("🏆 معدن طلا - $150K", callback_data="build_gold_mine")
             ],
             [
-                InlineKeyboardButton("☢️ معدن اورانیوم - $80K", callback_data="build_uranium_mine"),
-                InlineKeyboardButton("🔋 معدن لیتیوم - $72K", callback_data="build_lithium_mine")
+                InlineKeyboardButton("☢️ معدن اورانیوم - $690K", callback_data="build_uranium_mine"),
+                InlineKeyboardButton("🔋 معدن لیتیوم - $180K", callback_data="build_lithium_mine")
             ],
             [
-                InlineKeyboardButton("⚫ معدن زغال - $34K", callback_data="build_coal_mine"),
-                InlineKeyboardButton("🥈 معدن نقره - $56K", callback_data="build_silver_mine")
+                InlineKeyboardButton("⚫ معدن زغال - $85K", callback_data="build_coal_mine"),
+                InlineKeyboardButton("🥈 معدن نقره - $140K", callback_data="build_silver_mine")
             ],
             [
-                InlineKeyboardButton("🏭 کارخانه اسلحه", callback_data="select_building_weapon_factory"),
-                InlineKeyboardButton("⚡ نیروگاه", callback_data="build_power_plant")
+                InlineKeyboardButton("💥 معدن نیتر - $95K", callback_data="build_nitro_mine"),
+                InlineKeyboardButton("🌫 معدن گوگرد - $75K", callback_data="build_sulfur_mine")
             ],
             [
-                InlineKeyboardButton("🏭 پالایشگاه", callback_data="build_refinery"),
-                InlineKeyboardButton("🌾 مزرعه - 10K نفر", callback_data="build_wheat_farm")
+                InlineKeyboardButton("🛡 معدن تیتانیوم - $250K", callback_data="build_titanium_mine")
             ],
             [
-                InlineKeyboardButton("🪖 پادگان - 5K سرباز", callback_data="build_military_base"),
-                InlineKeyboardButton("🏘 مسکن - 10K ظرفیت", callback_data="build_housing")
+                InlineKeyboardButton("🏭 کارخانه اسلحه - $15K", callback_data="build_weapon_factory"),
+                InlineKeyboardButton("⚡ نیروگاه - $9K", callback_data="build_power_plant")
+            ],
+            [
+                InlineKeyboardButton("🏭 پالایشگاه - $10K", callback_data="build_refinery"),
+                InlineKeyboardButton("🌾 مزرعه - $5K", callback_data="build_wheat_farm")
+            ],
+            [
+                InlineKeyboardButton("🪖 پادگان - $5K", callback_data="build_military_base"),
+                InlineKeyboardButton("🏘 مسکن - $5K", callback_data="build_housing")
             ],
             [
                 InlineKeyboardButton("🔙 بازگشت", callback_data="economy")
@@ -532,7 +539,10 @@ class Keyboards:
                 InlineKeyboardButton("📋 لاگ‌ها", callback_data="admin_logs")
             ],
             [
-                InlineKeyboardButton("🔄 ریست بازی", callback_data="admin_reset"),
+                InlineKeyboardButton("♾️ منابع بینهایت", callback_data="admin_infinite_resources"),
+                InlineKeyboardButton("🔄 ریست بازی", callback_data="admin_reset")
+            ],
+            [
                 InlineKeyboardButton("🏴 ریست کشور", callback_data="admin_country_reset")
             ],
             [
