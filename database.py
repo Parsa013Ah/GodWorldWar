@@ -681,6 +681,11 @@ class Database:
             conn.commit()
             cursor.close()
 
+    def get_weapon_count(self, user_id, weapon_type):
+        """Get specific weapon count"""
+        weapons = self.get_player_weapons(user_id)
+        return weapons.get(weapon_type, 0)
+
     def get_active_convoys(self):
         """Get all active convoys in transit"""
         with self.get_connection() as conn:

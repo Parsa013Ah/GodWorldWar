@@ -92,12 +92,14 @@ class GameLogic:
         weapon_name = weapon_config.get('name', weapon_type)
         required_resources = weapon_config.get('resources', {})
 
-        # Check weapon factory requirement
-        weapon_requirements = weapon_config.get('requirements', [])
-        if 'weapon_factory' in weapon_requirements:
+        # Check building requirements
+        building_requirements = weapon_config.get('requirements', [])
+        if building_requirements:
             buildings = self.db.get_player_buildings(user_id)
-            if buildings.get('weapon_factory', 0) == 0:
-                return {'success': False, 'message': 'برای تولید سلاح به کارخانه اسلحه نیاز دارید!'}
+            for requirement in building_requirements:
+                if buildings.get(requirement, 0) == 0:
+                    req_name = Config.BUILDINGS.get(requirement, {}).get('name', requirement)
+                    return {'success': False, 'message': f'برای تولید این سلاح به {req_name} نیاز دارید!'}
 
         # Check money
         if player['money'] < total_cost:

@@ -780,11 +780,11 @@ class DragonRPBot:
         """Handle actual attack execution"""
         user_id = query.from_user.id
         data_parts = query.data.split("_")
-        
+
         if len(data_parts) < 4:
             await query.edit_message_text("❌ داده‌های حمله نامعتبر!")
             return
-            
+
         target_id = int(data_parts[2])
         attack_type = data_parts[3]
         weapon_selection = data_parts[4] if len(data_parts) > 4 else "all"
@@ -800,7 +800,7 @@ class DragonRPBot:
         available_weapons = self.db.get_player_weapons(user_id)
         has_offensive_weapons = False
         offensive_weapons = []
-        
+
         for weapon_type, count in available_weapons.items():
             if weapon_type != 'user_id' and count > 0:
                 # Check if weapon exists in config
@@ -1268,40 +1268,40 @@ class DragonRPBot:
         """Handle convoy escort request"""
         user_id = query.from_user.id
         convoy_id = int(query.data.replace("convoy_escort_", ""))
-        
+
         # Get convoy details
         convoy = self.db.get_convoy(convoy_id)
         if not convoy:
             await query.edit_message_text("❌ محموله یافت نشد!")
             return
-            
+
         # Check if convoy is still in transit
         if convoy['status'] != 'in_transit':
             await query.edit_message_text("❌ این محموله دیگر در حال حرکت نیست!")
             return
-            
+
         # Check if user can escort (not sender/receiver)
         if convoy['sender_id'] == user_id or convoy['receiver_id'] == user_id:
             await query.edit_message_text("❌ نمی‌توانید محموله خودتان را اسکورت کنید!")
             return
-            
+
         player = self.db.get_player(user_id)
         weapons = self.db.get_player_weapons(user_id)
-        
+
         # Check available escort equipment
         escort_equipment = {
             'fighter_jet': weapons.get('fighter_jet', 0),
-            'tank': weapons.get('tank', 0), 
+            'tank': weapons.get('tank', 0),
             'warship': weapons.get('warship', 0),
             'drone': weapons.get('drone', 0)
         }
-        
+
         has_equipment = any(count > 0 for count in escort_equipment.values())
-        
+
         if not has_equipment:
             await query.edit_message_text("❌ شما تجهیزات مناسب برای اسکورت ندارید!")
             return
-            
+
         escort_text = f"""🛡 اسکورت محموله
 
 🚚 محموله #{convoy_id}
@@ -1316,7 +1316,7 @@ class DragonRPBot:
 ⚠️ اسکورت محموله هزینه سوخت دارد!
 
 آیا می‌خواهید این محموله را اسکورت کنید؟"""
-        
+
         from telegram import InlineKeyboardButton, InlineKeyboardMarkup
         keyboard = [
             [
@@ -1324,7 +1324,7 @@ class DragonRPBot:
                 InlineKeyboardButton("❌ انصراف", callback_data="main_menu")
             ]
         ]
-        
+
         await query.edit_message_text(escort_text, reply_markup=InlineKeyboardMarkup(keyboard))
 
     async def send_convoy_action_news(self, user_id: int, convoy_id: int, result: dict):
@@ -2322,35 +2322,30 @@ oil 300
     async def handle_official_statement_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle official statement text input"""
         user_id = update.effective_user.id
-        statement_text = update.message.text.strip()
+        statement_text = update.message.text
 
-        if not statement_text:
-            await update.message.reply_text("❌ متن بیانیه نمی‌تواند خالی باشد!")
+        if len(statement_text) > 1000:
+            await update.message.reply_text("❌ متن بیانیه نباید بیشتر از 1000 کاراکتر باشد!")
             return
 
+        # Send statement to news channel
         player = self.db.get_player(user_id)
-        if not player:
-            await update.message.reply_text("❌ ابتدا باید کشور خود را انتخاب کنید. /start")
-            return
-
-        # Send official statement to news channel
-        country_flag = Config.COUNTRY_FLAGS.get(player['country_code'], '🏳')
-
-        statement_message = f"""📢 بیانیه رسمی
+        if player:
+            country_flag = Config.COUNTRY_FLAGS.get(player['country_code'], '🏳')
+            statement_message = f"""📢 بیانیه رسمی
 
 {country_flag} <b>{player['country_name']}</b>
 
 📝 متن بیانیه:
-{statement_text}
+{statement_text}"""
 
-🕐 زمان: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}"""
+            await self.news.send_text_message(statement_message)
 
-        await self.news.send_text_message(statement_message)
-
-        await update.message.reply_text(
-            "✅ بیانیه رسمی شما منتشر شد!",
-            reply_markup=self.keyboards.main_menu_keyboard(user_id in Config.ADMINS)
-        )
+            is_admin = self.admin.is_admin(user_id)
+            await update.message.reply_text(
+                "✅ بیانیه شما با موفقیت منتشر شد!",
+                reply_markup=self.keyboards.main_menu_keyboard(is_admin)
+            )
 
 
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -446,7 +446,8 @@ class Keyboards:
                 InlineKeyboardButton("🏴 ریست کشور", callback_data="admin_country_reset")
             ],
             [
-                InlineKeyboardButton("🎁 هدیه به کشورها", callback_data="admin_give_items")
+                InlineKeyboardButton("🎁 هدیه به کشورها", callback_data="admin_give_items"),
+                InlineKeyboardButton("⚖️ جریمه بازیکنان", callback_data="admin_penalties")
             ],
             [
                 InlineKeyboardButton("🔙 منوی اصلی", callback_data="main_menu")
@@ -724,4 +725,21 @@ class Keyboards:
             keyboard.append([InlineKeyboardButton("📧 دعوت عضو جدید", callback_data="alliance_invite_list")])
 
         keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="alliance_menu")])
+        return InlineKeyboardMarkup(keyboard)
+
+    def admin_penalties_keyboard(self):
+        """Create admin penalties keyboard"""
+        keyboard = [
+            [
+                InlineKeyboardButton("💰 جریمه پول", callback_data="penalty_money"),
+                InlineKeyboardButton("📊 جریمه منابع", callback_data="penalty_resources")
+            ],
+            [
+                InlineKeyboardButton("⚔️ جریمه تسلیحات", callback_data="penalty_weapons"),
+                InlineKeyboardButton("🏗 جریمه ساختمان", callback_data="penalty_buildings")
+            ],
+            [
+                InlineKeyboardButton("🔙 بازگشت", callback_data="admin_panel")
+            ]
+        ]
         return InlineKeyboardMarkup(keyboard)
