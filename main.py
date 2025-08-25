@@ -51,6 +51,18 @@ class DragonRPBot:
         # Log user info for admin setup
         logger.info(f"User started bot - ID: {user_id}, Username: {username}")
 
+        # Check if there's a convoy action parameter
+        if context.args and len(context.args) > 0:
+            action_param = context.args[0]
+            if action_param.startswith("convoy_stop_"):
+                convoy_id = int(action_param.replace("convoy_stop_", ""))
+                await self.handle_convoy_action_from_start(update, context, convoy_id, "stop")
+                return
+            elif action_param.startswith("convoy_steal_"):
+                convoy_id = int(action_param.replace("convoy_steal_", ""))
+                await self.handle_convoy_action_from_start(update, context, convoy_id, "steal")
+                return
+
         # Check if user already has a country
         player = self.db.get_player(user_id)
         if player:
@@ -993,7 +1005,8 @@ class DragonRPBot:
             # Create keyboard for convoy actions
             convoy_keyboard = self.convoy.create_convoy_news_keyboard(
                 convoy_result['convoy_id'], 
-                convoy_result['security_level']
+                convoy_result['security_level'],
+                "DragonRPBot"  # Replace with your bot username
             )
             
             await self.news.send_convoy_news(convoy_message, convoy_keyboard)
@@ -1073,6 +1086,115 @@ class DragonRPBot:
             return
 
         await query.edit_message_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
+
+        # Send news about the action result
+        await self.send_convoy_action_news(user_id, convoy_id, result)
+
+    async def handle_convoy_action_from_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE, convoy_id: int, action_type: str):
+        """Handle convoy action initiated from start command"""
+        user_id = update.effective_user.id
+        
+        # Check if user has a country
+        player = self.db.get_player(user_id)
+        if not player:
+            await update.message.reply_text("❌ ابتدا باید کشور خود را انتخاب کنید. /start")
+            return
+
+        # Get convoy details
+        convoy = self.db.get_convoy(convoy_id)
+        if not convoy:
+            await update.message.reply_text("❌ محموله یافت نشد!")
+            return
+
+        # Check if convoy is still valid
+        if convoy['status'] != 'in_transit':
+            await update.message.reply_text("❌ محموله قبلاً تحویل داده شده یا متوقف شده!")
+            return
+
+        # Check if player can intercept (including sender/receiver check)
+        convoy_security = convoy['security_level']
+        can_intercept = self.convoy.can_intercept_convoy(user_id, convoy_security, convoy_id)
+        
+        if not can_intercept:
+            # Check if it's because they're sender/receiver
+            if convoy['sender_id'] == user_id or convoy['receiver_id'] == user_id:
+                await update.message.reply_text("❌ شما نمی‌توانید محموله خود را رهگیری کنید!")
+            else:
+                await update.message.reply_text("❌ قدرت نظامی شما برای رهگیری این محموله کافی نیست!")
+            return
+
+        # Show confirmation
+        action_name = "توقف محموله" if action_type == "stop" else "سرقت محموله"
+        description = "محموله متوقف شده و منابع به فرستنده بازگردانده می‌شود" if action_type == "stop" else "محتویات محموله به شما انتقال پیدا می‌کند"
+
+        # Calculate interception power for display
+        weapons = self.db.get_player_weapons(user_id)
+        intercept_power = (
+            weapons.get('fighter_jet', 0) * 30 +
+            weapons.get('drone', 0) * 25 +
+            weapons.get('simple_missile', 0) * 50 +
+            weapons.get('warship', 0) * 35
+        )
+
+        confirmation_text = f"""🎯 تایید {action_name}
+
+🛡 امنیت محموله: {convoy_security}%
+⚔️ قدرت رهگیری شما: {intercept_power:,}
+
+💡 {description}
+
+⚠️ در صورت شکست، بخشی از تجهیزاتتان از دست خواهد رفت!
+
+آیا مطمئن هستید؟"""
+
+        keyboard = self.keyboards.convoy_private_confirmation_keyboard(convoy_id, action_type)
+        await update.message.reply_text(confirmation_text, reply_markup=keyboard)
+
+    async def send_convoy_action_news(self, user_id: int, convoy_id: int, result: dict):
+        """Send news about convoy action result"""
+        try:
+            player = self.db.get_player(user_id)
+            convoy = self.db.get_convoy(convoy_id)
+            
+            if not player or not convoy:
+                return
+
+            sender = self.db.get_player(convoy['sender_id'])
+            receiver = self.db.get_player(convoy['receiver_id'])
+            
+            if not sender or not receiver:
+                return
+
+            country_flag = Config.COUNTRY_FLAGS.get(player['country_code'], '🏳')
+            sender_flag = Config.COUNTRY_FLAGS.get(sender['country_code'], '🏳')
+            receiver_flag = Config.COUNTRY_FLAGS.get(receiver['country_code'], '🏳')
+            
+            if result['success']:
+                if result['action'] == 'stopped':
+                    news_text = f"""🛑 توقف محموله!
+
+{country_flag} <b>{player['country_name']}</b> محموله {sender_flag} {sender['country_name']} → {receiver_flag} {receiver['country_name']} را متوقف کرد!
+
+✅ محموله با موفقیت متوقف شد
+🔄 منابع به فرستنده بازگردانده شد"""
+                else:  # stolen
+                    news_text = f"""💰 دزدی محموله!
+
+{country_flag} <b>{player['country_name']}</b> محموله {sender_flag} {sender['country_name']} → {receiver_flag} {receiver['country_name']} را دزدید!
+
+💎 محتویات محموله به دزد انتقال یافت"""
+            else:
+                news_text = f"""⚔️ تلاش ناموفق برای رهگیری!
+
+{country_flag} <b>{player['country_name']}</b> سعی کرد محموله {sender_flag} {sender['country_name']} → {receiver_flag} {receiver['country_name']} را رهگیری کند!
+
+❌ تلاش شکست خورد
+💥 بخشی از تجهیزات مهاجم از دست رفت"""
+
+            await self.news.send_text_message(news_text)
+            
+        except Exception as e:
+            logger.error(f"Error sending convoy action news: {e}")
 
     async def show_alliance_menu(self, query, context):
         """Show alliance menu"""

@@ -717,6 +717,16 @@ class Keyboards:
         ]
         return InlineKeyboardMarkup(keyboard)
 
+    def convoy_private_confirmation_keyboard(self, convoy_id, action_type):
+        """Create convoy confirmation keyboard for private messages"""
+        keyboard = [
+            [
+                InlineKeyboardButton("✅ تایید", callback_data=f"confirm_convoy_{action_type}_{convoy_id}"),
+                InlineKeyboardButton("❌ انصراف", callback_data="main_menu")
+            ]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
     def quantity_selection_keyboard(self, item_type, item_name):
         """کیبورد انتخاب تعداد برای ساخت سلاح یا ساختمان"""
         keyboard = [

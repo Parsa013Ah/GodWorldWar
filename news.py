@@ -378,6 +378,11 @@ class NewsChannel:
 
         await self.send_news(message)
 
+    async def send_text_message(self, message):
+        """Send a text message to the news channel"""
+        message += "\n\n───────────────"
+        await self.send_news(message)
+
     async def send_marketplace_purchase(self, result):
         """Send marketplace purchase news"""
         try:

@@ -42,15 +42,21 @@ class ConvoySystem:
         
         return int(total_security)
     
-    def can_intercept_convoy(self, interceptor_id, convoy_security):
+    def can_intercept_convoy(self, interceptor_id, convoy_security, convoy_id=None):
         """Check if player can intercept convoy"""
+        # If convoy_id is provided, check if user is sender or receiver
+        if convoy_id:
+            convoy = self.db.get_convoy(convoy_id)
+            if convoy and (convoy['sender_id'] == interceptor_id or convoy['receiver_id'] == interceptor_id):
+                return False  # Cannot intercept own convoy
+        
         weapons = self.db.get_player_weapons(interceptor_id)
         
         # Calculate interception power
         intercept_power = 0
         intercept_power += weapons.get('fighter_jet', 0) * 30
         intercept_power += weapons.get('drone', 0) * 25
-        intercept_power += weapons.get('missile', 0) * 50
+        intercept_power += weapons.get('simple_missile', 0) * 50
         intercept_power += weapons.get('warship', 0) * 35
         
         # Advanced jets are better at interception
@@ -213,12 +219,12 @@ class ConvoySystem:
         
         return final_time
 
-    def create_convoy_news_keyboard(self, convoy_id, security_level):
+    def create_convoy_news_keyboard(self, convoy_id, security_level, bot_username):
         """Create keyboard for convoy news with interception options"""
         keyboard = [
             [
-                InlineKeyboardButton("🛑 توقف محموله", callback_data=f"convoy_stop_{convoy_id}"),
-                InlineKeyboardButton("💰 سرقت محموله", callback_data=f"convoy_steal_{convoy_id}")
+                InlineKeyboardButton("🛑 توقف محموله", url=f"https://t.me/{bot_username}?start=convoy_stop_{convoy_id}"),
+                InlineKeyboardButton("💰 سرقت محموله", url=f"https://t.me/{bot_username}?start=convoy_steal_{convoy_id}")
             ],
             [
                 InlineKeyboardButton(f"🛡 امنیت: {security_level}%", callback_data="convoy_info")
