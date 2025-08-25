@@ -184,10 +184,17 @@ class Database:
                     departure_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     arrival_time TIMESTAMP NOT NULL,
                     status TEXT DEFAULT 'in_transit',
+                    security_level INTEGER DEFAULT 50,
                     FOREIGN KEY (sender_id) REFERENCES players (user_id),
                     FOREIGN KEY (receiver_id) REFERENCES players (user_id)
                 )
             ''')
+            
+            # Add security_level column if it doesn't exist
+            try:
+                cursor.execute('ALTER TABLE convoys ADD COLUMN security_level INTEGER DEFAULT 50')
+            except sqlite3.OperationalError:
+                pass  # Column already exists
 
             # Pending attacks table
             cursor.execute('''
