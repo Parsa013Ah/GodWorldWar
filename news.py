@@ -89,63 +89,40 @@ class NewsChannel:
             logger.error(f"Failed to send news to channel: {e}")
             return False
 
-    async def send_convoy_news(self, message, keyboard=None):
-        """Send convoy news with optional keyboard"""
+    async def send_convoy_news(self, message, keyboard=None, cargo_details=None):
+        """Send convoy news with optional keyboard and detailed cargo info"""
         try:
+            full_message = f"🚛 انتقال منابع\n\n{message}"
+            
+            if cargo_details:
+                full_message += "\n\n📦 جزئیات محموله:"
+                for item, amount in cargo_details.items():
+                    if item == 'money':
+                        full_message += f"\n💰 پول: ${amount:,}"
+                    else:
+                        from config import Config
+                        resource_config = Config.RESOURCES.get(item, {})
+                        resource_name = resource_config.get('name', item)
+                        resource_emoji = resource_config.get('emoji', '📦')
+                        full_message += f"\n{resource_emoji} {resource_name}: {amount:,}"
+            
             if keyboard:
                 await self.bot.send_message(
                     chat_id=self.channel_id,
-                    text=f"🚛 انتقال منابع\n\n{message}",
+                    text=full_message,
                     parse_mode='HTML',
                     reply_markup=keyboard
                 )
             else:
                 await self.bot.send_message(
                     chat_id=self.channel_id,
-                    text=f"🚛 انتقال منابع\n\n{message}",
+                    text=full_message,
                     parse_mode='HTML'
                 )
 
             logger.info(f"📢 Convoy news sent to {self.channel_id}: 🚛 انتقال منابع...")
         except Exception as e:
             logger.error(f"Failed to send convoy news: {e}")
-
-    async def send_weapon_produced(self, country_name, weapon_name, quantity=1):
-        """Send weapon production news with quantity"""
-        message = f"""🔫 ارتقای تسلیحات
-
-🇮🇷 <b>{country_name}</b> موفق به ساخت <b>{quantity:,} عدد {weapon_name}</b> شد!
-
-💪 قدرت نظامی این کشور افزایش یافته است."""
-
-        try:
-            await self.bot.send_message(
-                chat_id=self.channel_id,
-                text=message,
-                parse_mode='HTML'
-            )
-            logger.info(f"📢 News sent to {self.channel_id}: 🔫 ارتقای تسلیحات...")
-        except Exception as e:
-            logger.error(f"Failed to send news: {e}")
-
-    async def send_building_constructed(self, country_name, building_name, quantity=1):
-        """Send building construction news with quantity"""
-        message = f"""🏗 توسعه زیرساخت
-
-🇮🇷 <b>{country_name}</b> موفق به ساخت <b>{quantity:,} عدد {building_name}</b> شد!
-
-📈 اقتصاد این کشور تقویت شده است."""
-
-        try:
-            await self.bot.send_message(
-                chat_id=self.channel_id,
-                text=message,
-                parse_mode='HTML'
-            )
-            logger.info(f"📢 News sent to {self.channel_id}: 🏗 توسعه زیرساخت...")
-        except Exception as e:
-            logger.error(f"Failed to send news: {e}")
-
 
     async def send_player_joined(self, country_name, username):
         """Send player joined news"""
@@ -184,6 +161,9 @@ class NewsChannel:
             emoji=building_emoji,
             building=building_name
         )
+        
+        if quantity > 1:
+            message = message.replace(f"یک {building_emoji} <b>{building_name}</b>", f"<b>{quantity:,} عدد</b> {building_emoji} <b>{building_name}</b>")
 
         message += "\n\n───────────────"
         await self.send_news(message)
@@ -222,6 +202,9 @@ class NewsChannel:
             emoji=weapon_emoji,
             weapon=weapon_name
         )
+        
+        if quantity > 1:
+            message = message.replace(f"یک {weapon_emoji} <b>{weapon_name}</b>", f"<b>{quantity:,} عدد</b> {weapon_emoji} <b>{weapon_name}</b>")
 
         message += "\n\n───────────────"
         await self.send_news(message)
@@ -258,8 +241,8 @@ class NewsChannel:
         message += "\n\n───────────────"
         await self.send_news(message)
 
-    async def send_official_statement(self, country_name, statement):
-        """Send official statement"""
+    async def send_official_statement(self, country_name, statement, with_penalty_button=False):
+        """Send official statement with optional penalty button"""
         country_flag = self.get_country_flag(country_name)
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
 
@@ -272,7 +255,19 @@ class NewsChannel:
 
 ───────────────"""
 
-        await self.send_news(message)
+        if with_penalty_button:
+            from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("⚠️ جریمه کشور", callback_data=f"admin_penalty_{country_name}")]
+            ])
+            await self.bot.send_message(
+                chat_id=self.channel_id,
+                text=message,
+                parse_mode='HTML',
+                reply_markup=keyboard
+            )
+        else:
+            await self.send_news(message)
 
     async def send_resource_transfer(self, sender_country, receiver_country, transfer_description, travel_time):
         """Send resource transfer news"""

@@ -44,6 +44,15 @@ class AdminPanel:
             await self.show_player_management(query, context, data)
         elif data.startswith("delete_player_"):
             await self.delete_player(query, context, data)
+        elif data.startswith("penalty_"):
+            await self.handle_penalty_country(query, context, data)
+        elif data.startswith("reset_country_"):
+            await self.reset_country(query, context, data)
+        elif data.startswith("confirm_reset_"):
+            user_id = int(data.replace("confirm_reset_", ""))
+            await self.confirm_country_reset(query, context, user_id)
+        elif data == "country_reset":
+            await self.show_country_reset_menu(query, context)
         else:
             await query.edit_message_text("❌ دستور ادمین نامعتبر!")
     
@@ -384,3 +393,153 @@ class AdminPanel:
             'success': True,
             'message': f"{amount:,} {building_name} به {player['country_name']} اضافه شد"
         }
+    
+    async def handle_penalty_country(self, query, context, data):
+        """Handle country penalty - halve all resources"""
+        country_name = data.replace("penalty_", "")
+        
+        # Find player by country name
+        players = self.db.get_all_players()
+        target_player = None
+        for player in players:
+            if player['country_name'] == country_name:
+                target_player = player
+                break
+        
+        if not target_player:
+            await query.edit_message_text(f"❌ کشور {country_name} یافت نشد!")
+            return
+        
+        user_id = target_player['user_id']
+        
+        # Halve money
+        new_money = target_player['money'] // 2
+        self.db.update_player_money(user_id, new_money)
+        
+        # Halve population and soldiers
+        new_population = target_player['population'] // 2
+        new_soldiers = target_player['soldiers'] // 2
+        self.db.update_player_population(user_id, new_population)
+        self.db.update_player_soldiers(user_id, new_soldiers)
+        
+        # Halve all resources
+        resources = self.db.get_player_resources(user_id)
+        for resource, amount in resources.items():
+            if resource != 'user_id' and amount > 0:
+                new_amount = amount // 2
+                self.db.update_resource(user_id, resource, new_amount)
+        
+        # Halve all weapons
+        weapons = self.db.get_player_weapons(user_id)
+        for weapon, amount in weapons.items():
+            if weapon != 'user_id' and amount > 0:
+                new_amount = amount // 2
+                self.db.update_weapon_count(user_id, weapon, new_amount)
+        
+        # Halve all buildings
+        buildings = self.db.get_player_buildings(user_id)
+        for building, amount in buildings.items():
+            if amount > 0:
+                new_amount = amount // 2
+                self.db.update_building_count(user_id, building, new_amount)
+        
+        # Log admin action
+        admin_id = query.from_user.id
+        self.db.log_admin_action(
+            admin_id,
+            "PENALTY_COUNTRY",
+            user_id,
+            f"Penalized country {country_name} - halved all resources"
+        )
+        
+        await query.edit_message_text(f"⚠️ کشور {country_name} جریمه شد!\n\nتمام منابع، تسلیحات و ساختمان‌های این کشور نصف شدند.")
+    
+    async def show_country_reset_menu(self, query, context):
+        """Show menu to select country for reset"""
+        players = self.db.get_all_players()
+        
+        if not players:
+            await query.edit_message_text(
+                "👥 هیچ کشوری برای ریست موجود نیست!",
+                reply_markup=self.keyboards.back_to_main_keyboard()
+            )
+            return
+        
+        reset_text = "🔄 انتخاب کشور برای ریست\n\nکشور مورد نظر را انتخاب کنید:"
+        
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        keyboard = []
+        
+        for player in players[:10]:  # Show first 10 countries
+            keyboard.append([InlineKeyboardButton(
+                f"🏴 {player['country_name']}",
+                callback_data=f"admin_reset_country_{player['user_id']}"
+            )])
+        
+        keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="admin_panel")])
+        
+        await query.edit_message_text(reset_text, reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    async def reset_country(self, query, context, data):
+        """Reset a specific country"""
+        user_id = int(data.replace("reset_country_", ""))
+        player = self.db.get_player(user_id)
+        
+        if not player:
+            await query.edit_message_text("❌ کشور یافت نشد!")
+            return
+        
+        # Show confirmation
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("✅ بله، ریست کن", callback_data=f"admin_confirm_reset_{user_id}"),
+                InlineKeyboardButton("❌ انصراف", callback_data="admin_country_reset")
+            ]
+        ])
+        
+        warning_text = f"""⚠️ تأیید ریست کشور
+
+🏴 کشور: {player['country_name']}
+👤 بازیکن: {player['username']}
+
+❗ این عمل کشور را به حالت اولیه بازگرداند:
+• پول: $100,000
+• جمعیت: 1,000,000
+• سربازان: 0
+• تمام منابع، تسلیحات و ساختمان‌ها حذف می‌شوند
+
+❗ این عمل قابل برگشت نیست!
+
+آیا مطمئن هستید؟"""
+        
+        await query.edit_message_text(warning_text, reply_markup=keyboard)
+    
+    async def confirm_country_reset(self, query, context, user_id):
+        """Confirm and execute country reset"""
+        player = self.db.get_player(user_id)
+        
+        if not player:
+            await query.edit_message_text("❌ کشور یافت نشد!")
+            return
+        
+        # Reset player to initial state
+        success = self.db.reset_player_data(user_id)
+        
+        if success:
+            # Log admin action
+            admin_id = query.from_user.id
+            self.db.log_admin_action(
+                admin_id,
+                "RESET_COUNTRY",
+                user_id,
+                f"Reset country {player['country_name']}"
+            )
+            
+            await query.edit_message_text(
+                f"✅ کشور {player['country_name']} با موفقیت ریست شد!\n\n"
+                f"این کشور به حالت اولیه بازگشت.",
+                reply_markup=self.keyboards.back_to_main_keyboard()
+            )
+        else:
+            await query.edit_message_text("❌ خطا در ریست کشور!")

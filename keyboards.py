@@ -524,6 +524,9 @@ class Keyboards:
             ],
             [
                 InlineKeyboardButton("🔄 ریست بازی", callback_data="admin_reset"),
+                InlineKeyboardButton("🏴 ریست کشور", callback_data="admin_country_reset")
+            ],
+            [
                 InlineKeyboardButton("🔙 منوی اصلی", callback_data="main_menu")
             ]
         ]
