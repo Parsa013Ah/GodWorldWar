@@ -1028,26 +1028,45 @@ class DragonRPBot:
         keyboard = []
 
         for listing in listings[:10]:  # Show first 10 listings
-            seller_country = listing.get('seller_country', 'نامشخص')
-            item_emoji = '📦'
-            if category == 'weapons':
-                item_emoji = {
-                    'rifle': '🔫', 'tank': '🚗', 'fighter_jet': '✈️',
-                    'drone': '🚁', 'missile': '🚀', 'warship': '🚢'
-                }.get(listing['item_type'], '⚔️')
-            elif category == 'resources':
-                from config import Config
-                resource_config = Config.RESOURCES.get(listing['item_type'], {})
-                item_emoji = resource_config.get('emoji', '📦')
+            try:
+                seller_country = listing.get('seller_country', 'نامشخص')
+                item_type = listing.get('item_type', 'unknown')
+                item_category = listing.get('item_category', 'unknown')
+                quantity = listing.get('quantity', 0)
+                price_per_unit = listing.get('price_per_unit', 0)
+                total_price = listing.get('total_price', 0)
+                security_level = listing.get('security_level', 50)
+                listing_id = listing.get('id', 0)
+                
+                item_emoji = '📦'
+                if item_category == 'weapon':
+                    item_emoji = {
+                        'rifle': '🔫', 'tank': '🚗', 'fighter_jet': '✈️',
+                        'drone': '🚁', 'missile': '🚀', 'warship': '🚢',
+                        'air_defense': '🛡', 'missile_shield': '🚀', 'cyber_shield': '💻'
+                    }.get(item_type, '⚔️')
+                elif item_category == 'resource':
+                    from config import Config
+                    resource_config = Config.RESOURCES.get(item_type, {})
+                    item_emoji = resource_config.get('emoji', '📦')
 
-            menu_text += f"""
-{item_emoji} {listing['item_type']} x{listing['quantity']:,}
-💰 ${listing['price_per_unit']:,} per unit (Total: ${listing['total_price']:,})
-🏴 Seller: {seller_country}
-🛡 Security: {listing['security_level']}%"""
+                menu_text += f"""
+{item_emoji} {item_type} x{quantity:,}
+💰 ${price_per_unit:,} واحد (کل: ${total_price:,})
+🏴 فروشنده: {seller_country}
+🛡 امنیت: {security_level}%"""
 
-            button_text = f"{item_emoji} Buy {listing['item_type']} - ${listing['total_price']:,}"
-            keyboard.append([InlineKeyboardButton(button_text, callback_data=f"buy_{listing['id']}")])
+                # Create safe button text and callback data
+                button_text = f"{item_emoji} خرید {item_type} - ${total_price:,}"
+                if len(button_text) > 64:  # Telegram button text limit
+                    button_text = f"{item_emoji} خرید - ${total_price:,}"
+                
+                callback_data = f"buy_{listing_id}"
+                keyboard.append([InlineKeyboardButton(button_text, callback_data=callback_data)])
+                
+            except Exception as e:
+                logger.error(f"Error processing listing {listing}: {e}")
+                continue
 
         keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="market_browse")])
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -1299,16 +1318,44 @@ class DragonRPBot:
 
     async def handle_marketplace_purchase(self, query, context):
         """Handle marketplace purchase"""
-        user_id = query.from_user.id
-        listing_id = int(query.data.replace("buy_", ""))
+        try:
+            user_id = query.from_user.id
+            callback_data = query.data
+            
+            # Extract listing ID from callback data
+            if not callback_data.startswith("buy_"):
+                await query.edit_message_text("❌ داده نامعتبر!")
+                return
+                
+            listing_id_str = callback_data.replace("buy_", "")
+            if not listing_id_str.isdigit():
+                await query.edit_message_text("❌ شناسه کالا نامعتبر!")
+                return
+                
+            listing_id = int(listing_id_str)
+            
+            # Check if listing exists
+            listing = self.marketplace.get_listing(listing_id)
+            if not listing:
+                await query.edit_message_text("❌ کالا یافت نشد!")
+                return
 
-        result = self.marketplace.purchase_item(user_id, listing_id, 1)
+            result = self.marketplace.purchase_item(user_id, listing_id, 1)
 
-        if result['success']:
-            # Send convoy news if applicable
-            await self.news.send_marketplace_purchase(result)
+            if result['success']:
+                # Send convoy news if applicable
+                try:
+                    await self.news.send_marketplace_purchase(result)
+                except:
+                    pass  # Don't fail purchase if news fails
 
-        await query.edit_message_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
+            await query.edit_message_text(f"{'✅' if result['success'] else '❌'} {result['message']}")
+            
+        except ValueError:
+            await query.edit_message_text("❌ شناسه کالا نامعتبر!")
+        except Exception as e:
+            logger.error(f"Error in marketplace purchase: {e}")
+            await query.edit_message_text("❌ خطایی در خرید رخ داد! لطفاً دوباره تلاش کنید.")
 
     async def handle_sell_category(self, query, context):
         """Handle sell category selection"""
