@@ -425,7 +425,13 @@ class Database:
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM weapons WHERE user_id = ?', (user_id,))
             result = cursor.fetchone()
-            return dict(result) if result else {}
+            if result:
+                weapons_dict = dict(result)
+                logger.info(f"get_player_weapons for user {user_id}: rifle={weapons_dict.get('rifle', 0)}")
+                return weapons_dict
+            else:
+                logger.warning(f"No weapons found for user {user_id}")
+                return {}
 
     def update_player_money(self, user_id, new_amount):
         """Update player money"""

@@ -422,6 +422,7 @@ class DragonRPBot:
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
         weapons = self.db.get_player_weapons(user_id)
+        logger.info(f"Military menu for user {user_id}: rifle={weapons.get('rifle', 0)}, weapons={weapons}")
 
         menu_text = f"""⚔️ مدیریت نظامی - {player['country_name']}
 
