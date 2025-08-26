@@ -15,43 +15,53 @@ class AllianceSystem:
     def setup_alliance_tables(self):
         """Setup alliance tables in database"""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+                id_type = "INT"
+                auto_increment = "AUTO_INCREMENT"
+                timestamp_type = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+            else:
+                cursor = conn.cursor()
+                id_type = "INTEGER"
+                auto_increment = "AUTOINCREMENT"
+                timestamp_type = "TEXT DEFAULT CURRENT_TIMESTAMP"
 
             # Alliances table
-            cursor.execute('''
+            cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS alliances (
-                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    id {id_type} PRIMARY KEY {auto_increment},
                     name TEXT NOT NULL,
                     leader_id INTEGER NOT NULL,
                     description TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at {timestamp_type}
                 )
             ''')
 
             # Alliance members table
-            cursor.execute('''
+            cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS alliance_members (
+                    id {id_type} PRIMARY KEY {auto_increment},
                     alliance_id INTEGER NOT NULL,
-                    player_id INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
                     role TEXT DEFAULT 'member',
-                    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    PRIMARY KEY (alliance_id, player_id)
+                    joined_at {timestamp_type}
                 )
             ''')
 
             # Alliance invitations table
-            cursor.execute('''
+            cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS alliance_invitations (
-                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    id {id_type} PRIMARY KEY {auto_increment},
                     alliance_id INTEGER NOT NULL,
                     inviter_id INTEGER NOT NULL,
                     invitee_id INTEGER NOT NULL,
                     status TEXT DEFAULT 'pending',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at {timestamp_type}
                 )
             ''')
 
             conn.commit()
+            cursor.close()
 
     def create_alliance(self, leader_id, alliance_name, description=""):
         """Create new alliance"""
@@ -60,21 +70,45 @@ class AllianceSystem:
             return {'success': False, 'message': 'شما قبلاً عضو یک اتحاد هستید!'}
 
         with self.db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+
+            # Check if alliance name already exists
+            if self.db.use_mysql:
+                cursor.execute('SELECT id FROM alliances WHERE name = %s', (alliance_name,))
+            else:
+                cursor.execute('SELECT id FROM alliances WHERE name = ?', (alliance_name,))
+
+            if cursor.fetchone():
+                return {'success': False, 'message': 'نام اتحاد قبلاً وجود دارد!'}
 
             # Create alliance
-            cursor.execute('''
-                INSERT INTO alliances (name, leader_id, description)
-                VALUES (%s, %s, %s)
-            ''', (alliance_name, leader_id, description))
+            if self.db.use_mysql:
+                cursor.execute('''
+                    INSERT INTO alliances (name, leader_id, description, created_at)
+                    VALUES (%s, %s, %s, NOW())
+                ''', (alliance_name, leader_id, description))
+            else:
+                cursor.execute('''
+                    INSERT INTO alliances (name, leader_id, description, created_at)
+                    VALUES (?, ?, ?, datetime('now'))
+                ''', (alliance_name, leader_id, description))
 
             alliance_id = cursor.lastrowid
 
             # Add leader as member
-            cursor.execute('''
-                INSERT INTO alliance_members (alliance_id, player_id, role)
-                VALUES (%s, %s, 'leader')
-            ''', (alliance_id, leader_id))
+            if self.db.use_mysql:
+                cursor.execute('''
+                    INSERT INTO alliance_members (alliance_id, user_id, role, joined_at)
+                    VALUES (%s, %s, 'leader', NOW())
+                ''', (alliance_id, leader_id))
+            else:
+                cursor.execute('''
+                    INSERT INTO alliance_members (alliance_id, user_id, role, joined_at)
+                    VALUES (?, ?, 'leader', datetime('now'))
+                ''', (alliance_id, leader_id))
 
             conn.commit()
 
@@ -105,11 +139,20 @@ class AllianceSystem:
             return {'success': False, 'message': 'دعوت‌نامه قبلاً ارسال شده!'}
 
         with self.db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                INSERT INTO alliance_invitations (alliance_id, inviter_id, invitee_id)
-                VALUES (%s, %s, %s)
-            ''', (inviter_alliance['alliance_id'], inviter_id, invitee_id))
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+            if self.db.use_mysql:
+                cursor.execute('''
+                    INSERT INTO alliance_invitations (alliance_id, inviter_id, invitee_id)
+                    VALUES (%s, %s, %s)
+                ''', (inviter_alliance['alliance_id'], inviter_id, invitee_id))
+            else:
+                cursor.execute('''
+                    INSERT INTO alliance_invitations (alliance_id, inviter_id, invitee_id)
+                    VALUES (?, ?, ?)
+                ''', (inviter_alliance['alliance_id'], inviter_id, invitee_id))
             conn.commit()
 
         return {
@@ -129,21 +172,37 @@ class AllianceSystem:
             return {'success': False, 'message': 'این دعوت‌نامه قبلاً پاسخ داده شده!'}
 
         with self.db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
 
             if response == 'accept':
                 # Add to alliance
-                cursor.execute('''
-                    INSERT INTO alliance_members (alliance_id, player_id)
-                    VALUES (%s, %s)
-                ''', (invitation['alliance_id'], player_id))
+                if self.db.use_mysql:
+                    cursor.execute('''
+                        INSERT INTO alliance_members (alliance_id, user_id, joined_at)
+                        VALUES (%s, %s, NOW())
+                    ''', (invitation['alliance_id'], player_id))
+                else:
+                    cursor.execute('''
+                        INSERT INTO alliance_members (alliance_id, user_id, joined_at)
+                        VALUES (?, ?, datetime('now'))
+                    ''', (invitation['alliance_id'], player_id))
 
                 # Update invitation status
-                cursor.execute('''
-                    UPDATE alliance_invitations 
-                    SET status = 'accepted' 
-                    WHERE id = %s
-                ''', (invitation_id,))
+                if self.db.use_mysql:
+                    cursor.execute('''
+                        UPDATE alliance_invitations 
+                        SET status = 'accepted' 
+                        WHERE id = %s
+                    ''', (invitation_id,))
+                else:
+                    cursor.execute('''
+                        UPDATE alliance_invitations 
+                        SET status = 'accepted' 
+                        WHERE id = ?
+                    ''', (invitation_id,))
 
                 conn.commit()
 
@@ -153,11 +212,18 @@ class AllianceSystem:
                 }
             else:
                 # Reject invitation
-                cursor.execute('''
-                    UPDATE alliance_invitations 
-                    SET status = 'rejected' 
-                    WHERE id = %s
-                ''', (invitation_id,))
+                if self.db.use_mysql:
+                    cursor.execute('''
+                        UPDATE alliance_invitations 
+                        SET status = 'rejected' 
+                        WHERE id = %s
+                    ''', (invitation_id,))
+                else:
+                    cursor.execute('''
+                        UPDATE alliance_invitations 
+                        SET status = 'rejected' 
+                        WHERE id = ?
+                    ''', (invitation_id,))
 
                 conn.commit()
 
@@ -169,14 +235,26 @@ class AllianceSystem:
     def get_player_alliance(self, player_id):
         """Get player's current alliance"""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                SELECT a.id as alliance_id, a.name as alliance_name, 
-                       am.role, a.leader_id, a.description
-                FROM alliances a
-                JOIN alliance_members am ON a.id = am.alliance_id
-                WHERE am.player_id = %s
-            ''', (player_id,))
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+            if self.db.use_mysql:
+                cursor.execute('''
+                    SELECT a.id as alliance_id, a.name as alliance_name, 
+                           am.role, a.leader_id, a.description
+                    FROM alliances a
+                    JOIN alliance_members am ON a.id = am.alliance_id
+                    WHERE am.user_id = %s
+                ''', (player_id,))
+            else:
+                cursor.execute('''
+                    SELECT a.id as alliance_id, a.name as alliance_name, 
+                           am.role, a.leader_id, a.description
+                    FROM alliances a
+                    JOIN alliance_members am ON a.id = am.alliance_id
+                    WHERE am.user_id = ?
+                ''', (player_id,))
 
             result = cursor.fetchone()
             return dict(result) if result else None
@@ -184,54 +262,100 @@ class AllianceSystem:
     def get_alliance_members(self, alliance_id):
         """Get alliance members"""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                SELECT p.user_id, p.country_name, p.username, am.role, am.joined_at
-                FROM alliance_members am
-                JOIN players p ON am.player_id = p.user_id
-                WHERE am.alliance_id = %s
-                ORDER BY am.role DESC, am.joined_at
-            ''', (alliance_id,))
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+            if self.db.use_mysql:
+                cursor.execute('''
+                    SELECT p.user_id, p.country_name, p.username, am.role, am.joined_at
+                    FROM alliance_members am
+                    JOIN players p ON am.user_id = p.user_id
+                    WHERE am.alliance_id = %s
+                    ORDER BY am.role DESC, am.joined_at
+                ''', (alliance_id,))
+            else:
+                cursor.execute('''
+                    SELECT p.user_id, p.country_name, p.username, am.role, am.joined_at
+                    FROM alliance_members am
+                    JOIN players p ON am.user_id = p.user_id
+                    WHERE am.alliance_id = ?
+                    ORDER BY am.role DESC, am.joined_at
+                ''', (alliance_id,))
 
             return [dict(row) for row in cursor.fetchall()]
 
     def get_pending_invitations(self, player_id):
         """Get pending invitations for player"""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                SELECT ai.id, a.name as alliance_name, p.country_name as inviter_country,
-                       ai.created_at
-                FROM alliance_invitations ai
-                JOIN alliances a ON ai.alliance_id = a.id
-                JOIN players p ON ai.inviter_id = p.user_id
-                WHERE ai.invitee_id = %s AND ai.status = 'pending'
-                ORDER BY ai.created_at DESC
-            ''', (player_id,))
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+            if self.db.use_mysql:
+                cursor.execute('''
+                    SELECT ai.id, a.name as alliance_name, p.country_name as inviter_country,
+                           ai.created_at
+                    FROM alliance_invitations ai
+                    JOIN alliances a ON ai.alliance_id = a.id
+                    JOIN players p ON ai.inviter_id = p.user_id
+                    WHERE ai.invitee_id = %s AND ai.status = 'pending'
+                    ORDER BY ai.created_at DESC
+                ''', (player_id,))
+            else:
+                cursor.execute('''
+                    SELECT ai.id, a.name as alliance_name, p.country_name as inviter_country,
+                           ai.created_at
+                    FROM alliance_invitations ai
+                    JOIN alliances a ON ai.alliance_id = a.id
+                    JOIN players p ON ai.inviter_id = p.user_id
+                    WHERE ai.invitee_id = ? AND ai.status = 'pending'
+                    ORDER BY ai.created_at DESC
+                ''', (player_id,))
 
             return [dict(row) for row in cursor.fetchall()]
 
     def get_pending_invitation(self, alliance_id, invitee_id):
         """Check for existing pending invitation"""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                SELECT id FROM alliance_invitations
-                WHERE alliance_id = %s AND invitee_id = %s AND status = 'pending'
-            ''', (alliance_id, invitee_id))
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+            if self.db.use_mysql:
+                cursor.execute('''
+                    SELECT id FROM alliance_invitations
+                    WHERE alliance_id = %s AND invitee_id = %s AND status = 'pending'
+                ''', (alliance_id, invitee_id))
+            else:
+                cursor.execute('''
+                    SELECT id FROM alliance_invitations
+                    WHERE alliance_id = ? AND invitee_id = ? AND status = 'pending'
+                ''', (alliance_id, invitee_id))
 
             return cursor.fetchone() is not None
 
     def get_invitation(self, invitation_id):
         """Get invitation details"""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                SELECT ai.*, a.name as alliance_name
-                FROM alliance_invitations ai
-                JOIN alliances a ON ai.alliance_id = a.id
-                WHERE ai.id = %s
-            ''', (invitation_id,))
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+            if self.db.use_mysql:
+                cursor.execute('''
+                    SELECT ai.*, a.name as alliance_name
+                    FROM alliance_invitations ai
+                    JOIN alliances a ON ai.alliance_id = a.id
+                    WHERE ai.id = %s
+                ''', (invitation_id,))
+            else:
+                cursor.execute('''
+                    SELECT ai.*, a.name as alliance_name
+                    FROM alliance_invitations ai
+                    JOIN alliances a ON ai.alliance_id = a.id
+                    WHERE ai.id = ?
+                ''', (invitation_id,))
 
             result = cursor.fetchone()
             return dict(result) if result else None
@@ -253,11 +377,20 @@ class AllianceSystem:
                 return self.disband_alliance(alliance['alliance_id'])
 
         with self.db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                DELETE FROM alliance_members 
-                WHERE alliance_id = %s AND player_id = %s
-            ''', (alliance['alliance_id'], player_id))
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+            if self.db.use_mysql:
+                cursor.execute('''
+                    DELETE FROM alliance_members 
+                    WHERE alliance_id = %s AND user_id = %s
+                ''', (alliance['alliance_id'], player_id))
+            else:
+                cursor.execute('''
+                    DELETE FROM alliance_members 
+                    WHERE alliance_id = ? AND user_id = ?
+                ''', (alliance['alliance_id'], player_id))
             conn.commit()
 
         return {
@@ -268,16 +401,28 @@ class AllianceSystem:
     def disband_alliance(self, alliance_id):
         """Disband alliance"""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
 
             # Remove all members
-            cursor.execute('DELETE FROM alliance_members WHERE alliance_id = %s', (alliance_id,))
+            if self.db.use_mysql:
+                cursor.execute('DELETE FROM alliance_members WHERE alliance_id = %s', (alliance_id,))
+            else:
+                cursor.execute('DELETE FROM alliance_members WHERE alliance_id = ?', (alliance_id,))
 
             # Remove all invitations
-            cursor.execute('DELETE FROM alliance_invitations WHERE alliance_id = %s', (alliance_id,))
+            if self.db.use_mysql:
+                cursor.execute('DELETE FROM alliance_invitations WHERE alliance_id = %s', (alliance_id,))
+            else:
+                cursor.execute('DELETE FROM alliance_invitations WHERE alliance_id = ?', (alliance_id,))
 
             # Remove alliance
-            cursor.execute('DELETE FROM alliances WHERE id = %s', (alliance_id,))
+            if self.db.use_mysql:
+                cursor.execute('DELETE FROM alliances WHERE id = %s', (alliance_id,))
+            else:
+                cursor.execute('DELETE FROM alliances WHERE id = ?', (alliance_id,))
 
             conn.commit()
 
@@ -286,15 +431,24 @@ class AllianceSystem:
     def get_all_players(self):
         """Get all players"""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
             cursor.execute('SELECT user_id, country_name FROM players')
             return [dict(row) for row in cursor.fetchall()]
 
     def get_player(self, player_id):
         """Get player details"""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('SELECT user_id, country_name FROM players WHERE user_id = %s', (player_id,))
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+            if self.db.use_mysql:
+                cursor.execute('SELECT user_id, country_name FROM players WHERE user_id = %s', (player_id,))
+            else:
+                cursor.execute('SELECT user_id, country_name FROM players WHERE user_id = ?', (player_id,))
             result = cursor.fetchone()
             return dict(result) if result else None
 
@@ -374,7 +528,7 @@ class AllianceSystem:
             ]
             if alliance['role'] == 'leader':
                 keyboard.append([InlineKeyboardButton("انحلال اتحاد", callback_data="disband_alliance")])
-            
+
             await query.edit_message_text(
                 f"🏛 منوی اتحاد: {alliance['name']}\n\n"
                 f"توضیحات: {alliance.get('description', 'بدون توضیحات')}\n"
@@ -517,13 +671,16 @@ class AllianceSystem:
     def get_last_invitation_id(self, invitee_id, alliance_id=None):
         """Get the ID of the last pending invitation for a player."""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            query = "SELECT id FROM alliance_invitations WHERE invitee_id = %s AND status = 'pending'"
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+            query = "SELECT id FROM alliance_invitations WHERE invitee_id = ?"
             params = [invitee_id]
             if alliance_id is not None:
-                query += " AND alliance_id = %s"
+                query += " AND alliance_id = ?"
                 params.append(alliance_id)
-            query += " ORDER BY created_at DESC LIMIT 1"
+            query += " AND status = 'pending' ORDER BY created_at DESC LIMIT 1"
             cursor.execute(query, tuple(params))
             result = cursor.fetchone()
             return result[0] if result else None
