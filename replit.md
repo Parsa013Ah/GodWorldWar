@@ -21,7 +21,8 @@ Preferred communication style: Simple, everyday language.
 - ✅ **FIXED: Weapon production system working correctly** - weapons are being added to database
 - ✅ **FIXED: Trident 2 requirements** - corrected to require 13 bombs instead of 12
 - ✅ **CONFIRMED: User has 4 rifles in database** - production successful
-- 🔍 **INVESTIGATING: UI display issue** - weapons may not refresh properly in military menu
+- ✅ **FIXED: Military menu display** - now shows comprehensive weapon inventory with categorization
+- ✅ **ADDED: Distance-based attack system** - weapons are restricted by range based on country proximity
 
 ## System Architecture
 

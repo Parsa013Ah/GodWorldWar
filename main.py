@@ -424,21 +424,54 @@ class DragonRPBot:
         weapons = self.db.get_player_weapons(user_id)
         logger.info(f"Military menu for user {user_id}: rifle={weapons.get('rifle', 0)}, weapons={weapons}")
 
+        # Count total weapons for summary
+        weapon_counts = {}
+        basic_weapons = ['rifle', 'tank', 'fighter_jet', 'drone', 'missile', 'warship']
+        defense_weapons = ['air_defense', 'missile_shield', 'cyber_shield']
+        bombs = ['simple_bomb', 'nuclear_bomb']
+        missiles = ['simple_missile', 'ballistic_missile', 'nuclear_missile', 'trident2_conventional', 'trident2_nuclear', 'satan2_conventional', 'satan2_nuclear', 'df41_nuclear', 'tomahawk_conventional', 'tomahawk_nuclear', 'kalibr_conventional']
+        jets = ['jet', 'f22', 'f35', 'su57', 'j20', 'f15ex', 'su35s']
+        naval = ['submarine', 'destroyer', 'aircraft_carrier', 'patrol_ship', 'patrol_boat', 'amphibious_ship', 'aircraft_carrier_full', 'nuclear_submarine']
+        transport = ['armored_truck', 'cargo_helicopter', 'cargo_plane', 'escort_frigate', 'logistics_drone', 'heavy_transport', 'supply_ship', 'stealth_transport']
+        tanks = ['kf51_panther', 'abrams_x', 'm1e3_abrams', 't90ms_proryv', 'm1a2_abrams_sepv3']
+        advanced_defense = ['s500_defense', 'thaad_defense', 's400_defense', 'iron_dome', 'slq32_ew', 'phalanx_ciws']
+        other = ['helicopter', 'strategic_bomber']
+
+        weapon_counts['basic'] = sum(weapons.get(w, 0) for w in basic_weapons)
+        weapon_counts['defense'] = sum(weapons.get(w, 0) for w in defense_weapons + advanced_defense)
+        weapon_counts['bombs'] = sum(weapons.get(w, 0) for w in bombs)
+        weapon_counts['missiles'] = sum(weapons.get(w, 0) for w in missiles)
+        weapon_counts['jets'] = sum(weapons.get(w, 0) for w in jets)
+        weapon_counts['naval'] = sum(weapons.get(w, 0) for w in naval)
+        weapon_counts['transport'] = sum(weapons.get(w, 0) for w in transport)
+        weapon_counts['tanks'] = sum(weapons.get(w, 0) for w in tanks)
+        weapon_counts['other'] = sum(weapons.get(w, 0) for w in other)
+
         menu_text = f"""⚔️ مدیریت نظامی - {player['country_name']}
 
 👥 جمعیت: {player['population']:,}
 ⚔️سربازان: {player['soldiers']:,}
 
-🔫 تسلیحات موجود:
-🔫 تفنگ: {weapons.get('rifle', 0)}
-🚗 تانک: {weapons.get('tank', 0)}
-✈️ جنگنده: {weapons.get('fighter_jet', 0)}
-🚁 پهپاد: {weapons.get('drone', 0)}
-🚀 موشک بالستیک: {weapons.get('missile', 0)}
-🚢 کشتی جنگی: {weapons.get('warship', 0)}
-🛡 پدافند هوایی: {weapons.get('air_defense', 0)}
-🚀 سپر موشکی: {weapons.get('missile_shield', 0)}
-💻 سپر سایبری: {weapons.get('cyber_shield', 0)}
+🔫 خلاصه تسلیحات:
+🔫 سلاح‌های پایه: {weapon_counts['basic']:,}
+🛡 سیستم‌های دفاعی: {weapon_counts['defense']:,}
+💣 بمب‌ها: {weapon_counts['bombs']:,}
+🚀 موشک‌ها: {weapon_counts['missiles']:,}
+✈️ جنگنده‌ها: {weapon_counts['jets']:,}
+🚢 نیروی دریایی: {weapon_counts['naval']:,}
+🚚 نقل و انتقال: {weapon_counts['transport']:,}
+🛡 تانک‌های پیشرفته: {weapon_counts['tanks']:,}
+🚁 سایر: {weapon_counts['other']:,}
+
+📊 جزئیات اصلی:
+🔫 تفنگ: {weapons.get('rifle', 0):,}
+🚗 تانک: {weapons.get('tank', 0):,}
+✈️ جنگنده: {weapons.get('fighter_jet', 0):,}
+💣 بمب هسته‌ای: {weapons.get('nuclear_bomb', 0):,}
+🚀 موشک بالستیک: {weapons.get('ballistic_missile', 0):,}
+🚀 Trident 2 هسته‌ای: {weapons.get('trident2_nuclear', 0):,}
+🚀 Satan 2 هسته‌ای: {weapons.get('satan2_nuclear', 0):,}
+✈️ F-22: {weapons.get('f22', 0):,}
 
 انتخاب کنید:"""
 
@@ -711,27 +744,71 @@ class DragonRPBot:
         await query.edit_message_text(menu_text, reply_markup=keyboard)
 
     async def show_attack_targets(self, query, context):
-        """Show available attack targets"""
+        """Show available attack targets based on distance and available weapons"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
+        weapons = self.db.get_player_weapons(user_id)
+        attacker_country = player['country_code']
 
-        available_targets = self.combat.get_available_targets(user_id)
+        # Get all countries
+        all_countries = self.db.get_all_countries()
+        available_targets = []
+        
+        for target in all_countries:
+            if target['user_id'] != user_id:  # Can't attack yourself
+                target_country = target['country_code']
+                
+                # Check what weapons can attack this target
+                available_weapons = Config.get_available_weapons_for_attack(
+                    attacker_country, target_country, weapons
+                )
+                
+                if available_weapons:
+                    distance_type = Config.get_country_distance_type(attacker_country, target_country)
+                    target['distance_type'] = distance_type
+                    target['available_weapons_count'] = len(available_weapons)
+                    available_targets.append(target)
 
         if not available_targets:
             await query.edit_message_text(
                 "⚔️ هیچ کشور قابل حمله‌ای یافت نشد!\n\n"
-                "💡 برای حمله به کشورهای دور، به تسلیحات دوربرد نیاز دارید."
+                "💡 برای حمله به کشورهای مختلف نیاز دارید:\n"
+                "🔫 همسایه‌ها: همه سلاح‌ها\n"
+                "✈️ منطقه‌ای: جت‌ها و موشک‌ها\n"
+                "🚀 بین‌قاره‌ای: فقط موشک‌های دوربرد",
+                reply_markup=self.keyboards.back_to_military_keyboard()
             )
             return
 
         menu_text = f"⚔️ انتخاب هدف حمله - {player['country_name']}\n\n"
-        menu_text += "کشورهای قابل حمله:\n"
+        
+        # Group targets by distance
+        neighbors = [t for t in available_targets if t['distance_type'] == 'neighbor']
+        regional = [t for t in available_targets if t['distance_type'] == 'regional'] 
+        intercontinental = [t for t in available_targets if t['distance_type'] == 'intercontinental']
+        
+        if neighbors:
+            menu_text += "🔫 همسایه‌ها (همه سلاح‌ها):\n"
+            for target in neighbors:
+                flag = Config.COUNTRY_FLAGS.get(target['country_code'], '🏳')
+                menu_text += f"{flag} {target['country_name']} ({target['available_weapons_count']} نوع سلاح)\n"
+            menu_text += "\n"
+        
+        if regional:
+            menu_text += "✈️ منطقه‌ای (جت‌ها و موشک‌ها):\n"
+            for target in regional:
+                flag = Config.COUNTRY_FLAGS.get(target['country_code'], '🏳')
+                menu_text += f"{flag} {target['country_name']} ({target['available_weapons_count']} نوع سلاح)\n"
+            menu_text += "\n"
+        
+        if intercontinental:
+            menu_text += "🚀 بین‌قاره‌ای (فقط موشک‌های دوربرد):\n"
+            for target in intercontinental:
+                flag = Config.COUNTRY_FLAGS.get(target['country_code'], '🏳')
+                menu_text += f"{flag} {target['country_name']} ({target['available_weapons_count']} نوع سلاح)\n"
+            menu_text += "\n"
 
-        for target in available_targets:
-            flag = Config.COUNTRY_FLAGS.get(target['country_code'], '🏳')
-            menu_text += f"{flag} {target['country_name']}\n"
-
-        menu_text += "\nانتخاب کنید:"
+        menu_text += "انتخاب کنید:"
 
         keyboard = self.keyboards.attack_targets_keyboard(available_targets)
         await query.edit_message_text(menu_text, reply_markup=keyboard)
@@ -752,27 +829,62 @@ class DragonRPBot:
         await query.edit_message_text(menu_text, reply_markup=keyboard)
 
     async def show_weapon_selection_for_attack(self, query, context):
-        """Show weapon selection for attack"""
+        """Show weapon selection for attack based on distance and range"""
         user_id = query.from_user.id
         data_parts = query.data.split("_")
         target_id = int(data_parts[2])
         attack_type = data_parts[3]
 
-        available_weapons = self.db.get_player_weapons(user_id)
+        # Get player and target information
+        player = self.db.get_player(user_id)
+        target = self.db.get_player(target_id)
+        
+        if not target:
+            await query.edit_message_text("❌ کشور هدف یافت نشد!")
+            return
+        
+        # Get player weapons
+        player_weapons = self.db.get_player_weapons(user_id)
+        
+        # Get weapons that can attack this target based on distance
+        available_weapons = Config.get_available_weapons_for_attack(
+            player['country_code'], target['country_code'], player_weapons
+        )
 
-        # Check if player has any weapons
-        has_weapons = any(count > 0 for weapon, count in available_weapons.items() if weapon != 'user_id')
-
-        if not has_weapons:
+        if not available_weapons:
+            distance_type = Config.get_country_distance_type(player['country_code'], target['country_code'])
             keyboard = self.keyboards.back_to_military_keyboard()
-            await query.edit_message_text(
-                "❌ شما هیچ تسلیحاتی برای حمله ندارید!\n\n"
-                "ابتدا از بخش تسلیحات، سلاح‌هایی تولید کنید.",
-                reply_markup=keyboard
-            )
+            
+            if distance_type == 'neighbor':
+                message = f"❌ تسلیحات کافی برای حمله به {target['country_name']} ندارید!"
+            elif distance_type == 'regional':
+                message = f"❌ برای حمله به {target['country_name']} نیاز به جت یا موشک دارید!"
+            else:
+                message = f"❌ برای حمله به {target['country_name']} فقط موشک‌های دوربرد استفاده کنید!"
+            
+            await query.edit_message_text(message, reply_markup=keyboard)
             return
 
-        menu_text = f"⚔️ انتخاب تسلیحات برای حمله {attack_type}\n\nتسلیحات خود را انتخاب کنید:"
+        # Display available weapons for this distance
+        distance_type = Config.get_country_distance_type(player['country_code'], target['country_code'])
+        
+        menu_text = f"⚔️ انتخاب تسلیحات برای حمله به {target['country_name']}\n\n"
+        
+        if distance_type == 'neighbor':
+            menu_text += "🔫 همسایه - همه سلاح‌ها قابل استفاده:\n"
+        elif distance_type == 'regional':
+            menu_text += "✈️ منطقه‌ای - جت‌ها و موشک‌ها:\n"
+        else:
+            menu_text += "🚀 بین‌قاره‌ای - فقط موشک‌های دوربرد:\n"
+        
+        # List available weapons
+        for weapon_type, quantity in available_weapons.items():
+            weapon_config = Config.WEAPONS.get(weapon_type, {})
+            weapon_name = weapon_config.get('name', weapon_type)
+            emoji = weapon_config.get('emoji', '⚔️')
+            menu_text += f"{emoji} {weapon_name}: {quantity:,}\n"
+        
+        menu_text += f"\nنوع حمله: {attack_type}\nانتخاب کنید:"
 
         keyboard = self.keyboards.weapon_selection_keyboard(target_id, attack_type, available_weapons)
         await query.edit_message_text(menu_text, reply_markup=keyboard)

@@ -11,7 +11,7 @@ class CombatSystem:
         self.db = database
 
     def can_attack_country(self, attacker_id, defender_id):
-        """Check if attacker can attack defender"""
+        """Check if attacker can attack defender based on distance and available weapons"""
         attacker = self.db.get_player(attacker_id)
         defender = self.db.get_player(defender_id)
 
@@ -23,26 +23,25 @@ class CombatSystem:
 
         attacker_country = attacker['country_code']
         defender_country = defender['country_code']
-
-        # Check if neighbors
-        if self.are_neighbors(attacker_country, defender_country):
-            return True, "کشورهای همسایه - حمله مجاز"
-
-        # Check long range weapons
+        
+        # Get player weapons
         weapons = self.db.get_player_weapons(attacker_id)
-        has_long_range = False
-
-        for weapon_type, count in weapons.items():
-            if count > 0 and weapon_type in Config.WEAPONS:
-                weapon_range = Config.WEAPONS[weapon_type].get('range', 0)
-                if weapon_range >= 3000:
-                    has_long_range = True
-                    break
-
-        if has_long_range:
-            return True, "دارای تسلیحات با برد بالا"
-
-        return False, "فاصله زیاد - نیاز به تسلیحات دوربرد"
+        
+        # Get available weapons for this distance
+        available_weapons = Config.get_available_weapons_for_attack(
+            attacker_country, defender_country, weapons
+        )
+        
+        if not available_weapons:
+            distance_type = Config.get_country_distance_type(attacker_country, defender_country)
+            if distance_type == 'neighbor':
+                return False, "تسلیحات کافی برای حمله به همسایه ندارید"
+            elif distance_type == 'regional':
+                return False, "برای حمله منطقه‌ای نیاز به جت یا موشک دارید"
+            else:
+                return False, "برای حمله بین‌قاره‌ای فقط موشک‌های دوربرد استفاده کنید"
+        
+        return True, f"حمله مجاز - {len(available_weapons)} نوع سلاح در دسترس"
 
     def are_neighbors(self, country1, country2):
         """Check if two countries are neighbors"""

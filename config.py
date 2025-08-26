@@ -291,6 +291,69 @@ class Config:
         'south_asia': ['IN']
     }
 
+    # Weapon range categories for distance-based combat
+    WEAPON_RANGES = {
+        'neighbor_only': ['rifle', 'tank', 'drone', 'air_defense', 'missile_shield', 'cyber_shield'],  # فقط همسایه
+        'regional': ['fighter_jet', 'jet', 'f22', 'f35', 'su57', 'j20', 'f15ex', 'su35s', 'warship', 'submarine', 'destroyer'],  # تا منطقه‌ای
+        'intercontinental': ['missile', 'ballistic_missile', 'nuclear_missile', 'simple_missile', 'trident2_conventional', 'trident2_nuclear', 'satan2_conventional', 'satan2_nuclear', 'df41_nuclear', 'tomahawk_conventional', 'tomahawk_nuclear', 'kalibr_conventional']  # بین قاره‌ای
+    }
+
+    @classmethod
+    def get_country_distance_type(cls, country1, country2):
+        """Get distance type between two countries"""
+        if cls.are_countries_neighbors(country1, country2):
+            return 'neighbor'
+        
+        # Find regions for both countries
+        region1 = None
+        region2 = None
+        
+        for region, countries in cls.COUNTRY_DISTANCE_CATEGORY.items():
+            if country1 in countries:
+                region1 = region
+            if country2 in countries:
+                region2 = region
+        
+        if region1 == region2:
+            return 'regional'
+        else:
+            return 'intercontinental'
+
+    @classmethod 
+    def are_countries_neighbors(cls, country1, country2):
+        """Check if two countries are neighbors"""
+        return country2 in cls.COUNTRY_NEIGHBORS.get(country1, [])
+    
+    @classmethod
+    def can_attack_with_weapon(cls, weapon_type, country1, country2):
+        """Check if a weapon can attack from country1 to country2"""
+        distance_type = cls.get_country_distance_type(country1, country2)
+        
+        # همسایه - همه سلاح‌ها
+        if distance_type == 'neighbor':
+            return True
+        
+        # منطقه‌ای - فقط جت‌ها و موشک‌ها
+        elif distance_type == 'regional':
+            return weapon_type in cls.WEAPON_RANGES['regional'] + cls.WEAPON_RANGES['intercontinental']
+        
+        # بین قاره‌ای - فقط موشک‌های دوربرد
+        elif distance_type == 'intercontinental':
+            return weapon_type in cls.WEAPON_RANGES['intercontinental']
+        
+        return False
+    
+    @classmethod
+    def get_available_weapons_for_attack(cls, attacker_country, target_country, player_weapons):
+        """Get weapons that can attack from attacker to target country"""
+        available_weapons = {}
+        
+        for weapon_type, quantity in player_weapons.items():
+            if quantity > 0 and cls.can_attack_with_weapon(weapon_type, attacker_country, target_country):
+                available_weapons[weapon_type] = quantity
+        
+        return available_weapons
+
     # Bot configuration
     BOT_CONFIG = {
         'news_channel': '@Dragon0RP',
