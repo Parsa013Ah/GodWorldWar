@@ -42,7 +42,7 @@ class Database:
                     username TEXT NOT NULL,
                     country_code TEXT UNIQUE NOT NULL,
                     country_name TEXT NOT NULL,
-                    money INTEGER DEFAULT 100000,
+                    money INTEGER DEFAULT 900000,
                     population INTEGER DEFAULT 1000000,
                     soldiers INTEGER DEFAULT 0,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
