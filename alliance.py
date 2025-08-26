@@ -3,6 +3,7 @@ from datetime import datetime
 from config import Config
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
+import mysql.connector
 
 logger = logging.getLogger(__name__)
 
@@ -14,12 +15,12 @@ class AllianceSystem:
     def setup_alliance_tables(self):
         """Setup alliance tables in database"""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor()
+            cursor = conn.cursor(dictionary=True)
 
             # Alliances table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS alliances (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id INT PRIMARY KEY AUTO_INCREMENT,
                     name TEXT NOT NULL,
                     leader_id INTEGER NOT NULL,
                     description TEXT,
@@ -44,7 +45,7 @@ class AllianceSystem:
             # Alliance invitations table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS alliance_invitations (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id INT PRIMARY KEY AUTO_INCREMENT,
                     alliance_id INTEGER NOT NULL,
                     inviter_id INTEGER NOT NULL,
                     invitee_id INTEGER NOT NULL,
@@ -65,7 +66,7 @@ class AllianceSystem:
             return {'success': False, 'message': 'شما قبلاً عضو یک اتحاد هستید!'}
 
         with self.db.get_connection() as conn:
-            cursor = conn.cursor()
+            cursor = conn.cursor(dictionary=True)
 
             # Create alliance
             cursor.execute('''
@@ -110,7 +111,7 @@ class AllianceSystem:
             return {'success': False, 'message': 'دعوت‌نامه قبلاً ارسال شده!'}
 
         with self.db.get_connection() as conn:
-            cursor = conn.cursor()
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 INSERT INTO alliance_invitations (alliance_id, inviter_id, invitee_id)
                 VALUES (?, ?, ?)
@@ -134,7 +135,7 @@ class AllianceSystem:
             return {'success': False, 'message': 'این دعوت‌نامه قبلاً پاسخ داده شده!'}
 
         with self.db.get_connection() as conn:
-            cursor = conn.cursor()
+            cursor = conn.cursor(dictionary=True)
 
             if response == 'accept':
                 # Add to alliance
@@ -174,7 +175,7 @@ class AllianceSystem:
     def get_player_alliance(self, player_id):
         """Get player's current alliance"""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor()
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 SELECT a.id as alliance_id, a.name as alliance_name, 
                        am.role, a.leader_id, a.description
@@ -189,7 +190,7 @@ class AllianceSystem:
     def get_alliance_members(self, alliance_id):
         """Get alliance members"""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor()
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 SELECT p.user_id, p.country_name, p.username, am.role, am.joined_at
                 FROM alliance_members am
@@ -203,7 +204,7 @@ class AllianceSystem:
     def get_pending_invitations(self, player_id):
         """Get pending invitations for player"""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor()
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 SELECT ai.id, a.name as alliance_name, p.country_name as inviter_country,
                        ai.created_at
@@ -219,7 +220,7 @@ class AllianceSystem:
     def get_pending_invitation(self, alliance_id, invitee_id):
         """Check for existing pending invitation"""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor()
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 SELECT id FROM alliance_invitations
                 WHERE alliance_id = ? AND invitee_id = ? AND status = 'pending'
@@ -230,7 +231,7 @@ class AllianceSystem:
     def get_invitation(self, invitation_id):
         """Get invitation details"""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor()
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 SELECT ai.*, a.name as alliance_name
                 FROM alliance_invitations ai
@@ -258,7 +259,7 @@ class AllianceSystem:
                 return self.disband_alliance(alliance['alliance_id'])
 
         with self.db.get_connection() as conn:
-            cursor = conn.cursor()
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 DELETE FROM alliance_members 
                 WHERE alliance_id = ? AND player_id = ?
@@ -273,7 +274,7 @@ class AllianceSystem:
     def disband_alliance(self, alliance_id):
         """Disband alliance"""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor()
+            cursor = conn.cursor(dictionary=True)
 
             # Remove all members
             cursor.execute('DELETE FROM alliance_members WHERE alliance_id = ?', (alliance_id,))
@@ -291,14 +292,14 @@ class AllianceSystem:
     def get_all_players(self):
         """Get all players"""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor()
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('SELECT user_id, country_name FROM players')
             return [dict(row) for row in cursor.fetchall()]
 
     def get_player(self, player_id):
         """Get player details"""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor()
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('SELECT user_id, country_name FROM players WHERE user_id = ?', (player_id,))
             result = cursor.fetchone()
             return dict(result) if result else None
@@ -522,7 +523,7 @@ class AllianceSystem:
     def get_last_invitation_id(self, invitee_id, alliance_id=None):
         """Get the ID of the last pending invitation for a player."""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor()
+            cursor = conn.cursor(dictionary=True)
             query = "SELECT id FROM alliance_invitations WHERE invitee_id = ? AND status = 'pending'"
             params = [invitee_id]
             if alliance_id is not None:

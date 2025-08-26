@@ -1,6 +1,5 @@
 
-import psycopg2
-import psycopg2.extras
+import mysql.connector
 import logging
 from datetime import datetime
 import json
@@ -11,22 +10,30 @@ logger = logging.getLogger(__name__)
 
 class Database:
     def __init__(self):
-        self.database_url = os.getenv('DATABASE_URL')
+        # Use environment variable or fallback to your MariaDB config
+        self.connection_config = {
+            'host': os.getenv('DB_HOST', 'localhost'),
+            'database': os.getenv('DB_NAME', 'ggame'),
+            'user': os.getenv('DB_USER', 'Parsa'),
+            'password': os.getenv('DB_PASS', '^c*6%@5697Af%n*306U%9Z^&9'),
+            'port': int(os.getenv('DB_PORT', 3306)),
+            'charset': 'utf8mb4',
+            'autocommit': True
+        }
 
     def get_connection(self):
         """Get database connection"""
         try:
-            conn = psycopg2.connect(self.database_url)
-            conn.autocommit = True
+            conn = mysql.connector.connect(**self.connection_config)
             return conn
-        except psycopg2.Error as e:
-            logger.error(f"Error connecting to PostgreSQL: {e}")
+        except mysql.connector.Error as e:
+            logger.error(f"Error connecting to MariaDB: {e}")
             raise
 
     def initialize(self):
         """Initialize database tables"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
 
             # Players table
             cursor.execute('''
@@ -162,7 +169,7 @@ class Database:
             # Wars table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS wars (
-                    id BIGSERIAL PRIMARY KEY,
+                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
                     attacker_id BIGINT NOT NULL,
                     defender_id BIGINT NOT NULL,
                     attack_power BIGINT NOT NULL,
@@ -179,7 +186,7 @@ class Database:
             # Convoys table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS convoys (
-                    id BIGSERIAL PRIMARY KEY,
+                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
                     sender_id BIGINT NOT NULL,
                     receiver_id BIGINT NOT NULL,
                     resources TEXT NOT NULL,
@@ -196,7 +203,7 @@ class Database:
             # Pending attacks table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS pending_attacks (
-                    id BIGSERIAL PRIMARY KEY,
+                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
                     attacker_id INTEGER NOT NULL,
                     defender_id INTEGER NOT NULL,
                     attack_type TEXT DEFAULT 'mixed',
@@ -213,7 +220,7 @@ class Database:
             # Admin logs table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS admin_logs (
-                    id BIGSERIAL PRIMARY KEY,
+                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
                     admin_id INTEGER NOT NULL,
                     action TEXT NOT NULL,
                     target_id INTEGER,
@@ -225,7 +232,7 @@ class Database:
             # Marketplace listings
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS marketplace_listings (
-                id BIGSERIAL PRIMARY KEY,
+                id BIGINT PRIMARY KEY AUTO_INCREMENT,
                 seller_id INTEGER NOT NULL,
                 item_name TEXT NOT NULL,
                 item_type TEXT NOT NULL,
@@ -241,7 +248,7 @@ class Database:
             # Market transactions table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS market_transactions (
-                    id BIGSERIAL PRIMARY KEY,
+                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
                     listing_id INTEGER NOT NULL,
                     buyer_id INTEGER NOT NULL,
                     seller_id INTEGER NOT NULL,
@@ -260,7 +267,7 @@ class Database:
             # Purchase tracking table for preventing duplicate news
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS purchase_tracking (
-                    id BIGSERIAL PRIMARY KEY,
+                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
                     buyer_id INTEGER NOT NULL,
                     item_type TEXT NOT NULL,
                     first_purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -272,7 +279,7 @@ class Database:
             # Build tracking table for preventing duplicate news
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS build_tracking (
-                    id BIGSERIAL PRIMARY KEY,
+                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
                     builder_id INTEGER NOT NULL,
                     item_type TEXT NOT NULL,
                     first_build_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -289,7 +296,7 @@ class Database:
         """Create a new player"""
         try:
             with self.get_connection() as conn:
-                cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                cursor = conn.cursor(dictionary=True)
 
                 country_name = Config.COUNTRIES.get(country_code, country_code)
 
@@ -329,7 +336,7 @@ class Database:
     def get_player(self, user_id):
         """Get player information"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('SELECT * FROM players WHERE user_id = %s', (user_id,))
             result = cursor.fetchone()
             cursor.close()
@@ -338,7 +345,7 @@ class Database:
     def get_all_players(self):
         """Get all players"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('SELECT * FROM players ORDER BY country_name')
             result = cursor.fetchall()
             cursor.close()
@@ -348,7 +355,7 @@ class Database:
         """Set player building count to specific value"""
         try:
             with self.get_connection() as conn:
-                cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                cursor = conn.cursor(dictionary=True)
                 query = f'''
                     UPDATE buildings 
                     SET {building_type} = %s
@@ -367,7 +374,7 @@ class Database:
         """Update player money, population, and soldiers (for income cycle)"""
         try:
             with self.get_connection() as conn:
-                cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                cursor = conn.cursor(dictionary=True)
                 cursor.execute('''
                     UPDATE players 
                     SET money = %s, population = %s, soldiers = %s
@@ -384,7 +391,7 @@ class Database:
     def get_all_countries(self):
         """Get all countries with players"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('SELECT user_id, username, country_name, country_code FROM players ORDER BY country_name')
             result = cursor.fetchall()
             cursor.close()
@@ -393,7 +400,7 @@ class Database:
     def is_country_taken(self, country_code):
         """Check if country is already taken"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('SELECT 1 FROM players WHERE country_code = %s', (country_code,))
             result = cursor.fetchone()
             cursor.close()
@@ -402,7 +409,7 @@ class Database:
     def get_player_resources(self, user_id):
         """Get player resources"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('SELECT * FROM resources WHERE user_id = %s', (user_id,))
             result = cursor.fetchone()
             cursor.close()
@@ -411,7 +418,7 @@ class Database:
     def get_player_buildings(self, user_id):
         """Get player buildings"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('SELECT * FROM buildings WHERE user_id = %s', (user_id,))
             result = cursor.fetchone()
             cursor.close()
@@ -420,7 +427,7 @@ class Database:
     def get_player_weapons(self, user_id):
         """Get player weapons"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('SELECT * FROM weapons WHERE user_id = %s', (user_id,))
             result = cursor.fetchone()
             cursor.close()
@@ -435,7 +442,7 @@ class Database:
         """Update player money"""
         try:
             with self.get_connection() as conn:
-                cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                cursor = conn.cursor(dictionary=True)
                 cursor.execute("""
                     UPDATE players SET money = %s WHERE user_id = %s
                 """, (new_amount, user_id))
@@ -451,7 +458,7 @@ class Database:
         """Update player population"""
         try:
             with self.get_connection() as conn:
-                cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                cursor = conn.cursor(dictionary=True)
                 cursor.execute(
                     "UPDATE players SET population = %s WHERE user_id = %s",
                     (new_population, user_id)
@@ -466,7 +473,7 @@ class Database:
     def update_player_soldiers(self, user_id, new_soldiers):
         """Update player's soldiers count"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 UPDATE players 
                 SET soldiers = %s
@@ -478,7 +485,7 @@ class Database:
     def update_resource(self, user_id, resource_type, new_amount):
         """Update specific resource amount"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             query = f'''
                 UPDATE resources 
                 SET {resource_type} = %s
@@ -491,7 +498,7 @@ class Database:
     def update_building_count(self, user_id, building_type, new_count):
         """Update building count"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             query = f'''
                 UPDATE buildings 
                 SET {building_type} = %s
@@ -504,7 +511,7 @@ class Database:
     def add_building(self, user_id, building_type):
         """Add a building to player"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             query = f'''
                 UPDATE buildings 
                 SET {building_type} = {building_type} + 1 
@@ -586,7 +593,7 @@ class Database:
         logger.info(f"Mapped weapon_type '{weapon_type}' to column '{column_name}'")
 
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             
             # Check if user exists in weapons table
             cursor.execute('SELECT COUNT(*) FROM weapons WHERE user_id = %s', (user_id,))
@@ -629,7 +636,7 @@ class Database:
     def add_resources(self, user_id, resource_type, quantity):
         """Add resources to player"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             query = f'''
                 UPDATE resources 
                 SET {resource_type} = {resource_type} + %s 
@@ -642,7 +649,7 @@ class Database:
     def subtract_resources(self, user_id, resource_type, quantity):
         """Subtract resources from player"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             query = f'''
                 UPDATE resources 
                 SET {resource_type} = {resource_type} - %s 
@@ -655,7 +662,7 @@ class Database:
     def consume_resources(self, user_id, resources_needed):
         """Consume resources from player"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
 
             # Check if player has enough resources
             current_resources = self.get_player_resources(user_id)
@@ -680,7 +687,7 @@ class Database:
     def log_admin_action(self, admin_id, action, target_id=None, details=None):
         """Log admin action"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 INSERT INTO admin_logs (admin_id, action, target_id, details)
                 VALUES (%s, %s, %s, %s)
@@ -691,7 +698,7 @@ class Database:
     def get_admin_logs(self, limit=50):
         """Get admin logs"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 SELECT * FROM admin_logs 
                 ORDER BY created_at DESC 
@@ -704,7 +711,7 @@ class Database:
     def delete_player(self, user_id):
         """Delete player and all related data"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
 
             # Delete from all tables (CASCADE will handle related data)
             cursor.execute('DELETE FROM players WHERE user_id = %s', (user_id,))
@@ -716,7 +723,7 @@ class Database:
     def update_weapon_count(self, user_id, weapon_type, new_count):
         """Update weapon count"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             query = f'''
                 UPDATE weapons 
                 SET {weapon_type} = %s 
@@ -734,7 +741,7 @@ class Database:
     def get_active_convoys(self):
         """Get all active convoys in transit"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 SELECT c.*, 
                        s.country_name as sender_country,
@@ -758,7 +765,7 @@ class Database:
         arrival_time = datetime.now() + timedelta(minutes=travel_minutes)
 
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 INSERT INTO convoys (sender_id, receiver_id, resources, arrival_time, security_level, status, created_at)
                 VALUES (%s, %s, %s, %s, %s, 'in_transit', NOW())
@@ -772,7 +779,7 @@ class Database:
     def get_convoy(self, convoy_id):
         """Get convoy details"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('SELECT * FROM convoys WHERE id = %s', (convoy_id,))
             result = cursor.fetchone()
             cursor.close()
@@ -781,7 +788,7 @@ class Database:
     def update_convoy_status(self, convoy_id, new_status):
         """Update convoy status"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('UPDATE convoys SET status = %s WHERE id = %s', (new_status, convoy_id))
             conn.commit()
             cursor.close()
@@ -789,7 +796,7 @@ class Database:
     def update_convoy_arrival(self, convoy_id, new_arrival_time, new_status):
         """Update convoy arrival time and status"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 UPDATE convoys 
                 SET arrival_time = %s, status = %s 
@@ -801,7 +808,7 @@ class Database:
     def update_convoy_security(self, convoy_id, new_security_level):
         """Update convoy security level"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 UPDATE convoys 
                 SET security_level = %s 
@@ -813,7 +820,7 @@ class Database:
     def get_arrived_convoys(self):
         """Get all convoys that have arrived at their destination"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 SELECT c.*, 
                        s.country_name as sender_country,
@@ -832,7 +839,7 @@ class Database:
     def create_pending_attack(self, attack_data):
         """Create a new pending attack"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 INSERT INTO pending_attacks (attacker_id, defender_id, attack_type, conquest_mode, travel_time, attack_time, status)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -853,7 +860,7 @@ class Database:
     def get_pending_attack(self, attack_id):
         """Get pending attack details"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('SELECT * FROM pending_attacks WHERE id = %s', (attack_id,))
             result = cursor.fetchone()
             cursor.close()
@@ -862,7 +869,7 @@ class Database:
     def get_player_pending_attacks(self, player_id):
         """Get all pending attacks for a player"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 SELECT * FROM pending_attacks 
                 WHERE attacker_id = %s AND status IN ('traveling', 'pending')
@@ -875,7 +882,7 @@ class Database:
         """Get all pending attacks that are due for execution"""
         from datetime import datetime
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             current_time = datetime.now()
             cursor.execute('''
                 SELECT * FROM pending_attacks 
@@ -888,7 +895,7 @@ class Database:
     def update_pending_attack_status(self, attack_id, new_status):
         """Update pending attack status"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('UPDATE pending_attacks SET status = %s WHERE id = %s', (new_status, attack_id))
             conn.commit()
             cursor.close()
@@ -896,7 +903,7 @@ class Database:
     def reset_all_data(self):
         """Reset all game data (admin function)"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
 
             # Drop and recreate all game tables
             tables = ['market_transactions', 'marketplace_listings', 'purchase_tracking', 'build_tracking',
@@ -914,7 +921,7 @@ class Database:
     def check_first_purchase(self, user_id, item_type):
         """Check if this is user's first purchase of this item type"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute(
                 'SELECT id FROM purchase_tracking WHERE buyer_id = %s AND item_type = %s',
                 (user_id, item_type)
@@ -926,7 +933,7 @@ class Database:
     def record_first_purchase(self, user_id, item_type):
         """Record first purchase of an item type"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 INSERT IGNORE INTO purchase_tracking (buyer_id, item_type)
                 VALUES (%s, %s)
@@ -937,7 +944,7 @@ class Database:
     def check_first_build(self, user_id, item_type):
         """Check if this is user's first build of this item type"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute(
                 'SELECT id FROM build_tracking WHERE builder_id = %s AND item_type = %s',
                 (user_id, item_type)
@@ -949,7 +956,7 @@ class Database:
     def record_first_build(self, user_id, item_type):
         """Record first build of an item type"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 INSERT IGNORE INTO build_tracking (builder_id, item_type)
                 VALUES (%s, %s)
@@ -961,7 +968,7 @@ class Database:
         """Give infinite money and resources to all players for testing"""
         try:
             with self.get_connection() as conn:
-                cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                cursor = conn.cursor(dictionary=True)
                 
                 # Give 1 billion money to all players
                 cursor.execute("UPDATE players SET money = 1000000000, population = 50000000, soldiers = 10000000")
@@ -1021,7 +1028,7 @@ class Database:
         """Clear test data from database"""
         try:
             with self.get_connection() as conn:
-                cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                cursor = conn.cursor(dictionary=True)
                 # Delete test players - CASCADE will handle related data
                 cursor.execute("DELETE FROM players WHERE user_id IN (123456, 123457, 123458)")
                 conn.commit()
