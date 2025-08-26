@@ -64,31 +64,27 @@ class Keyboards:
         """Create buildings menu keyboard"""
         keyboard = [
             [
-                InlineKeyboardButton("⛏ معدن آهن - $80K", callback_data="build_iron_mine"),
+                InlineKeyboardButton("⛏ معدن آهن - $90K", callback_data="build_iron_mine"),
                 InlineKeyboardButton("⛏ معدن مس - $100K", callback_data="build_copper_mine")
             ],
             [
                 InlineKeyboardButton("🛢 معدن نفت - $120K", callback_data="build_oil_mine"),
-                InlineKeyboardButton("⛽ معدن گاز - $110K", callback_data="build_gas_mine")
+                InlineKeyboardButton("🔗 معدن آلومینیوم - $150K", callback_data="build_aluminum_mine")
             ],
             [
-                InlineKeyboardButton("🔗 معدن آلومینیوم - $90K", callback_data="build_aluminum_mine"),
-                InlineKeyboardButton("🏆 معدن طلا - $150K", callback_data="build_gold_mine")
+                InlineKeyboardButton("🏆 معدن طلا - $300K", callback_data="build_gold_mine"),
+                InlineKeyboardButton("☢️ معدن اورانیوم - $1M", callback_data="build_uranium_mine")
             ],
             [
-                InlineKeyboardButton("☢️ معدن اورانیوم - $690K", callback_data="build_uranium_mine"),
-                InlineKeyboardButton("🔋 معدن لیتیوم - $180K", callback_data="build_lithium_mine")
+                InlineKeyboardButton("🔋 معدن لیتیوم - $180K", callback_data="build_lithium_mine"),
+                InlineKeyboardButton("⚫ معدن زغال - $80K", callback_data="build_coal_mine")
             ],
             [
-                InlineKeyboardButton("⚫ معدن زغال - $85K", callback_data="build_coal_mine"),
-                InlineKeyboardButton("🥈 معدن نقره - $140K", callback_data="build_silver_mine")
-            ],
-            [
-                InlineKeyboardButton("💥 معدن نیتر - $95K", callback_data="build_nitro_mine"),
+                InlineKeyboardButton("💥 معدن نیتر - $120K", callback_data="build_nitro_mine"),
                 InlineKeyboardButton("🌫 معدن گوگرد - $75K", callback_data="build_sulfur_mine")
             ],
             [
-                InlineKeyboardButton("🛡 معدن تیتانیوم - $250K", callback_data="build_titanium_mine")
+                InlineKeyboardButton("🛡 معدن تیتانیوم - $300K", callback_data="build_titanium_mine")
             ],
             [
                 InlineKeyboardButton("🏭 کارخانه اسلحه - $15K", callback_data="build_weapon_factory"),

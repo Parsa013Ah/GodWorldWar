@@ -107,19 +107,17 @@ class Economy:
         # Resource production
         report += "📦 تولید منابع:\n"
         resource_production = {
-            'iron_mine': ('iron', 1000, '🔩'),
-            'copper_mine': ('copper', 800, '🥉'),
+            'iron_mine': ('iron', 210, '🔩'),
+            'copper_mine': ('copper', 120, '🥉'),
             'oil_mine': ('oil', 600, '🛢'),
-            'gas_mine': ('gas', 700, '⛽'),
-            'aluminum_mine': ('aluminum', 500, '🔗'),
-            'gold_mine': ('gold', 200, '🏆'),
-            'uranium_mine': ('uranium', 18, '☢️'),
-            'lithium_mine': ('lithium', 300, '🔋'),
-            'coal_mine': ('coal', 1200, '⚫'),
-            'silver_mine': ('silver', 400, '🥈'),
+            'aluminum_mine': ('aluminum', 200, '🔗'),
+            'gold_mine': ('gold', 18, '🏆'),
+            'uranium_mine': ('uranium', 24, '☢️'),
+            'lithium_mine': ('lithium', 30, '🔋'),
+            'coal_mine': ('coal', 1000, '⚫'),
             'nitro_mine': ('nitro', 600, '💥'),
-            'sulfur_mine': ('sulfur', 900, '🟡'),
-            'titanium_mine': ('titanium', 60, '🔘')
+            'sulfur_mine': ('sulfur', 900, '🌫'),
+            'titanium_mine': ('titanium', 18, '🔘')
         }
 
         for building_type, (resource_type, production, emoji) in resource_production.items():
