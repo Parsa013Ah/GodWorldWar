@@ -11,7 +11,7 @@ BOMBS = {
         'armor': 0,
         'resources': {'nitro': 10, 'copper': 10, 'iron': 20, 'sulfur': 20},
         'category': 'bombs',
-        'description': 'بمب دستی ساده',
+        'description': 'اسیب کم و فاقد برد، بیشتر برای ساخت موشک‌های دارای کلاهک غیر هسته‌ای استفاده می‌شود',
         'requirements': ['weapon_factory'],
         'production_time': 15,
         'explosive_power': 'low'
