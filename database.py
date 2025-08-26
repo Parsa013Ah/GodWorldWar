@@ -45,6 +45,10 @@ class Database:
 
     def initialize(self):
         """Initialize database tables"""
+        # Handle schema migration for MySQL
+        if self.use_mysql:
+            self.migrate_user_id_schema()
+            
         with self.get_connection() as conn:
             if self.use_mysql:
                 cursor = conn.cursor(dictionary=True)
@@ -52,9 +56,10 @@ class Database:
                 cursor = conn.cursor()
 
             # Players table
-            cursor.execute('''
+            user_id_type = "BIGINT" if self.use_mysql else "INTEGER"
+            cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS players (
-                    user_id INTEGER PRIMARY KEY,
+                    user_id {user_id_type} PRIMARY KEY,
                     username TEXT NOT NULL,
                     country_code TEXT UNIQUE NOT NULL,
                     country_name TEXT NOT NULL,
@@ -67,9 +72,9 @@ class Database:
             ''')
 
             # Resources table
-            cursor.execute('''
+            cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS resources (
-                    user_id INTEGER PRIMARY KEY,
+                    user_id {user_id_type} PRIMARY KEY,
                     iron INTEGER DEFAULT 0,
                     copper INTEGER DEFAULT 0,
                     oil INTEGER DEFAULT 0,
@@ -88,9 +93,9 @@ class Database:
             ''')
 
             # Buildings table
-            cursor.execute('''
+            cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS buildings (
-                    user_id INTEGER PRIMARY KEY,
+                    user_id {user_id_type} PRIMARY KEY,
                     iron_mine INTEGER DEFAULT 0,
                     copper_mine INTEGER DEFAULT 0,
                     oil_mine INTEGER DEFAULT 0,
@@ -114,9 +119,9 @@ class Database:
             ''')
 
             # Weapons table
-            cursor.execute('''
+            cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS weapons (
-                    user_id INTEGER PRIMARY KEY,
+                    user_id {user_id_type} PRIMARY KEY,
                     rifle INTEGER DEFAULT 0,
                     tank INTEGER DEFAULT 0,
                     fighter_jet INTEGER DEFAULT 0,
@@ -184,8 +189,8 @@ class Database:
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS wars (
                         id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                        attacker_id INTEGER NOT NULL,
-                        defender_id INTEGER NOT NULL,
+                        attacker_id BIGINT NOT NULL,
+                        defender_id BIGINT NOT NULL,
                         attack_power BIGINT NOT NULL,
                         defense_power BIGINT NOT NULL,
                         result VARCHAR(50) NOT NULL,
@@ -214,8 +219,8 @@ class Database:
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS convoys (
                         id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                        sender_id INTEGER NOT NULL,
-                        receiver_id INTEGER NOT NULL,
+                        sender_id BIGINT NOT NULL,
+                        receiver_id BIGINT NOT NULL,
                         resources TEXT NOT NULL,
                         departure_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         arrival_time TIMESTAMP NOT NULL,
@@ -246,8 +251,8 @@ class Database:
             cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS pending_attacks (
                     id {id_type} PRIMARY KEY {auto_increment},
-                    attacker_id INTEGER NOT NULL,
-                    defender_id INTEGER NOT NULL,
+                    attacker_id {"BIGINT" if self.use_mysql else "INTEGER"} NOT NULL,
+                    defender_id {"BIGINT" if self.use_mysql else "INTEGER"} NOT NULL,
                     attack_type TEXT DEFAULT 'mixed',
                     conquest_mode INTEGER DEFAULT 0,
                     travel_time INTEGER NOT NULL,
@@ -261,9 +266,9 @@ class Database:
             cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS admin_logs (
                     id {id_type} PRIMARY KEY {auto_increment},
-                    admin_id INTEGER NOT NULL,
+                    admin_id {"BIGINT" if self.use_mysql else "INTEGER"} NOT NULL,
                     action TEXT NOT NULL,
-                    target_id INTEGER,
+                    target_id {"BIGINT" if self.use_mysql else "INTEGER"},
                     details TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -273,7 +278,7 @@ class Database:
             cursor.execute(f"""
             CREATE TABLE IF NOT EXISTS marketplace_listings (
                 id {id_type} PRIMARY KEY {auto_increment},
-                seller_id INTEGER NOT NULL,
+                seller_id {"BIGINT" if self.use_mysql else "INTEGER"} NOT NULL,
                 item_name TEXT NOT NULL,
                 item_type TEXT NOT NULL,
                 item_id TEXT NOT NULL,
@@ -289,8 +294,8 @@ class Database:
                 CREATE TABLE IF NOT EXISTS market_transactions (
                     id {id_type} PRIMARY KEY {auto_increment},
                     listing_id INTEGER NOT NULL,
-                    buyer_id INTEGER NOT NULL,
-                    seller_id INTEGER NOT NULL,
+                    buyer_id {"BIGINT" if self.use_mysql else "INTEGER"} NOT NULL,
+                    seller_id {"BIGINT" if self.use_mysql else "INTEGER"} NOT NULL,
                     item_type TEXT NOT NULL,
                     quantity INTEGER NOT NULL,
                     total_paid INTEGER NOT NULL,
@@ -304,7 +309,7 @@ class Database:
             cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS purchase_tracking (
                     id {id_type} PRIMARY KEY {auto_increment},
-                    buyer_id INTEGER NOT NULL,
+                    buyer_id {"BIGINT" if self.use_mysql else "INTEGER"} NOT NULL,
                     item_type TEXT NOT NULL,
                     first_purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE (buyer_id, item_type)
@@ -315,7 +320,7 @@ class Database:
             cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS build_tracking (
                     id {id_type} PRIMARY KEY {auto_increment},
-                    builder_id INTEGER NOT NULL,
+                    builder_id {"BIGINT" if self.use_mysql else "INTEGER"} NOT NULL,
                     item_type TEXT NOT NULL,
                     first_build_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE (builder_id, item_type)
@@ -1077,4 +1082,44 @@ class Database:
                 return True
         except Exception as e:
             logger.error(f"Error clearing test data: {e}")
+            return False
+
+    def migrate_user_id_schema(self):
+        """Migrate existing tables to use BIGINT for user_id columns"""
+        if not self.use_mysql:
+            return True  # SQLite handles large integers automatically
+            
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Check if migration is needed
+                cursor.execute("SHOW COLUMNS FROM players LIKE 'user_id'")
+                result = cursor.fetchone()
+                if result and 'bigint' in result[1].lower():
+                    logger.info("Schema already migrated")
+                    return True
+                
+                logger.info("Starting user_id schema migration...")
+                
+                # Drop tables in correct order (respecting foreign key constraints)
+                tables_to_drop = [
+                    'build_tracking', 'purchase_tracking', 'market_transactions', 
+                    'marketplace_listings', 'admin_logs', 'pending_attacks', 
+                    'convoys', 'wars', 'weapons', 'buildings', 'resources', 'players'
+                ]
+                
+                for table in tables_to_drop:
+                    cursor.execute(f"DROP TABLE IF EXISTS {table}")
+                
+                conn.commit()
+                cursor.close()
+                
+                # Reinitialize with new schema
+                self.initialize()
+                logger.info("Schema migration completed successfully")
+                return True
+                
+        except Exception as e:
+            logger.error(f"Error during schema migration: {e}")
             return False
