@@ -106,8 +106,8 @@ class Config:
         'nuclear_missile': {'name': 'موشک هسته‌ای ساده', 'cost': 9000, 'power': 2000, 'range': 2000, 'resources': {'nuclear_bomb': 1, 'ballistic_missile': 1, 'iron': 30, 'sulfur': 30}, 'category': 'missiles'},
 
         # Special missiles
-        'trident2_conventional': {'name': 'Trident 2 غیر هسته‌ای', 'cost': 0, 'power': 1000, 'range': 5000, 'resources': {'simple_bomb': 12, 'ballistic_missile': 1, 'coal': 140}, 'category': 'special_missiles'},
-        'trident2_nuclear': {'name': 'Trident 2 هسته‌ای', 'cost': 190000, 'power': 30000, 'range': 5000, 'resources': {'nuclear_bomb': 12, 'ballistic_missile': 1, 'coal': 140}, 'category': 'special_missiles'},
+        'trident2_conventional': {'name': 'Trident 2 غیر هسته‌ای', 'cost': 0, 'power': 1000, 'range': 5000, 'resources': {'simple_bomb': 13, 'ballistic_missile': 1, 'coal': 140}, 'category': 'special_missiles'},
+        'trident2_nuclear': {'name': 'Trident 2 هسته‌ای', 'cost': 190000, 'power': 30000, 'range': 5000, 'resources': {'nuclear_bomb': 13, 'ballistic_missile': 1, 'coal': 140}, 'category': 'special_missiles'},
         'satan2_conventional': {'name': 'Satan2 غیر هسته‌ای', 'cost': 0, 'power': 940, 'range': 4500, 'resources': {'simple_bomb': 10, 'ballistic_missile': 1, 'coal': 140}, 'category': 'special_missiles'},
         'satan2_nuclear': {'name': 'Satan2 هسته‌ای', 'cost': 160000, 'power': 21000, 'range': 4500, 'resources': {'nuclear_bomb': 10, 'ballistic_missile': 1, 'coal': 140}, 'category': 'special_missiles'},
         'df41_nuclear': {'name': 'DF-41 هسته‌ای', 'cost': 130000, 'power': 18000, 'range': 4000, 'resources': {'nuclear_bomb': 8, 'ballistic_missile': 1, 'coal': 140}, 'category': 'special_missiles'},
