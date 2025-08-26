@@ -42,7 +42,7 @@ class Database:
                     username TEXT NOT NULL,
                     country_code TEXT UNIQUE NOT NULL,
                     country_name TEXT NOT NULL,
-                    money INTEGER DEFAULT 900000,
+                    money INTEGER DEFAULT 100000,
                     population INTEGER DEFAULT 1000000,
                     soldiers INTEGER DEFAULT 0,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -67,8 +67,7 @@ class Database:
                     fuel INTEGER DEFAULT 0,
                     nitro INTEGER DEFAULT 0,
                     sulfur INTEGER DEFAULT 0,
-                    titanium INTEGER DEFAULT 0,
-                    FOREIGN KEY (user_id) REFERENCES players (user_id) ON DELETE CASCADE
+                    titanium INTEGER DEFAULT 0
                 )
             ''')
 
@@ -94,8 +93,7 @@ class Database:
                     power_plant INTEGER DEFAULT 0,
                     wheat_farm INTEGER DEFAULT 0,
                     military_base INTEGER DEFAULT 0,
-                    housing INTEGER DEFAULT 0,
-                    FOREIGN KEY (user_id) REFERENCES players (user_id) ON DELETE CASCADE
+                    housing INTEGER DEFAULT 0
                 )
             ''')
 
@@ -161,8 +159,7 @@ class Database:
                     patrol_boat INTEGER DEFAULT 0,
                     amphibious_ship INTEGER DEFAULT 0,
                     tanker_aircraft INTEGER DEFAULT 0,
-                    aircraft_carrier_transport INTEGER DEFAULT 0,
-                    FOREIGN KEY (user_id) REFERENCES players (user_id) ON DELETE CASCADE
+                    aircraft_carrier_transport INTEGER DEFAULT 0
                 )
             ''')
 
@@ -170,16 +167,14 @@ class Database:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS wars (
                     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                    attacker_id BIGINT NOT NULL,
-                    defender_id BIGINT NOT NULL,
+                    attacker_id INTEGER NOT NULL,
+                    defender_id INTEGER NOT NULL,
                     attack_power BIGINT NOT NULL,
                     defense_power BIGINT NOT NULL,
                     result VARCHAR(50) NOT NULL,
                     damage_dealt BIGINT DEFAULT 0,
                     resources_stolen TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (attacker_id) REFERENCES players (user_id) ON DELETE CASCADE,
-                    FOREIGN KEY (defender_id) REFERENCES players (user_id) ON DELETE CASCADE
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
 
@@ -187,16 +182,14 @@ class Database:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS convoys (
                     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                    sender_id BIGINT NOT NULL,
-                    receiver_id BIGINT NOT NULL,
+                    sender_id INTEGER NOT NULL,
+                    receiver_id INTEGER NOT NULL,
                     resources TEXT NOT NULL,
                     departure_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     arrival_time TIMESTAMP NOT NULL,
                     status VARCHAR(50) DEFAULT 'in_transit',
                     security_level INTEGER DEFAULT 50,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (sender_id) REFERENCES players (user_id) ON DELETE CASCADE,
-                    FOREIGN KEY (receiver_id) REFERENCES players (user_id) ON DELETE CASCADE
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
 
@@ -211,9 +204,7 @@ class Database:
                     travel_time INTEGER NOT NULL,
                     departure_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     attack_time TIMESTAMP NOT NULL,
-                    status TEXT DEFAULT 'traveling',
-                    FOREIGN KEY (attacker_id) REFERENCES players (user_id) ON DELETE CASCADE,
-                    FOREIGN KEY (defender_id) REFERENCES players (user_id) ON DELETE CASCADE
+                    status TEXT DEFAULT 'traveling'
                 )
             ''')
 
@@ -240,8 +231,7 @@ class Database:
                 quantity INTEGER NOT NULL,
                 price INTEGER NOT NULL,
                 status TEXT DEFAULT 'active',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (seller_id) REFERENCES players (user_id) ON DELETE CASCADE
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """)
 
@@ -257,10 +247,7 @@ class Database:
                     total_paid INTEGER NOT NULL,
                     status TEXT DEFAULT 'pending',
                     transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    delivery_date TIMESTAMP NULL,
-                    FOREIGN KEY (listing_id) REFERENCES marketplace_listings (id) ON DELETE CASCADE,
-                    FOREIGN KEY (buyer_id) REFERENCES players (user_id) ON DELETE CASCADE,
-                    FOREIGN KEY (seller_id) REFERENCES players (user_id) ON DELETE CASCADE
+                    delivery_date TIMESTAMP NULL
                 )
             ''')
 
@@ -271,8 +258,7 @@ class Database:
                     buyer_id INTEGER NOT NULL,
                     item_type TEXT NOT NULL,
                     first_purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE (buyer_id, item_type),
-                    FOREIGN KEY (buyer_id) REFERENCES players (user_id) ON DELETE CASCADE
+                    UNIQUE (buyer_id, item_type)
                 )
             ''')
 
@@ -283,8 +269,7 @@ class Database:
                     builder_id INTEGER NOT NULL,
                     item_type TEXT NOT NULL,
                     first_build_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE (builder_id, item_type),
-                    FOREIGN KEY (builder_id) REFERENCES players (user_id) ON DELETE CASCADE
+                    UNIQUE (builder_id, item_type)
                 )
             ''')
 
