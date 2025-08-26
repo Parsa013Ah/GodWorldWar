@@ -1,5 +1,7 @@
 
-import mysql.connector
+import psycopg2
+import psycopg2.extras
+import os
 import logging
 from datetime import datetime
 import json
@@ -9,23 +11,18 @@ logger = logging.getLogger(__name__)
 
 class Database:
     def __init__(self):
-        self.connection_config = {
-            'host': 'localhost',
-            'database': 'ggame',
-            'user': 'Parsa',
-            'password': '^c*6%@5697Af%n*306U%9Z^&9',
-            'port': 3306,
-            'charset': 'utf8mb4',
-            'autocommit': True
-        }
+        self.database_url = os.getenv('DATABASE_URL')
+        if not self.database_url:
+            raise ValueError("DATABASE_URL environment variable not set")
 
     def get_connection(self):
         """Get database connection"""
         try:
-            conn = mysql.connector.connect(**self.connection_config)
+            conn = psycopg2.connect(self.database_url)
+            conn.autocommit = True
             return conn
-        except mysql.connector.Error as e:
-            logger.error(f"Error connecting to MariaDB: {e}")
+        except psycopg2.Error as e:
+            logger.error(f"Error connecting to PostgreSQL: {e}")
             raise
 
     def initialize(self):
@@ -100,68 +97,68 @@ class Database:
             # Weapons table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS weapons (
-                    user_id BIGINT PRIMARY KEY,
-                    rifle BIGINT DEFAULT 0,
-                    tank BIGINT DEFAULT 0,
-                    fighter_jet BIGINT DEFAULT 0,
-                    jet BIGINT DEFAULT 0,
-                    drone BIGINT DEFAULT 0,
-                    warship BIGINT DEFAULT 0,
-                    submarine BIGINT DEFAULT 0,
-                    destroyer BIGINT DEFAULT 0,
-                    aircraft_carrier BIGINT DEFAULT 0,
-                    air_defense BIGINT DEFAULT 0,
-                    missile_shield BIGINT DEFAULT 0,
-                    cyber_shield BIGINT DEFAULT 0,
-                    simple_bomb BIGINT DEFAULT 0,
-                    nuclear_bomb BIGINT DEFAULT 0,
-                    simple_missile BIGINT DEFAULT 0,
-                    ballistic_missile BIGINT DEFAULT 0,
-                    nuclear_missile BIGINT DEFAULT 0,
-                    trident2_conventional BIGINT DEFAULT 0,
-                    trident2_nuclear BIGINT DEFAULT 0,
-                    satan2_conventional BIGINT DEFAULT 0,
-                    satan2_nuclear BIGINT DEFAULT 0,
-                    df41_nuclear BIGINT DEFAULT 0,
-                    tomahawk_conventional BIGINT DEFAULT 0,
-                    tomahawk_nuclear BIGINT DEFAULT 0,
-                    kalibr_conventional BIGINT DEFAULT 0,
-                    f22 BIGINT DEFAULT 0,
-                    f35 BIGINT DEFAULT 0,
-                    su57 BIGINT DEFAULT 0,
-                    j20 BIGINT DEFAULT 0,
-                    f15ex BIGINT DEFAULT 0,
-                    su35s BIGINT DEFAULT 0,
-                    helicopter BIGINT DEFAULT 0,
-                    strategic_bomber BIGINT DEFAULT 0,
-                    armored_truck BIGINT DEFAULT 0,
-                    cargo_helicopter BIGINT DEFAULT 0,
-                    cargo_plane BIGINT DEFAULT 0,
-                    escort_frigate BIGINT DEFAULT 0,
-                    logistics_drone BIGINT DEFAULT 0,
-                    heavy_transport BIGINT DEFAULT 0,
-                    supply_ship BIGINT DEFAULT 0,
-                    stealth_transport BIGINT DEFAULT 0,
-                    kf51_panther BIGINT DEFAULT 0,
-                    abrams_x BIGINT DEFAULT 0,
-                    m1e3_abrams BIGINT DEFAULT 0,
-                    t90ms_proryv BIGINT DEFAULT 0,
-                    m1a2_abrams_sepv3 BIGINT DEFAULT 0,
-                    s500_defense BIGINT DEFAULT 0,
-                    thaad_defense BIGINT DEFAULT 0,
-                    s400_defense BIGINT DEFAULT 0,
-                    iron_dome BIGINT DEFAULT 0,
-                    slq32_ew BIGINT DEFAULT 0,
-                    phalanx_ciws BIGINT DEFAULT 0,
-                    aircraft_carrier_full BIGINT DEFAULT 0,
-                    nuclear_submarine BIGINT DEFAULT 0,
-                    patrol_ship BIGINT DEFAULT 0,
-                    patrol_boat BIGINT DEFAULT 0,
-                    amphibious_ship BIGINT DEFAULT 0,
-                    tanker_aircraft BIGINT DEFAULT 0,
-                    aircraft_carrier_transport BIGINT DEFAULT 0,
+                    user_id INTEGER PRIMARY KEY,
+                    rifle INTEGER DEFAULT 0,
+                    tank INTEGER DEFAULT 0,
+                    fighter_jet INTEGER DEFAULT 0,
+                    jet INTEGER DEFAULT 0,
+                    drone INTEGER DEFAULT 0,
+                    warship INTEGER DEFAULT 0,
+                    submarine INTEGER DEFAULT 0,
+                    destroyer INTEGER DEFAULT 0,
+                    aircraft_carrier INTEGER DEFAULT 0,
+                    air_defense INTEGER DEFAULT 0,
+                    missile_shield INTEGER DEFAULT 0,
+                    cyber_shield INTEGER DEFAULT 0,
+                    simple_bomb INTEGER DEFAULT 0,
+                    nuclear_bomb INTEGER DEFAULT 0,
+                    simple_missile INTEGER DEFAULT 0,
+                    ballistic_missile INTEGER DEFAULT 0,
+                    nuclear_missile INTEGER DEFAULT 0,
+                    trident2_conventional INTEGER DEFAULT 0,
+                    trident2_nuclear INTEGER DEFAULT 0,
+                    satan2_conventional INTEGER DEFAULT 0,
+                    satan2_nuclear INTEGER DEFAULT 0,
+                    df41_nuclear INTEGER DEFAULT 0,
+                    tomahawk_conventional INTEGER DEFAULT 0,
+                    tomahawk_nuclear INTEGER DEFAULT 0,
+                    kalibr_conventional INTEGER DEFAULT 0,
+                    f22 INTEGER DEFAULT 0,
+                    f35 INTEGER DEFAULT 0,
+                    su57 INTEGER DEFAULT 0,
+                    j20 INTEGER DEFAULT 0,
+                    f15ex INTEGER DEFAULT 0,
+                    su35s INTEGER DEFAULT 0,
+                    helicopter INTEGER DEFAULT 0,
+                    strategic_bomber INTEGER DEFAULT 0,
+                    armored_truck INTEGER DEFAULT 0,
+                    cargo_helicopter INTEGER DEFAULT 0,
+                    cargo_plane INTEGER DEFAULT 0,
+                    escort_frigate INTEGER DEFAULT 0,
+                    logistics_drone INTEGER DEFAULT 0,
+                    heavy_transport INTEGER DEFAULT 0,
+                    supply_ship INTEGER DEFAULT 0,
+                    stealth_transport INTEGER DEFAULT 0,
+                    kf51_panther INTEGER DEFAULT 0,
+                    abrams_x INTEGER DEFAULT 0,
+                    m1e3_abrams INTEGER DEFAULT 0,
+                    t90ms_proryv INTEGER DEFAULT 0,
+                    m1a2_abrams_sepv3 INTEGER DEFAULT 0,
+                    s500_defense INTEGER DEFAULT 0,
+                    thaad_defense INTEGER DEFAULT 0,
+                    s400_defense INTEGER DEFAULT 0,
+                    iron_dome INTEGER DEFAULT 0,
+                    slq32_ew INTEGER DEFAULT 0,
+                    phalanx_ciws INTEGER DEFAULT 0,
+                    aircraft_carrier_full INTEGER DEFAULT 0,
+                    nuclear_submarine INTEGER DEFAULT 0,
+                    patrol_ship INTEGER DEFAULT 0,
+                    patrol_boat INTEGER DEFAULT 0,
+                    amphibious_ship INTEGER DEFAULT 0,
+                    tanker_aircraft INTEGER DEFAULT 0,
+                    aircraft_carrier_transport INTEGER DEFAULT 0,
                     FOREIGN KEY (user_id) REFERENCES players (user_id) ON DELETE CASCADE
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                )
             ''')
 
             # Wars table
@@ -184,106 +181,106 @@ class Database:
             # Convoys table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS convoys (
-                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                    sender_id BIGINT NOT NULL,
-                    receiver_id BIGINT NOT NULL,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    sender_id INTEGER NOT NULL,
+                    receiver_id INTEGER NOT NULL,
                     resources TEXT NOT NULL,
                     departure_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     arrival_time TIMESTAMP NOT NULL,
-                    status VARCHAR(50) DEFAULT 'in_transit',
-                    security_level INT DEFAULT 50,
+                    status TEXT DEFAULT 'in_transit',
+                    security_level INTEGER DEFAULT 50,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (sender_id) REFERENCES players (user_id) ON DELETE CASCADE,
                     FOREIGN KEY (receiver_id) REFERENCES players (user_id) ON DELETE CASCADE
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                )
             ''')
 
             # Pending attacks table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS pending_attacks (
-                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                    attacker_id BIGINT NOT NULL,
-                    defender_id BIGINT NOT NULL,
-                    attack_type VARCHAR(50) DEFAULT 'mixed',
-                    conquest_mode TINYINT DEFAULT 0,
-                    travel_time INT NOT NULL,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    attacker_id INTEGER NOT NULL,
+                    defender_id INTEGER NOT NULL,
+                    attack_type TEXT DEFAULT 'mixed',
+                    conquest_mode INTEGER DEFAULT 0,
+                    travel_time INTEGER NOT NULL,
                     departure_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     attack_time TIMESTAMP NOT NULL,
-                    status VARCHAR(50) DEFAULT 'traveling',
+                    status TEXT DEFAULT 'traveling',
                     FOREIGN KEY (attacker_id) REFERENCES players (user_id) ON DELETE CASCADE,
                     FOREIGN KEY (defender_id) REFERENCES players (user_id) ON DELETE CASCADE
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                )
             ''')
 
             # Admin logs table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS admin_logs (
-                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                    admin_id BIGINT NOT NULL,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    admin_id INTEGER NOT NULL,
                     action TEXT NOT NULL,
-                    target_id BIGINT,
+                    target_id INTEGER,
                     details TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                )
             ''')
 
             # Marketplace listings
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS marketplace_listings (
-                id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                seller_id BIGINT NOT NULL,
-                item_name VARCHAR(255) NOT NULL,
-                item_type VARCHAR(255) NOT NULL,
-                item_id VARCHAR(255) NOT NULL,
-                quantity BIGINT NOT NULL,
-                price BIGINT NOT NULL,
-                status VARCHAR(50) DEFAULT 'active',
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                seller_id INTEGER NOT NULL,
+                item_name TEXT NOT NULL,
+                item_type TEXT NOT NULL,
+                item_id TEXT NOT NULL,
+                quantity INTEGER NOT NULL,
+                price INTEGER NOT NULL,
+                status TEXT DEFAULT 'active',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (seller_id) REFERENCES players (user_id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            )
             """)
 
             # Market transactions table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS market_transactions (
-                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                    listing_id BIGINT NOT NULL,
-                    buyer_id BIGINT NOT NULL,
-                    seller_id BIGINT NOT NULL,
-                    item_type VARCHAR(255) NOT NULL,
-                    quantity BIGINT NOT NULL,
-                    total_paid BIGINT NOT NULL,
-                    status VARCHAR(50) DEFAULT 'pending',
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    listing_id INTEGER NOT NULL,
+                    buyer_id INTEGER NOT NULL,
+                    seller_id INTEGER NOT NULL,
+                    item_type TEXT NOT NULL,
+                    quantity INTEGER NOT NULL,
+                    total_paid INTEGER NOT NULL,
+                    status TEXT DEFAULT 'pending',
                     transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     delivery_date TIMESTAMP NULL,
                     FOREIGN KEY (listing_id) REFERENCES marketplace_listings (id) ON DELETE CASCADE,
                     FOREIGN KEY (buyer_id) REFERENCES players (user_id) ON DELETE CASCADE,
                     FOREIGN KEY (seller_id) REFERENCES players (user_id) ON DELETE CASCADE
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                )
             ''')
 
             # Purchase tracking table for preventing duplicate news
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS purchase_tracking (
-                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                    buyer_id BIGINT NOT NULL,
-                    item_type VARCHAR(255) NOT NULL,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    buyer_id INTEGER NOT NULL,
+                    item_type TEXT NOT NULL,
                     first_purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE KEY unique_buyer_item (buyer_id, item_type),
+                    UNIQUE (buyer_id, item_type),
                     FOREIGN KEY (buyer_id) REFERENCES players (user_id) ON DELETE CASCADE
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                )
             ''')
 
             # Build tracking table for preventing duplicate news
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS build_tracking (
-                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                    builder_id BIGINT NOT NULL,
-                    item_type VARCHAR(255) NOT NULL,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    builder_id INTEGER NOT NULL,
+                    item_type TEXT NOT NULL,
                     first_build_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE KEY unique_builder_item (builder_id, item_type),
+                    UNIQUE (builder_id, item_type),
                     FOREIGN KEY (builder_id) REFERENCES players (user_id) ON DELETE CASCADE
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                )
             ''')
 
             conn.commit()

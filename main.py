@@ -8,8 +8,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 import datetime
 
 # Updated database imports
-# from database import Database
-from database_mariadb import Database as MariaDBDatabase # Assuming a MariaDB implementation
+from database import Database
 from game_logic import GameLogic
 from keyboards import Keyboards
 from admin import AdminPanel
@@ -33,15 +32,8 @@ class DragonRPBot:
     def __init__(self):
         self.token = os.getenv("TELEGRAM_BOT_TOKEN", "7315307921:AAHZGyLUDCR4XudiqdQCRtjYqjeODfdwChE")
         
-        # Initialize MariaDBDatabase
-        # Database credentials are often sensitive and should be managed securely (e.g., environment variables)
-        db_name = os.getenv("DB_NAME", "ggame")
-        db_user = os.getenv("DB_USER", "Parsa")
-        db_pass = os.getenv("DB_PASS", "^c*6%@5697Af%n*306U%9Z^&9")
-        db_host = os.getenv("DB_HOST", "localhost")
-        db_port = os.getenv("DB_PORT", "3306") # Default MySQL/MariaDB port
-        
-        self.db = MariaDBDatabase(db_name, db_user, db_pass, db_host, db_port)
+        # Initialize Database
+        self.db = Database()
         
         self.game_logic = GameLogic(self.db)
         self.keyboards = Keyboards()
