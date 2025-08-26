@@ -327,7 +327,7 @@ class Database:
     def get_player(self, user_id):
         """Get player information"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor()
             cursor.execute('SELECT * FROM players WHERE user_id = %s', (user_id,))
             result = cursor.fetchone()
             cursor.close()
@@ -336,7 +336,7 @@ class Database:
     def get_all_players(self):
         """Get all players"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor()
             cursor.execute('SELECT * FROM players ORDER BY country_name')
             result = cursor.fetchall()
             cursor.close()
@@ -382,7 +382,7 @@ class Database:
     def get_all_countries(self):
         """Get all countries with players"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor()
             cursor.execute('SELECT user_id, username, country_name, country_code FROM players ORDER BY country_name')
             result = cursor.fetchall()
             cursor.close()
@@ -400,7 +400,7 @@ class Database:
     def get_player_resources(self, user_id):
         """Get player resources"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor()
             cursor.execute('SELECT * FROM resources WHERE user_id = %s', (user_id,))
             result = cursor.fetchone()
             cursor.close()
@@ -409,7 +409,7 @@ class Database:
     def get_player_buildings(self, user_id):
         """Get player buildings"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor()
             cursor.execute('SELECT * FROM buildings WHERE user_id = %s', (user_id,))
             result = cursor.fetchone()
             cursor.close()
@@ -418,7 +418,7 @@ class Database:
     def get_player_weapons(self, user_id):
         """Get player weapons"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor()
             cursor.execute('SELECT * FROM weapons WHERE user_id = %s', (user_id,))
             result = cursor.fetchone()
             cursor.close()
@@ -653,7 +653,7 @@ class Database:
     def consume_resources(self, user_id, resources_needed):
         """Consume resources from player"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor()
 
             # Check if player has enough resources
             current_resources = self.get_player_resources(user_id)
@@ -689,7 +689,7 @@ class Database:
     def get_admin_logs(self, limit=50):
         """Get admin logs"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor()
             cursor.execute('''
                 SELECT * FROM admin_logs 
                 ORDER BY created_at DESC 
@@ -732,7 +732,7 @@ class Database:
     def get_active_convoys(self):
         """Get all active convoys in transit"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor()
             cursor.execute('''
                 SELECT c.*, 
                        s.country_name as sender_country,
@@ -770,7 +770,7 @@ class Database:
     def get_convoy(self, convoy_id):
         """Get convoy details"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor()
             cursor.execute('SELECT * FROM convoys WHERE id = %s', (convoy_id,))
             result = cursor.fetchone()
             cursor.close()
@@ -811,7 +811,7 @@ class Database:
     def get_arrived_convoys(self):
         """Get all convoys that have arrived at their destination"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor()
             cursor.execute('''
                 SELECT c.*, 
                        s.country_name as sender_country,
@@ -851,7 +851,7 @@ class Database:
     def get_pending_attack(self, attack_id):
         """Get pending attack details"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor()
             cursor.execute('SELECT * FROM pending_attacks WHERE id = %s', (attack_id,))
             result = cursor.fetchone()
             cursor.close()
@@ -860,7 +860,7 @@ class Database:
     def get_player_pending_attacks(self, player_id):
         """Get all pending attacks for a player"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor()
             cursor.execute('''
                 SELECT * FROM pending_attacks 
                 WHERE attacker_id = %s AND status IN ('traveling', 'pending')
@@ -873,7 +873,7 @@ class Database:
         """Get all pending attacks that are due for execution"""
         from datetime import datetime
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor()
             current_time = datetime.now()
             cursor.execute('''
                 SELECT * FROM pending_attacks 
