@@ -834,6 +834,9 @@ class DragonRPBot:
         data_parts = query.data.split("_")
         target_id = int(data_parts[2])
         attack_type = data_parts[3]
+        
+        # Check if this is conquest mode
+        conquest_mode = attack_type == "conquest"
 
         # Get player and target information
         player = self.db.get_player(user_id)
@@ -925,6 +928,9 @@ class DragonRPBot:
         target_id = int(data_parts[2])
         attack_type = data_parts[3]
         weapon_selection = data_parts[4] if len(data_parts) > 4 else "all"
+        
+        # Check if this is conquest mode
+        conquest_mode = attack_type == "conquest"
 
         attacker = self.db.get_player(user_id)
         target = self.db.get_player(target_id)
@@ -957,7 +963,7 @@ class DragonRPBot:
             return
 
         # Execute attack
-        result = self.combat.schedule_delayed_attack(user_id, target_id, attack_type)
+        result = self.combat.schedule_delayed_attack(user_id, target_id, attack_type, conquest_mode)
 
         if not result['success']:
             await query.edit_message_text(f"❌ {result['message']}")
@@ -969,7 +975,8 @@ class DragonRPBot:
         attacker_flag = Config.COUNTRY_FLAGS.get(attacker['country_code'], '🏳')
         target_flag = Config.COUNTRY_FLAGS.get(target['country_code'], '🏳')
 
-        attack_news = f"""⚔️ آماده‌سازی حمله!
+        mode_text = " 🏴‍☠️ (حالت فتح)" if conquest_mode else ""
+        attack_news = f"""⚔️ آماده‌سازی حمله{mode_text}!
 
 🔥 {attacker_flag} <b>{attacker['country_name']}</b>
 🎯 {target_flag} <b>{target['country_name']}</b>

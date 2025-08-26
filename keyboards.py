@@ -278,23 +278,24 @@ class Keyboards:
         return InlineKeyboardMarkup(keyboard)
 
     def attack_type_selection_keyboard(self, target_id):
-        """Create keyboard for attack type selection"""
+        """Create attack type selection keyboard"""
         keyboard = [
             [
-                InlineKeyboardButton("🌀 حمله ترکیبی", callback_data=f"attack_type_{target_id}_mixed"),
-                InlineKeyboardButton("🏔 حمله زمینی", callback_data=f"attack_type_{target_id}_ground")
-            ],
-            [
-                InlineKeyboardButton("✈️ حمله هوایی", callback_data=f"attack_type_{target_id}_air"),
-                InlineKeyboardButton("⚓ حمله دریایی", callback_data=f"attack_type_{target_id}_naval")
+                InlineKeyboardButton("⚔️ حمله معمولی", callback_data=f"attack_type_{target_id}_normal"),
+                InlineKeyboardButton("💥 حمله سنگین", callback_data=f"attack_type_{target_id}_heavy")
             ],
             [
                 InlineKeyboardButton("🚀 حمله موشکی", callback_data=f"attack_type_{target_id}_missile"),
-                InlineKeyboardButton("⚡ حمله سایبری", callback_data=f"attack_type_{target_id}_cyber")
+                InlineKeyboardButton("✈️ حمله هوایی", callback_data=f"attack_type_{target_id}_air")
             ],
             [
-                InlineKeyboardButton("🔙 انتخاب نوع حمله", callback_data=f"select_target_{target_id}")
-            ]
+                InlineKeyboardButton("🌊 حمله دریایی", callback_data=f"attack_type_{target_id}_naval"),
+                InlineKeyboardButton("🔥 حمله ترکیبی", callback_data=f"attack_type_{target_id}_mixed")
+            ],
+            [
+                InlineKeyboardButton("🏴‍☠️ فتح کشور (دفاع ×2)", callback_data=f"attack_type_{target_id}_conquest")
+            ],
+            [InlineKeyboardButton("🔙 بازگشت", callback_data="attack_menu")]
         ]
         return InlineKeyboardMarkup(keyboard)
 

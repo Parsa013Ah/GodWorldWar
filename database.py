@@ -217,6 +217,7 @@ class Database:
                     attacker_id INTEGER NOT NULL,
                     defender_id INTEGER NOT NULL,
                     attack_type TEXT DEFAULT 'mixed',
+                    conquest_mode INTEGER DEFAULT 0,
                     travel_time INTEGER NOT NULL,
                     departure_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     attack_time TIMESTAMP NOT NULL,
@@ -225,6 +226,12 @@ class Database:
                     FOREIGN KEY (defender_id) REFERENCES players (user_id)
                 )
             ''')
+
+            # Add conquest_mode column if it doesn't exist
+            try:
+                cursor.execute('ALTER TABLE pending_attacks ADD COLUMN conquest_mode INTEGER DEFAULT 0')
+            except sqlite3.OperationalError:
+                pass  # Column already exists
 
             # Admin logs table
             cursor.execute('''
@@ -829,12 +836,13 @@ class Database:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO pending_attacks (attacker_id, defender_id, attack_type, travel_time, attack_time, status)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO pending_attacks (attacker_id, defender_id, attack_type, conquest_mode, travel_time, attack_time, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             ''', (
                 attack_data['attacker_id'],
                 attack_data['defender_id'], 
                 attack_data['attack_type'],
+                1 if attack_data.get('conquest_mode', False) else 0,
                 attack_data['travel_time'],
                 attack_data['attack_time'],
                 attack_data['status']

@@ -122,8 +122,11 @@ class CombatSystem:
                 # Mark as executing
                 self.db.update_pending_attack_status(attack['id'], 'executing')
 
+                # Check if this is conquest mode
+                conquest_mode = bool(attack.get('conquest_mode', 0))
+
                 # Execute the attack
-                result = self.execute_attack(attack['attacker_id'], attack['defender_id'])
+                result = self.execute_attack(attack['attacker_id'], attack['defender_id'], conquest_mode)
 
                 # Mark as completed
                 self.db.update_pending_attack_status(attack['id'], 'completed')
@@ -206,7 +209,7 @@ class CombatSystem:
 
         return total_power
 
-    def schedule_delayed_attack(self, attacker_id, defender_id, attack_type="mixed"):
+    def schedule_delayed_attack(self, attacker_id, defender_id, attack_type="mixed", conquest_mode=False):
         """Schedule a delayed attack based on travel time"""
         can_attack, reason = self.can_attack_country(attacker_id, defender_id)
         if not can_attack:
@@ -224,6 +227,7 @@ class CombatSystem:
             'attacker_id': attacker_id,
             'defender_id': defender_id,
             'attack_type': attack_type,
+            'conquest_mode': conquest_mode,
             'travel_time': travel_time,
             'attack_time': attack_time.isoformat(),
             'status': 'traveling'
@@ -231,15 +235,17 @@ class CombatSystem:
 
         attack_id = self.db.create_pending_attack(attack_data)
 
+        mode_text = " (حالت فتح)" if conquest_mode else ""
         return {
             'success': True,
             'attack_id': attack_id,
             'travel_time': travel_time,
             'attack_time': attack_time,
-            'message': f'نیروهای شما به سمت {defender["country_name"]} در حرکت هستند! زمان رسیدن: {travel_time} دقیقه'
+            'conquest_mode': conquest_mode,
+            'message': f'نیروهای شما به سمت {defender["country_name"]} در حرکت هستند{mode_text}! زمان رسیدن: {travel_time} دقیقه'
         }
 
-    def execute_attack(self, attacker_id, defender_id):
+    def execute_attack(self, attacker_id, defender_id, conquest_mode=False):
         """Execute attack between countries"""
         can_attack, reason = self.can_attack_country(attacker_id, defender_id)
         if not can_attack:
@@ -254,10 +260,13 @@ class CombatSystem:
         if attack_power == 0:
             return {'success': False, 'message': 'شما هیچ تسلیحاتی برای حمله ندارید!'}
 
+        # In conquest mode, defender's defense is doubled
+        effective_defense_power = defense_power * 2 if conquest_mode else defense_power
+
         # Battle calculation with randomness
         random_factor = random.uniform(0.8, 1.2)
         effective_attack = attack_power * random_factor
-        effective_defense = defense_power * random.uniform(0.9, 1.1)
+        effective_defense = effective_defense_power * random.uniform(0.9, 1.1)
 
         damage = effective_attack - effective_defense
 
@@ -266,10 +275,12 @@ class CombatSystem:
             'defender_country': defender['country_name'],
             'attack_power': attack_power,
             'defense_power': defense_power,
+            'effective_defense_power': effective_defense_power,
             'damage': damage,
             'attacker_losses': {},
             'defender_losses': {},
-            'stolen_resources': {}
+            'stolen_resources': {},
+            'conquest_mode': conquest_mode
         }
 
         if damage > 0:
@@ -278,14 +289,14 @@ class CombatSystem:
             result['winner'] = attacker['country_name']
 
             # Apply battle consequences
-            self._apply_successful_attack(attacker_id, defender_id, damage, result)
+            self._apply_successful_attack(attacker_id, defender_id, damage, result, conquest_mode)
 
         else:
             # Attack failed
             result['success'] = False
             result['winner'] = defender['country_name']
 
-            # Attacker suffers losses
+            # Attacker suffers losses (doubled in failed attacks)
             self._apply_failed_attack(attacker_id, abs(damage), result)
 
         # Log the war
@@ -293,22 +304,44 @@ class CombatSystem:
 
         return result
 
-    def _apply_successful_attack(self, attacker_id, defender_id, damage, result):
+    def _apply_successful_attack(self, attacker_id, defender_id, damage, result, conquest_mode=False):
         """Apply consequences of successful attack"""
         defender = self.db.get_player(defender_id)
         defender_resources = self.db.get_player_resources(defender_id)
         defender_weapons = self.db.get_player_weapons(defender_id)
         defender_buildings = self.db.get_player_buildings(defender_id)
+        attacker_weapons = self.db.get_player_weapons(attacker_id)
 
         # Calculate attack and defense power for percentage calculations
         attack_power = self.calculate_attack_power(attacker_id)
         defense_power = self.calculate_defense_power(defender_id)
         
+        # In conquest mode, defender's defense is doubled
+        effective_defense_power = defense_power * 2 if conquest_mode else defense_power
+        
         # Calculate power ratio for determining loot and destruction percentages
-        if defense_power > 0:
-            power_ratio = attack_power / defense_power
+        if effective_defense_power > 0:
+            power_ratio = attack_power / effective_defense_power
         else:
             power_ratio = float('inf')  # No defense means maximum damage
+
+        # Apply attacker weapon losses (based on defender's defense power)
+        result['attacker_losses'] = {}
+        attacker_loss_percentage = min(0.3, max(0.05, effective_defense_power / attack_power * 0.1))
+        
+        for weapon_type, count in attacker_weapons.items():
+            if weapon_type != 'user_id' and count > 0:
+                # Only count offensive weapons for losses
+                if weapon_type in Config.WEAPONS:
+                    weapon_config = Config.WEAPONS[weapon_type]
+                    if weapon_config.get('category') not in ['transport', 'defense']:
+                        losses = max(1, int(count * attacker_loss_percentage))
+                        losses = min(losses, count)
+                        
+                        if losses > 0:
+                            result['attacker_losses'][weapon_type] = losses
+                            new_count = count - losses
+                            self.db.update_weapon_count(attacker_id, weapon_type, new_count)
 
         # Calculate resource loot percentage (10% to 75%)
         if power_ratio <= 0.5:
@@ -329,24 +362,24 @@ class CombatSystem:
             # Very powerful attack (like 10+ Trident II nuclear missiles)
             loot_percentage = 0.75
 
-        # Calculate building destruction percentage (5% to 60%)
+        # Calculate building destruction/transfer percentage (5% to 60%)
         if power_ratio <= 0.5:
-            destruction_percentage = 0.05
+            building_percentage = 0.05
         elif power_ratio <= 1.0:
-            destruction_percentage = 0.08
+            building_percentage = 0.08
         elif power_ratio <= 1.5:
-            destruction_percentage = 0.12
+            building_percentage = 0.12
         elif power_ratio <= 2.0:
-            destruction_percentage = 0.18
+            building_percentage = 0.18
         elif power_ratio <= 3.0:
-            destruction_percentage = 0.25
+            building_percentage = 0.25
         elif power_ratio <= 5.0:
-            destruction_percentage = 0.35
+            building_percentage = 0.35
         elif power_ratio <= 10.0:
-            destruction_percentage = 0.45
+            building_percentage = 0.45
         else:
             # Very powerful attack
-            destruction_percentage = 0.60
+            building_percentage = 0.60
 
         # Apply soldier losses
         soldier_losses = min(defender['soldiers'], int(damage * 100))
@@ -372,31 +405,47 @@ class CombatSystem:
                     self.db.add_resources(attacker_id, resource_type, steal_amount)
                     self.db.consume_resources(defender_id, {resource_type: steal_amount})
 
-        # Destroy buildings (mines and refineries)
+        # Handle buildings (mines and refineries)
         result['destroyed_buildings'] = {}
-        destructible_buildings = ['iron_mine', 'copper_mine', 'oil_mine', 'gas_mine', 
-                                'aluminum_mine', 'gold_mine', 'uranium_mine', 'lithium_mine',
-                                'coal_mine', 'silver_mine', 'nitro_mine', 'sulfur_mine', 
-                                'titanium_mine', 'refinery']
+        result['conquered_buildings'] = {}
+        attacker_buildings = self.db.get_player_buildings(attacker_id)
         
-        for building_type in destructible_buildings:
+        mine_buildings = ['iron_mine', 'copper_mine', 'oil_mine', 'gas_mine', 
+                         'aluminum_mine', 'gold_mine', 'uranium_mine', 'lithium_mine',
+                         'coal_mine', 'silver_mine', 'nitro_mine', 'sulfur_mine', 
+                         'titanium_mine', 'refinery']
+        
+        for building_type in mine_buildings:
             building_count = defender_buildings.get(building_type, 0)
             if building_count > 0:
-                destroyed_count = max(1, int(building_count * destruction_percentage))
-                destroyed_count = min(destroyed_count, building_count)
+                affected_count = max(1, int(building_count * building_percentage))
+                affected_count = min(affected_count, building_count)
                 
-                if destroyed_count > 0:
-                    result['destroyed_buildings'][building_type] = destroyed_count
-                    new_count = building_count - destroyed_count
-                    self.db.update_building_count(defender_id, building_type, new_count)
+                if affected_count > 0:
+                    if conquest_mode:
+                        # In conquest mode, transfer buildings to attacker
+                        result['conquered_buildings'][building_type] = affected_count
+                        # Remove from defender
+                        new_defender_count = building_count - affected_count
+                        self.db.update_building_count(defender_id, building_type, new_defender_count)
+                        # Add to attacker
+                        current_attacker_count = attacker_buildings.get(building_type, 0)
+                        new_attacker_count = current_attacker_count + affected_count
+                        self.db.update_building_count(attacker_id, building_type, new_attacker_count)
+                    else:
+                        # Normal mode, destroy buildings
+                        result['destroyed_buildings'][building_type] = affected_count
+                        new_count = building_count - affected_count
+                        self.db.update_building_count(defender_id, building_type, new_count)
 
         # Update defender soldiers
         new_soldiers = max(0, defender['soldiers'] - soldier_losses)
         self.db.update_player_soldiers(defender_id, new_soldiers)
         result['defender_losses']['soldiers'] = soldier_losses
         result['loot_percentage'] = loot_percentage * 100
-        result['destruction_percentage'] = destruction_percentage * 100
+        result['building_percentage'] = building_percentage * 100
         result['power_ratio'] = power_ratio
+        result['conquest_mode'] = conquest_mode
 
     def _apply_failed_attack(self, attacker_id, damage, result):
         """Apply consequences of failed attack"""
@@ -405,16 +454,21 @@ class CombatSystem:
 
         # Attacker losses
         soldier_losses = min(attacker['soldiers'], int(damage * 50))
-        weapon_loss_chance = 0.15
+        weapon_loss_chance = 0.3  # Increased chance for failed attacks
 
-        # Attacker weapon losses
+        # Double weapon losses for failed attacks
         for weapon_type, count in attacker_weapons.items():
-            if count > 0 and random.random() < weapon_loss_chance:
-                losses = min(count, max(1, int(count * 0.05)))
-                result['attacker_losses'][weapon_type] = losses
-                # Remove weapons from attacker
-                new_count = count - losses
-                self.db.update_weapon_count(attacker_id, weapon_type, new_count)
+            if weapon_type != 'user_id' and count > 0:
+                # Only count offensive weapons for losses
+                if weapon_type in Config.WEAPONS:
+                    weapon_config = Config.WEAPONS[weapon_type]
+                    if weapon_config.get('category') not in ['transport', 'defense']:
+                        if random.random() < weapon_loss_chance:
+                            losses = min(count, max(1, int(count * 0.1)))  # Double the normal loss rate
+                            result['attacker_losses'][weapon_type] = losses
+                            # Remove weapons from attacker
+                            new_count = count - losses
+                            self.db.update_weapon_count(attacker_id, weapon_type, new_count)
 
         # Update attacker soldiers
         new_soldiers = max(0, attacker['soldiers'] - soldier_losses)
@@ -476,6 +530,11 @@ class CombatSystem:
 """
 
         if result['success']:
+            # Show conquest mode
+            if result.get('conquest_mode'):
+                report += f"\n🏴‍☠️ حالت فتح کشور\n"
+                report += f"🛡 دفاع دوبرابر: {result.get('effective_defense_power', 0):,}\n"
+            
             # Show power ratio and percentages
             if 'power_ratio' in result:
                 if result['power_ratio'] == float('inf'):
@@ -486,8 +545,11 @@ class CombatSystem:
             if 'loot_percentage' in result:
                 report += f"💰 درصد غارت: {result['loot_percentage']:.0f}%\n"
             
-            if 'destruction_percentage' in result:
-                report += f"💥 درصد تخریب: {result['destruction_percentage']:.0f}%\n"
+            if 'building_percentage' in result:
+                if result.get('conquest_mode'):
+                    report += f"🏭 درصد فتح معادن: {result['building_percentage']:.0f}%\n"
+                else:
+                    report += f"💥 درصد تخریب: {result['building_percentage']:.0f}%\n"
 
             if result['stolen_resources']:
                 report += "\n💰 منابع غارت شده:\n"
@@ -496,11 +558,26 @@ class CombatSystem:
                     resource_name = Config.RESOURCES.get(resource, {}).get('name', resource)
                     report += f"• {resource_name}: {amount:,}\n"
 
+            if result.get('conquered_buildings'):
+                report += "\n🏭 معادن فتح شده:\n"
+                for building_type, count in result['conquered_buildings'].items():
+                    building_name = Config.BUILDINGS.get(building_type, {}).get('name', building_type)
+                    report += f"• {building_name}: {count:,}\n"
+
             if result.get('destroyed_buildings'):
-                report += "\n🏭 ساختمان‌های تخریب شده:\n"
+                report += "\n💥 ساختمان‌های تخریب شده:\n"
                 for building_type, count in result['destroyed_buildings'].items():
                     building_name = Config.BUILDINGS.get(building_type, {}).get('name', building_type)
                     report += f"• {building_name}: {count:,}\n"
+
+            if result.get('attacker_losses'):
+                report += "\n💀 تلفات مهاجم (در نبرد):\n"
+                for loss_type, amount in result['attacker_losses'].items():
+                    if loss_type == 'soldiers':
+                        report += f"• سربازان: {amount:,}\n"
+                    else:
+                        weapon_name = Config.WEAPONS.get(loss_type, {}).get('name', loss_type)
+                        report += f"• {weapon_name}: {amount:,}\n"
 
             if result['defender_losses']:
                 report += "\n💀 تلفات مدافع:\n"
