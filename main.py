@@ -7,7 +7,9 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 import datetime
 
-from database import Database
+# Updated database imports
+# from database import Database
+from database_mariadb import Database as MariaDBDatabase # Assuming a MariaDB implementation
 from game_logic import GameLogic
 from keyboards import Keyboards
 from admin import AdminPanel
@@ -30,7 +32,17 @@ logger = logging.getLogger(__name__)
 class DragonRPBot:
     def __init__(self):
         self.token = os.getenv("TELEGRAM_BOT_TOKEN", "7315307921:AAHZGyLUDCR4XudiqdQCRtjYqjeODfdwChE")
-        self.db = Database()
+        
+        # Initialize MariaDBDatabase
+        # Database credentials are often sensitive and should be managed securely (e.g., environment variables)
+        db_name = os.getenv("DB_NAME", "ggame")
+        db_user = os.getenv("DB_USER", "Parsa")
+        db_pass = os.getenv("DB_PASS", "^c*6%@5697Af%n*306U%9Z^&9")
+        db_host = os.getenv("DB_HOST", "localhost")
+        db_port = os.getenv("DB_PORT", "3306") # Default MySQL/MariaDB port
+        
+        self.db = MariaDBDatabase(db_name, db_user, db_pass, db_host, db_port)
+        
         self.game_logic = GameLogic(self.db)
         self.keyboards = Keyboards()
         self.admin = AdminPanel(self.db)
@@ -615,9 +627,9 @@ class DragonRPBot:
                 reply_markup=self.keyboards.back_to_military_keyboard()
             )
 
-            # Send news about production
+            # Send news to channel only for special weapons
             player = self.db.get_player(user_id)
-            await self.news.send_weapon_produced(player['country_name'], weapon_name, 1)
+            await self.news.send_weapon_produced(player['country_name'], result['weapon_name'], 1)
         else:
             await query.edit_message_text(
                 f"❌ {result['message']}",
@@ -697,7 +709,7 @@ class DragonRPBot:
                     f"💰 پول باقی‌مانده: ${result['remaining_money']:,}"
                 )
 
-                # Send news to channel
+                # Send news to channel only for special weapons
                 player = self.db.get_player(user_id)
                 await self.news.send_weapon_produced(player['country_name'], result['weapon_name'], quantity)
             else:
@@ -754,16 +766,16 @@ class DragonRPBot:
         # Get all countries
         all_countries = self.db.get_all_countries()
         available_targets = []
-        
+
         for target in all_countries:
             if target['user_id'] != user_id:  # Can't attack yourself
                 target_country = target['country_code']
-                
+
                 # Check what weapons can attack this target
                 available_weapons = Config.get_available_weapons_for_attack(
                     attacker_country, target_country, weapons
                 )
-                
+
                 if available_weapons:
                     distance_type = Config.get_country_distance_type(attacker_country, target_country)
                     target['distance_type'] = distance_type
@@ -782,26 +794,26 @@ class DragonRPBot:
             return
 
         menu_text = f"⚔️ انتخاب هدف حمله - {player['country_name']}\n\n"
-        
+
         # Group targets by distance
         neighbors = [t for t in available_targets if t['distance_type'] == 'neighbor']
         regional = [t for t in available_targets if t['distance_type'] == 'regional'] 
         intercontinental = [t for t in available_targets if t['distance_type'] == 'intercontinental']
-        
+
         if neighbors:
             menu_text += "🔫 همسایه‌ها (همه سلاح‌ها):\n"
             for target in neighbors:
                 flag = Config.COUNTRY_FLAGS.get(target['country_code'], '🏳')
                 menu_text += f"{flag} {target['country_name']} ({target['available_weapons_count']} نوع سلاح)\n"
             menu_text += "\n"
-        
+
         if regional:
             menu_text += "✈️ منطقه‌ای (جت‌ها و موشک‌ها):\n"
             for target in regional:
                 flag = Config.COUNTRY_FLAGS.get(target['country_code'], '🏳')
                 menu_text += f"{flag} {target['country_name']} ({target['available_weapons_count']} نوع سلاح)\n"
             menu_text += "\n"
-        
+
         if intercontinental:
             menu_text += "🚀 بین‌قاره‌ای (فقط موشک‌های دوربرد):\n"
             for target in intercontinental:
@@ -835,25 +847,25 @@ class DragonRPBot:
         data_parts = query.data.split("_")
         target_id = int(data_parts[2])
         attack_type = data_parts[3]
-        
+
         # Check if this is conquest mode
         conquest_mode = attack_type == "conquest"
 
         # Get player and target information
         player = self.db.get_player(user_id)
         target = self.db.get_player(target_id)
-        
+
         if not target:
             await query.edit_message_text("❌ کشور هدف یافت نشد!")
             return
-        
+
         # Get player weapons
         player_weapons = self.db.get_player_weapons(user_id)
-        
+
         # Check for range extenders
         has_tanker = player_weapons.get('tanker_aircraft', 0) > 0
         has_carrier = player_weapons.get('aircraft_carrier_transport', 0) > 0
-        
+
         # Get weapons that can attack this target based on distance
         available_weapon_types = Config.get_available_weapons_for_attack(
             player['country_code'], target['country_code'], player_weapons, has_tanker, has_carrier
@@ -868,7 +880,7 @@ class DragonRPBot:
         if not available_weapons:
             distance_type = Config.get_country_distance_type(player['country_code'], target['country_code'])
             keyboard = self.keyboards.back_to_military_keyboard()
-            
+
             if distance_type == 'neighbor':
                 message = f"❌ تسلیحات کافی برای حمله به {target['country_name']} ندارید!"
             elif distance_type == 'regional':
@@ -881,15 +893,15 @@ class DragonRPBot:
                     message = f"❌ حتی با سوخت‌رسان/ناوبر، فاصله خیلی زیاد است"
                 else:
                     message = f"❌ برای حمله به {target['country_name']} فقط موشک‌های دوربرد استفاده کنید!"
-            
+
             await query.edit_message_text(message, reply_markup=keyboard)
             return
 
         # Display available weapons for this distance
         distance_type = Config.get_country_distance_type(player['country_code'], target['country_code'])
-        
+
         menu_text = f"⚔️ انتخاب تسلیحات برای حمله به {target['country_name']}\n\n"
-        
+
         range_bonus_text = ""
         if has_carrier and has_tanker:
             range_bonus_text = " (با ناوبر و سوخت‌رسان)"
@@ -897,21 +909,21 @@ class DragonRPBot:
             range_bonus_text = " (با ناوبر)"
         elif has_tanker:
             range_bonus_text = " (با سوخت‌رسان)"
-        
+
         if distance_type == 'neighbor':
             menu_text += f"🔫 همسایه - همه سلاح‌ها قابل استفاده{range_bonus_text}:\n"
         elif distance_type == 'regional':
             menu_text += f"✈️ منطقه‌ای - جت‌ها و موشک‌ها{range_bonus_text}:\n"
         else:
             menu_text += f"🚀 بین‌قاره‌ای - فقط موشک‌های دوربرد{range_bonus_text}:\n"
-        
+
         # List available weapons
         for weapon_type, quantity in available_weapons.items():
             weapon_config = Config.WEAPONS.get(weapon_type, {})
             weapon_name = weapon_config.get('name', weapon_type)
             emoji = weapon_config.get('emoji', '⚔️')
             menu_text += f"{emoji} {weapon_name}: {quantity:,}\n"
-        
+
         menu_text += f"\nنوع حمله: {attack_type}\nانتخاب کنید:"
 
         keyboard = self.keyboards.weapon_selection_keyboard(target_id, attack_type, available_weapons)
@@ -929,7 +941,7 @@ class DragonRPBot:
         target_id = int(data_parts[2])
         attack_type = data_parts[3]
         weapon_selection = data_parts[4] if len(data_parts) > 4 else "all"
-        
+
         # Check if this is conquest mode
         conquest_mode = attack_type == "conquest"
 
@@ -1208,7 +1220,7 @@ class DragonRPBot:
                     'supply_ship': weapons.get('supply_ship', 0),
                     'stealth_transport': weapons.get('stealth_transport', 0)
                 }
-                
+
                 debug_text = f"""❌ وسیله حمل‌ونقل انتخابی در دسترس نیست!
 
 🔍 جزئیات:
@@ -1629,7 +1641,7 @@ class DragonRPBot:
 🚗 تانک: {weapons.get('tank', 0)}
 ✈️ جنگنده: {weapons.get('fighter_jet', 0)}
 🚁 پهپاد: {weapons.get('drone', 0)}
-🚀 موشک: {weapons.get('simple_missile', 0)}
+🚀 موشک: {weapons.get('missile', 0)}
 🚢 کشتی جنگی: {weapons.get('warship', 0)}
 🛡 پدافند هوایی: {weapons.get('air_defense', 0)}
 🚀 سپر موشکی: {weapons.get('missile_shield', 0)}"""
@@ -1794,7 +1806,7 @@ class DragonRPBot:
 
                 # Calculate delivery success chance
                 delivery_chance = min(max(security_level + 30, 70), 95)
-                
+
                 if delivery_chance >= 90:
                     delivery_status = "🟢 بالا"
                 elif delivery_chance >= 80:
@@ -1829,20 +1841,20 @@ class DragonRPBot:
         """Show user's purchase history"""
         user_id = query.from_user.id
         player = self.db.get_player(user_id)
-        
+
         transactions = self.marketplace.get_buyer_transactions(user_id, 10)
-        
+
         if not transactions:
             await query.edit_message_text(
                 f"""📊 تاریخچه خرید - {player['country_name']}
-                
+
 ❌ شما هنوز هیچ خریدی انجام نداده‌اید!
 
 💡 از بخش "خرید کالا" اولین خرید خود را انجام دهید.""",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 بازگشت", callback_data="marketplace")]])
             )
             return
-        
+
         menu_text = f"""📊 تاریخچه خرید - {player['country_name']}
 
 💰 پول شما: ${player['money']:,}
@@ -1855,7 +1867,7 @@ class DragonRPBot:
                 'failed': '❌', 
                 'pending': '⏳'
             }.get(transaction['status'], '❓')
-            
+
             status_text = {
                 'delivered': 'تحویل شد',
                 'failed': 'ناموفق',

@@ -8,7 +8,7 @@ class Config:
 
     # Admin configuration
     ADMIN_CONFIG = {
-        'default_admin_ids': [123456789, 5283015101]  # Replace with actual admin user IDs
+        'default_admin_ids': [123456789]  # Replace with actual admin user IDs
     }
 
     # Countries with flags
@@ -80,159 +80,165 @@ class Config:
             'rifle': {'name': 'تفنگ', 'cost': 1500, 'power': 5, 'range': 300, 'resources': {'iron': 5, 'copper': 2}, 'category': 'basic'},
             'tank': {'name': 'تانک', 'cost': 850000, 'power': 1200, 'range': 500, 'resources': {'iron': 50, 'copper': 15, 'aluminum': 10}, 'category': 'basic'},
             'helicopter': {'name': 'هلیکوپتر', 'cost': 2800000, 'power': 2400, 'range': 1500, 'resources': {'aluminum': 30, 'iron': 20, 'copper': 10}, 'category': 'air'},
-        'jet': {'name': 'جت جنگی', 'cost': 4500000, 'power': 3200, 'range': 2000, 'resources': {'aluminum': 40, 'iron': 25, 'copper': 15, 'titanium': 5}, 'category': 'air'},
-        'drone': {'name': 'پهپاد نظامی', 'cost': 180000, 'power': 800, 'range': 1000, 'resources': {'aluminum': 10, 'copper': 8, 'lithium': 5}, 'category': 'air'},
+            'jet': {'name': 'جت جنگی', 'cost': 4500000, 'power': 3200, 'range': 2000, 'resources': {'aluminum': 40, 'iron': 25, 'copper': 15, 'titanium': 5}, 'category': 'air'},
+            'drone': {'name': 'پهپاد نظامی', 'cost': 180000, 'power': 800, 'range': 1000, 'resources': {'aluminum': 10, 'copper': 8, 'lithium': 5}, 'category': 'air'},
 
-        # Naval weapons
-        'warship': {'name': 'ناو جنگی', 'cost': 2500000, 'power': 3500, 'range': 1500, 'resources': {'iron': 100, 'aluminum': 50, 'copper': 30}, 'category': 'naval'},
-        'submarine': {'name': 'زیردریایی', 'cost': 4200000, 'power': 4800, 'range': 2000, 'resources': {'iron': 80, 'aluminum': 40, 'uranium': 5}, 'category': 'naval'},
-        'destroyer': {'name': 'ناوشکن', 'cost': 3800000, 'power': 5200, 'range': 1800, 'resources': {'iron': 90, 'aluminum': 45, 'copper': 25, 'titanium': 3}, 'category': 'naval'},
-        'aircraft_carrier': {'name': 'ناو هواپیمابر', 'cost': 12500000, 'power': 15000, 'range': 2500, 'resources': {'iron': 200, 'aluminum': 100, 'titanium': 20, 'uranium': 10}, 'category': 'naval'},
+            # Naval weapons
+            'warship': {'name': 'ناو جنگی', 'cost': 2500000, 'power': 2800, 'range': 1800, 'resources': {'iron': 100, 'aluminum': 50, 'copper': 30}, 'category': 'naval'},
+            'submarine': {'name': 'زیردریایی', 'cost': 4200000, 'power': 3200, 'range': 2000, 'resources': {'iron': 80, 'aluminum': 40, 'uranium': 5}, 'category': 'naval'},
+            'destroyer': {'name': 'ناوشکن', 'cost': 3800000, 'power': 3500, 'range': 2200, 'resources': {'iron': 90, 'aluminum': 45, 'copper': 25, 'titanium': 3}, 'category': 'naval'},
+            'aircraft_carrier': {'name': 'ناو هواپیمابر', 'cost': 12500000, 'power': 4000, 'range': 2500, 'resources': {'iron': 200, 'aluminum': 100, 'titanium': 20, 'uranium': 10}, 'category': 'naval'},
+            'aircraft_carrier_full': {'name': 'ناو هواپیمابر کامل', 'cost': 13500000, 'power': 4500, 'range': 2800, 'resources': {'iron': 220, 'aluminum': 110, 'titanium': 22, 'uranium': 11, 'copper': 90}, 'category': 'naval'},
+            'nuclear_submarine': {'name': 'زیردریایی هسته‌ای', 'cost': 5000000, 'power': 4200, 'range': 2600, 'resources': {'iron': 90, 'aluminum': 50, 'uranium': 8}, 'category': 'naval', 'coastal_attack': True},
+            'patrol_ship': {'name': 'ناوچه گشتی', 'cost': 1500000, 'power': 1500, 'range': 1200, 'resources': {'iron': 50, 'copper': 20}, 'category': 'naval'},
+            'patrol_boat': {'name': 'قایق گشتی', 'cost': 800000, 'power': 800, 'range': 800, 'resources': {'iron': 30, 'copper': 10}, 'category': 'naval'},
+            'amphibious_ship': {'name': 'کشتی دوزیست', 'cost': 2200000, 'power': 2200, 'range': 1600, 'resources': {'iron': 80, 'aluminum': 30, 'copper': 20}, 'category': 'naval'},
 
-        # Defense systems
-        'air_defense': {'name': 'پدافند هوایی', 'cost': 1800000, 'power': 3200, 'defense_type': 'air', 'resources': {'iron': 40, 'aluminum': 25, 'copper': 15}, 'category': 'defense'},
-        'missile_shield': {'name': 'سپر موشکی', 'cost': 2850000, 'power': 4500, 'defense_type': 'missile', 'resources': {'uranium': 3, 'iron': 20}, 'category': 'defense'},
-        'cyber_shield': {'name': 'سپر سایبری', 'cost': 1200000, 'power': 2800, 'defense_type': 'cyber', 'resources': {'lithium': 10, 'copper': 8}, 'category': 'defense'},
 
-        # Bombs
-        'simple_bomb': {'name': 'بمب ساده', 'cost': 2000, 'power': 60, 'range': 0, 'resources': {'nitro': 10, 'copper': 10, 'iron': 20, 'sulfur': 20}, 'category': 'bombs'},
-        'nuclear_bomb': {'name': 'بمب هسته‌ای ساده', 'cost': 60000, 'power': 2000, 'range': 0, 'resources': {'iron': 30, 'uranium': 6, 'sulfur': 36}, 'category': 'bombs'},
+            # Defense systems
+            'air_defense': {'name': 'پدافند هوایی', 'cost': 1800000, 'power': 3200, 'defense_type': 'air', 'resources': {'iron': 40, 'aluminum': 25, 'copper': 15}, 'category': 'defense'},
+            'missile_shield': {'name': 'سپر موشکی', 'cost': 2850000, 'power': 4500, 'defense_type': 'missile', 'resources': {'uranium': 3, 'iron': 20}, 'category': 'defense'},
+            'cyber_shield': {'name': 'سپر سایبری', 'cost': 1200000, 'power': 2800, 'defense_type': 'cyber', 'resources': {'lithium': 10, 'copper': 8}, 'category': 'defense'},
 
-        # Basic missiles
-        'simple_missile': {'name': 'موشک ساده', 'cost': 3000, 'power': 60, 'range': 500, 'resources': {'nitro': 10, 'copper': 10, 'iron': 20, 'sulfur': 20, 'coal': 10}, 'category': 'missiles'},
-        'ballistic_missile': {'name': 'موشک بالستیک ساده', 'cost': 9000, 'power': 80, 'range': 2000, 'resources': {'nitro': 15, 'copper': 15, 'iron': 40, 'sulfur': 40, 'coal': 20}, 'category': 'missiles'},
-        'nuclear_missile': {'name': 'موشک هسته‌ای ساده', 'cost': 9000, 'power': 2000, 'range': 2000, 'resources': {'nuclear_bomb': 1, 'ballistic_missile': 1, 'iron': 30, 'sulfur': 30}, 'category': 'missiles'},
+            # Bombs
+            'simple_bomb': {'name': 'بمب ساده', 'cost': 2000, 'power': 60, 'range': 0, 'resources': {'nitro': 10, 'copper': 10, 'iron': 20, 'sulfur': 20}, 'category': 'bombs'},
+            'nuclear_bomb': {'name': 'بمب هسته‌ای ساده', 'cost': 60000, 'power': 2000, 'range': 0, 'resources': {'iron': 30, 'uranium': 6, 'sulfur': 36}, 'category': 'bombs'},
 
-        # Special missiles
-        'trident2_conventional': {'name': 'Trident 2 غیر هسته‌ای', 'cost': 0, 'power': 1000, 'range': 5000, 'resources': {'simple_bomb': 13, 'ballistic_missile': 1, 'coal': 140}, 'category': 'special_missiles'},
-        'trident2_nuclear': {'name': 'Trident 2 هسته‌ای', 'cost': 190000, 'power': 30000, 'range': 5000, 'resources': {'nuclear_bomb': 13, 'ballistic_missile': 1, 'coal': 140}, 'category': 'special_missiles'},
-        'satan2_conventional': {'name': 'Satan2 غیر هسته‌ای', 'cost': 0, 'power': 940, 'range': 4500, 'resources': {'simple_bomb': 10, 'ballistic_missile': 1, 'coal': 140}, 'category': 'special_missiles'},
-        'satan2_nuclear': {'name': 'Satan2 هسته‌ای', 'cost': 160000, 'power': 21000, 'range': 4500, 'resources': {'nuclear_bomb': 10, 'ballistic_missile': 1, 'coal': 140}, 'category': 'special_missiles'},
-        'df41_nuclear': {'name': 'DF-41 هسته‌ای', 'cost': 130000, 'power': 18000, 'range': 4000, 'resources': {'nuclear_bomb': 8, 'ballistic_missile': 1, 'coal': 140}, 'category': 'special_missiles'},
-        'tomahawk_conventional': {'name': 'Tomahawk غیر هسته‌ای', 'cost': 12000, 'power': 700, 'range': 1500, 'resources': {'ballistic_missile': 1, 'simple_bomb': 1, 'iron': 10, 'sulfur': 120}, 'category': 'special_missiles'},
-        'tomahawk_nuclear': {'name': 'Tomahawk هسته‌ای', 'cost': 18000, 'power': 3000, 'range': 1500, 'resources': {'nuclear_bomb': 1, 'ballistic_missile': 1, 'iron': 30, 'coal': 20}, 'category': 'special_missiles'},
-        'kalibr_conventional': {'name': 'Kalibr غیر هسته‌ای', 'cost': 12000, 'power': 650, 'range': 1500, 'resources': {'ballistic_missile': 1, 'simple_bomb': 1, 'iron': 10, 'sulfur': 30}, 'category': 'special_missiles'},
+            # Basic missiles
+            'simple_missile': {'name': 'موشک ساده', 'cost': 3000, 'power': 60, 'range': 500, 'resources': {'nitro': 10, 'copper': 10, 'iron': 20, 'sulfur': 20, 'coal': 10}, 'category': 'missiles'},
+            'ballistic_missile': {'name': 'موشک بالستیک ساده', 'cost': 9000, 'power': 80, 'range': 2000, 'resources': {'nitro': 15, 'copper': 15, 'iron': 40, 'sulfur': 40, 'coal': 20}, 'category': 'missiles'},
+            'nuclear_missile': {'name': 'موشک هسته‌ای ساده', 'cost': 9000, 'power': 2000, 'range': 2000, 'resources': {'nuclear_bomb': 1, 'ballistic_missile': 1, 'iron': 30, 'sulfur': 30}, 'category': 'missiles'},
 
-        # Advanced fighter jets
-        'f22': {'name': 'F-22', 'cost': 20000, 'power': 980, 'range': 3000, 'resources': {'titanium': 9, 'iron': 15, 'aluminum': 30, 'copper': 9, 'gold': 3}, 'category': 'advanced_jets'},
-        'strategic_bomber': {'name': 'بمب‌افکن استراتژیک', 'cost': 8500000, 'power': 4500, 'range': 4500, 'resources': {'aluminum': 60, 'titanium': 25, 'fuel': 50}, 'category': 'air'},
-        'icbm': {'name': 'موشک قاره‌پیما', 'cost': 25000000, 'power': 6000, 'range': 15000, 'resources': {'uranium': 30, 'titanium': 20, 'fuel': 40}, 'category': 'special_missiles'},
-        'f35': {'name': 'F-35', 'cost': 18000, 'power': 950, 'range': 2800, 'resources': {'titanium': 9, 'iron': 10, 'aluminum': 21, 'copper': 6, 'gold': 2}, 'category': 'advanced_jets'},
-        'su57': {'name': 'Su-57', 'cost': 18000, 'power': 940, 'range': 2700, 'resources': {'titanium': 9, 'iron': 10, 'aluminum': 21, 'copper': 6, 'gold': 2}, 'category': 'advanced_jets'},
-        'j20': {'name': 'J-20', 'cost': 15000, 'power': 920, 'range': 2500, 'resources': {'titanium': 9, 'iron': 10, 'aluminum': 21, 'copper': 6, 'gold': 2}, 'category': 'advanced_jets'},
-        'f15ex': {'name': 'F-15EX', 'cost': 15000, 'power': 910, 'range': 2400, 'resources': {'titanium': 6, 'iron': 15, 'aluminum': 30, 'copper': 9, 'gold': 3}, 'category': 'advanced_jets'},
-        'su35s': {'name': 'Su-35S', 'cost': 15000, 'power': 900, 'range': 2300, 'resources': {'titanium': 6, 'iron': 10, 'aluminum': 21, 'copper': 6, 'gold': 2}, 'category': 'advanced_jets'},
+            # Special missiles
+            'trident2_conventional': {'name': 'Trident 2 غیر هسته‌ای', 'cost': 0, 'power': 1000, 'range': 5000, 'resources': {'simple_bomb': 13, 'ballistic_missile': 1, 'coal': 140}, 'category': 'special_missiles'},
+            'trident2_nuclear': {'name': 'Trident 2 هسته‌ای', 'cost': 190000, 'power': 30000, 'range': 5000, 'resources': {'nuclear_bomb': 13, 'ballistic_missile': 1, 'coal': 140}, 'category': 'special_missiles'},
+            'satan2_conventional': {'name': 'Satan2 غیر هسته‌ای', 'cost': 0, 'power': 940, 'range': 4500, 'resources': {'simple_bomb': 10, 'ballistic_missile': 1, 'coal': 140}, 'category': 'special_missiles'},
+            'satan2_nuclear': {'name': 'Satan2 هسته‌ای', 'cost': 160000, 'power': 21000, 'range': 4500, 'resources': {'nuclear_bomb': 10, 'ballistic_missile': 1, 'coal': 140}, 'category': 'special_missiles'},
+            'df41_nuclear': {'name': 'DF-41 هسته‌ای', 'cost': 130000, 'power': 18000, 'range': 4000, 'resources': {'nuclear_bomb': 8, 'ballistic_missile': 1, 'coal': 140}, 'category': 'special_missiles'},
+            'tomahawk_conventional': {'name': 'Tomahawk غیر هسته‌ای', 'cost': 12000, 'power': 700, 'range': 1500, 'resources': {'ballistic_missile': 1, 'simple_bomb': 1, 'iron': 10, 'sulfur': 120}, 'category': 'special_missiles'},
+            'tomahawk_nuclear': {'name': 'Tomahawk هسته‌ای', 'cost': 18000, 'power': 3000, 'range': 1500, 'resources': {'nuclear_bomb': 1, 'ballistic_missile': 1, 'iron': 30, 'coal': 20}, 'category': 'special_missiles'},
+            'kalibr_conventional': {'name': 'Kalibr غیر هسته‌ای', 'cost': 12000, 'power': 650, 'range': 1500, 'resources': {'ballistic_missile': 1, 'simple_bomb': 1, 'iron': 10, 'sulfur': 30}, 'category': 'special_missiles'},
 
-        # Transport and Logistics Equipment
-        'armored_truck': {
-        'name': 'کامیون زرهی',
-        'cost': 90000,
-        'category': 'transport',
-        'power': 0,
-        'defense': 15,
-        'transport_capacity': 1000,
-        'security_bonus': 20,
-        'emoji': '🚚'
-    },
-    'cargo_helicopter': {
-        'name': 'هلیکوپتر باری',
-        'cost': 120000,
-        'category': 'transport',
-        'power': 0,
-        'defense': 25,
-        'transport_capacity': 2000,
-        'security_bonus': 35,
-        'emoji': '🚁'
-    },
-    'cargo_plane': {
-        'name': 'هواپیمای باری',
-        'cost': 240000,
-        'category': 'transport',
-        'power': 0,
-        'defense': 40,
-        'transport_capacity': 5000,
-        'security_bonus': 50,
-        'emoji': '✈️'
-    },
-    'escort_frigate': {
-        'name': 'ناوچه اسکورت',
-        'cost': 300000,
-        'category': 'transport',
-        'power': 30,
-        'defense': 60,
-        'transport_capacity': 3000,
-        'security_bonus': 45,
-        'emoji': '🚢'
-    },
-    'logistics_drone': {
-        'name': 'پهپاد لجستیک',
-        'cost': 120000,
-        'category': 'transport',
-        'power': 15,
-        'defense': 20,
-        'transport_capacity': 800,
-        'security_bonus': 25,
-        'emoji': '🚁'
-    },
-    'heavy_transport': {
-        'name': 'ترابری سنگین',
-        'cost': 210000,
-        'category': 'transport',
-        'power': 0,
-        'defense': 30,
-        'transport_capacity': 4000,
-        'security_bonus': 30,
-        'emoji': '🚛'
-    },
-    'supply_ship': {
-        'name': 'کشتی تدارکات',
-        'cost': 450000,
-        'category': 'transport',
-        'power': 25,
-        'defense': 50,
-        'transport_capacity': 8000,
-        'security_bonus': 40,
-        'emoji': '🚢'
-    },
-    'stealth_transport': {
-        'name': 'ترابری پنهان‌کار',
-        'cost': 240000,
-        'category': 'transport',
-        'power': 0,
-        'defense': 40,
-        'transport_capacity': 5000,
-        'security_bonus': 35,
-        'emoji': '✈️'
-    },
-    'tanker_aircraft': {
-        'name': 'هواپیمای سوخت‌رسان',
-        'cost': 5800000,
-        'power': 1000,
-        'range': 4000,
-        'speed': 450,
-        'armor': 300,
-        'resources': {'aluminum': 60, 'iron': 40, 'copper': 20, 'titanium': 8},
-        'category': 'transport',
-        'description': 'هواپیمای سوخت‌رسان که برد جت‌ها را افزایش می‌دهد',
-        'requirements': ['weapon_factory', 'power_plant', 'refinery'],
-        'production_time': 250,
-        'emoji': '✈️'
-    },
-    'aircraft_carrier_transport': {
-        'name': 'ناو هواپیمابر (حمل‌ونقل)',
-        'cost': 12500000,
-        'power': 8000,
-        'range': 5000,
-        'speed': 30,
-        'armor': 6000,
-        'resources': {'iron': 200, 'aluminum': 100, 'titanium': 25, 'uranium': 15, 'copper': 80},
-        'category': 'transport',
-        'description': 'ناو هواپیمابر که جت‌ها را به مناطق دوردست می‌برد',
-        'requirements': ['weapon_factory', 'power_plant', 'refinery'],
-        'production_time': 400,
-        'emoji': '🚢'
-    },
-    }
+            # Advanced fighter jets
+            'f22': {'name': 'F-22', 'cost': 20000, 'power': 980, 'range': 3000, 'resources': {'titanium': 9, 'iron': 15, 'aluminum': 30, 'copper': 9, 'gold': 3}, 'category': 'advanced_jets'},
+            'strategic_bomber': {'name': 'بمب‌افکن استراتژیک', 'cost': 8500000, 'power': 4500, 'range': 4500, 'resources': {'aluminum': 60, 'titanium': 25, 'fuel': 50}, 'category': 'air'},
+            'icbm': {'name': 'موشک قاره‌پیما', 'cost': 25000000, 'power': 6000, 'range': 15000, 'resources': {'uranium': 30, 'titanium': 20, 'fuel': 40}, 'category': 'special_missiles'},
+            'f35': {'name': 'F-35', 'cost': 18000, 'power': 950, 'range': 2800, 'resources': {'titanium': 9, 'iron': 10, 'aluminum': 21, 'copper': 6, 'gold': 2}, 'category': 'advanced_jets'},
+            'su57': {'name': 'Su-57', 'cost': 18000, 'power': 940, 'range': 2700, 'resources': {'titanium': 9, 'iron': 10, 'aluminum': 21, 'copper': 6, 'gold': 2}, 'category': 'advanced_jets'},
+            'j20': {'name': 'J-20', 'cost': 15000, 'power': 920, 'range': 2500, 'resources': {'titanium': 9, 'iron': 10, 'aluminum': 21, 'copper': 6, 'gold': 2}, 'category': 'advanced_jets'},
+            'f15ex': {'name': 'F-15EX', 'cost': 15000, 'power': 910, 'range': 2400, 'resources': {'titanium': 6, 'iron': 15, 'aluminum': 30, 'copper': 9, 'gold': 3}, 'category': 'advanced_jets'},
+            'su35s': {'name': 'Su-35S', 'cost': 15000, 'power': 900, 'range': 2300, 'resources': {'titanium': 6, 'iron': 10, 'aluminum': 21, 'copper': 6, 'gold': 2}, 'category': 'advanced_jets'},
+
+            # Transport and Logistics Equipment
+            'armored_truck': {
+            'name': 'کامیون زرهی',
+            'cost': 90000,
+            'category': 'transport',
+            'power': 0,
+            'defense': 15,
+            'transport_capacity': 1000,
+            'security_bonus': 20,
+            'emoji': '🚚'
+        },
+        'cargo_helicopter': {
+            'name': 'هلیکوپتر باری',
+            'cost': 120000,
+            'category': 'transport',
+            'power': 0,
+            'defense': 25,
+            'transport_capacity': 2000,
+            'security_bonus': 35,
+            'emoji': '🚁'
+        },
+        'cargo_plane': {
+            'name': 'هواپیمای باری',
+            'cost': 240000,
+            'category': 'transport',
+            'power': 0,
+            'defense': 40,
+            'transport_capacity': 5000,
+            'security_bonus': 50,
+            'emoji': '✈️'
+        },
+        'escort_frigate': {
+            'name': 'ناوچه اسکورت',
+            'cost': 300000,
+            'category': 'transport',
+            'power': 30,
+            'defense': 60,
+            'transport_capacity': 3000,
+            'security_bonus': 45,
+            'emoji': '🚢'
+        },
+        'logistics_drone': {
+            'name': 'پهپاد لجستیک',
+            'cost': 120000,
+            'category': 'transport',
+            'power': 15,
+            'defense': 20,
+            'transport_capacity': 800,
+            'security_bonus': 25,
+            'emoji': '🚁'
+        },
+        'heavy_transport': {
+            'name': 'ترابری سنگین',
+            'cost': 210000,
+            'category': 'transport',
+            'power': 0,
+            'defense': 30,
+            'transport_capacity': 4000,
+            'security_bonus': 30,
+            'emoji': '🚛'
+        },
+        'supply_ship': {
+            'name': 'کشتی تدارکات',
+            'cost': 450000,
+            'category': 'transport',
+            'power': 25,
+            'defense': 50,
+            'transport_capacity': 8000,
+            'security_bonus': 40,
+            'emoji': '🚢'
+        },
+        'stealth_transport': {
+            'name': 'ترابری پنهان‌کار',
+            'cost': 240000,
+            'category': 'transport',
+            'power': 0,
+            'defense': 40,
+            'transport_capacity': 5000,
+            'security_bonus': 35,
+            'emoji': '✈️'
+        },
+        'tanker_aircraft': {
+            'name': 'هواپیمای سوخت‌رسان',
+            'cost': 5800000,
+            'power': 1000,
+            'range': 4000,
+            'speed': 450,
+            'armor': 300,
+            'resources': {'aluminum': 60, 'iron': 40, 'copper': 20, 'titanium': 8},
+            'category': 'transport',
+            'description': 'هواپیمای سوخت‌رسان که برد جت‌ها را افزایش می‌دهد',
+            'requirements': ['weapon_factory', 'power_plant', 'refinery'],
+            'production_time': 250,
+            'emoji': '✈️'
+        },
+        'aircraft_carrier_transport': {
+            'name': 'ناو هواپیمابر (حمل‌ونقل)',
+            'cost': 12500000,
+            'power': 8000,
+            'range': 5000,
+            'speed': 30,
+            'armor': 6000,
+            'resources': {'iron': 200, 'aluminum': 100, 'titanium': 25, 'uranium': 15, 'copper': 80},
+            'category': 'transport',
+            'description': 'ناو هواپیمابر که جت‌ها را به مناطق دوردست می‌برد',
+            'requirements': ['weapon_factory', 'power_plant', 'refinery'],
+            'production_time': 400,
+            'emoji': '🚢'
+        },
+        }
 
     # Resources configuration
     RESOURCES = {
@@ -255,29 +261,100 @@ class Config:
     # Country neighbors for war system
     COUNTRY_NEIGHBORS = {
         'IR': ['TR', 'IQ', 'AF', 'PK'],
-        'TR': ['IR', 'IQ'],
-        'RU': ['CN', 'KP', 'DE'],
-        'CN': ['RU', 'KP', 'JP', 'IN'],
-        'US': ['MX', 'CA'],
-        'MX': ['US'],
-        'FR': ['DE', 'ES', 'BE', 'IT'],
-        'DE': ['FR', 'RU', 'BE'],
-        'ES': ['FR'],
-        'BE': ['FR', 'DE'],
-        'JP': ['CN', 'KP'],
-        'KP': ['CN', 'RU', 'JP'],
-        'EG': ['SA'],
-        'SA': ['EG', 'IQ'],
-        'PK': ['IR', 'AF', 'IN'],
+        'TR': ['IR', 'SY', 'IQ', 'GR'],
+        'IQ': ['IR', 'TR', 'SY', 'SA', 'KW'],
         'AF': ['IR', 'PK'],
-        'IQ': ['IR', 'TR', 'SA'],
-        'IN': ['CN', 'PK'],
-        'AR': ['BR'],
-        'BR': ['AR'],
-        'IT': ['FR'],
+        'PK': ['IR', 'AF', 'IN'],
+        'SA': ['IQ', 'YE', 'AE', 'QA', 'KW'],
+        'AE': ['SA', 'QA'],
+        'QA': ['SA', 'AE'],
+        'KW': ['IQ', 'SA'],
+        'YE': ['SA'],
+        'SY': ['TR', 'IQ'],
+        'GR': ['TR'],
+        'IN': ['PK'],
+        'US': [],
+        'RU': [],
+        'CN': [],
         'GB': [],
-        'CA': ['US'],
-        'AU': []
+        'FR': [],
+        'DE': [],
+        'JP': [],
+        'KR': [],
+        'IT': [],
+        'ES': [],
+        'CA': [],
+        'AU': [],
+        'BR': [],
+        'MX': [],
+        'AR': [],
+        'ZA': [],
+        'EG': [],
+        'NG': [],
+        'KE': [],
+        'MA': [],
+        'DZ': [],
+        'LY': [],
+        'TN': [],
+        'SD': [],
+        'ET': [],
+        'UG': [],
+        'TZ': [],
+        'MZ': [],
+        'MG': [],
+        'ZW': [],
+        'ZM': [],
+        'BW': [],
+        'NA': [],
+        'SZ': [],
+        'LS': [],
+        'MW': [],
+        'RW': [],
+        'BI': [],
+        'DJ': [],
+        'SO': [],
+        'ER': [],
+        'SS': [],
+        'TD': [],
+        'CF': [],
+        'CM': [],
+        'GQ': [],
+        'GA': [],
+        'CG': [],
+        'CD': [],
+        'AO': [],
+        'ST': [],
+        'CV': [],
+        'GW': [],
+        'GN': [],
+        'SL': [],
+        'LR': [],
+        'CI': [],
+        'GH': [],
+        'TG': [],
+        'BJ': [],
+        'NE': [],
+        'BF': [],
+        'ML': [],
+        'SN': [],
+        'GM': [],
+        'GY': [],
+        'SR': [],
+        'GF': [],
+        'VE': [],
+        'CO': [],
+        'EC': [],
+        'PE': [],
+        'BO': [],
+        'PY': [],
+        'UY': [],
+        'CL': [],
+        'FK': []
+    }
+
+    # Coastal countries that can be attacked by nuclear submarines
+    COASTAL_COUNTRIES = {
+        'IR', 'TR', 'SA', 'AE', 'QA', 'KW', 'YE', 'SY', 'GR', 'US', 'RU', 'CN', 'GB', 'FR', 'DE', 'JP', 'KR', 'IT', 'ES', 'CA', 'AU', 'BR', 'MX', 'AR', 'ZA', 'EG', 'NG', 'MA', 'DZ', 'LY', 'TN', 'SO', 'ER', 'DJ', 'GQ', 'GA', 'CG', 'AO', 'GW', 'GN', 'SL', 'LR', 'CI', 'GH', 'TG', 'BJ', 'SN', 'GM', 'GY', 'SR', 'VE', 'CO', 'EC', 'PE', 'UY', 'CL', 'FK'
     }
 
     # Admin configuration
@@ -298,7 +375,7 @@ class Config:
     # Distance-based combat timing (in minutes)
     COMBAT_TIMING = {
         'neighbor_time': 10,        # همسایه - 10 دقیقه
-        'regional_time': 25,        # منطقه‌ای - 25 دقیقه  
+        'regional_time': 25,        # منطقه‌ای - 25 دقیقه
         'intercontinental_time': 40, # بین قاره‌ای - 40 دقیقه
         'speed_bonus_per_jet': 0.5,  # کاهش زمان برای هر جت
         'speed_bonus_per_transport': 0.3  # کاهش زمان برای تجهیزات حمل‌ونقل
@@ -345,7 +422,7 @@ class Config:
         else:
             return 'intercontinental'
 
-    @classmethod 
+    @classmethod
     def are_countries_neighbors(cls, country1, country2):
         """Check if two countries are neighbors"""
         return country2 in cls.COUNTRY_NEIGHBORS.get(country1, [])
@@ -370,50 +447,52 @@ class Config:
         return False
 
     @classmethod
-    def get_available_weapons_for_attack(cls, attacker_country, defender_country, weapons, has_tanker=False, has_carrier=False):
-        """Get weapons available for attack based on distance and range extenders"""
+    def get_available_weapons_for_attack(cls, attacker_country, defender_country, player_weapons, has_tanker=False, has_carrier=False):
+        """Get list of weapons that can attack based on distance and range"""
         distance_type = Config.get_country_distance_type(attacker_country, defender_country)
         available_weapons = []
 
-        # Calculate range bonus from extenders
-        range_bonus = 0
-        if has_carrier:
-            range_bonus = max(range_bonus, 3000)  # ناوبر 3000 کیلومتر اضافه می‌کنه
-        if has_tanker:
-            range_bonus = max(range_bonus, 2000)  # سوخت‌رسان 2000 کیلومتر اضافه می‌کنه
-        if has_carrier and has_tanker:
-            range_bonus = 4000  # ترکیب هردو 4000 کیلومتر
-
-        for weapon_type, count in weapons.items():
+        for weapon_type, count in player_weapons.items():
             if weapon_type == 'user_id' or count <= 0:
                 continue
 
-            if weapon_type not in Config.WEAPONS:
+            weapon_config = Config.WEAPONS.get(weapon_type) # Changed from WEAPON_CAPABILITIES to WEAPONS
+            if not weapon_config:
                 continue
 
-            weapon_info = Config.WEAPONS[weapon_type]
-            base_range = weapon_info.get('range', 0)
-            weapon_category = weapon_info.get('category', '')
+            # Special case: Nuclear submarines can attack any coastal country
+            if weapon_type == 'nuclear_submarine' and weapon_config.get('coastal_attack'):
+                if defender_country in Config.COASTAL_COUNTRIES:
+                    available_weapons.append(weapon_type)
+                    continue
 
-            # Skip transport weapons for attack (but carrier transport has attack power)
-            if weapon_category == 'transport' and weapon_type != 'aircraft_carrier_transport':
-                continue
-
-            # Calculate effective range for jets
-            effective_range = base_range
-            if weapon_category == 'air' and range_bonus > 0:
-                effective_range = base_range + range_bonus
-
+            # Check weapon range vs distance
             if distance_type == 'neighbor':
-                # All weapons work for neighbors
+                # All weapons can attack neighbors
                 available_weapons.append(weapon_type)
             elif distance_type == 'regional':
-                # Jets and missiles for regional, with range extension
-                if weapon_category in ['air', 'missile'] or effective_range >= 1500:
+                # Check if weapon has enough range for regional attack
+                weapon_range = weapon_config.get('range', 0)
+
+                # Apply range bonus from transport equipment
+                if has_carrier and weapon_type in ['fighter_jet', 'jet', 'f22', 'f35', 'su57', 'j20', 'f15ex', 'su35s']:
+                    weapon_range += 500  # Carrier extends jet range
+                if has_tanker and weapon_type in ['fighter_jet', 'jet', 'f22', 'f35', 'su57', 'j20', 'f15ex', 'su35s']:
+                    weapon_range += 300  # Tanker extends jet range
+
+                if weapon_range >= 1500:  # Regional range requirement
                     available_weapons.append(weapon_type)
             else:  # intercontinental
-                # Long-range missiles and extended-range jets
-                if effective_range >= 3000:
+                # Only long-range weapons
+                weapon_range = weapon_config.get('range', 0)
+
+                # Apply range bonus
+                if has_carrier and weapon_type in ['fighter_jet', 'jet', 'f22', 'f35', 'su57', 'j20', 'f15ex', 'su35s']:
+                    weapon_range += 500
+                if has_tanker and weapon_type in ['fighter_jet', 'jet', 'f22', 'f35', 'su57', 'j20', 'f15ex', 'su35s']:
+                    weapon_range += 300
+
+                if weapon_range >= 3000:  # Intercontinental range requirement
                     available_weapons.append(weapon_type)
 
         return available_weapons

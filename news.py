@@ -169,39 +169,22 @@ class NewsChannel:
         await self.send_news(message)
 
     async def send_weapon_produced(self, country_name, weapon_name, quantity=1):
-        """Send weapon production news"""
+        """Send weapon production news - disabled for most weapons, only special ones"""
+        # فقط برای سلاح‌های هسته‌ای و زیردریایی‌های خاص خبر بفرست
+        nuclear_weapons = ['بمب هسته‌ای', 'موشک هسته‌ای', 'Trident 2 هسته‌ای', 'Satan2 هسته‌ای', 'DF-41 هسته‌ای', 'Tomahawk هسته‌ای']
+        special_subs = ['زیردریایی هسته‌ای']
+        
+        if not any(nuke in weapon_name for nuke in nuclear_weapons) and not any(sub in weapon_name for sub in special_subs):
+            return  # خبری ارسال نمی‌شود
+
         country_flag = self.get_country_flag(country_name)
+        weapon_emoji = '☢️' if 'هسته‌ای' in weapon_name else '⚔️'
 
-        weapon_emojis = {
-            'تفنگ': '🔫', 'تانک': '🚗', 'جنگنده': '✈️', 'پهپاد': '🚁',
-            'کشتی جنگی': '🚢', 'بمب ساده': '💣', 'بمب هسته‌ای ساده': '☢️',
-            'موشک ساده': '🚀', 'موشک بالستیک ساده': '🚀', 'موشک هسته‌ای ساده': '☢️',
-            'Trident 2 غیر هسته‌ای': '🚀', 'Trident 2 هسته‌ای': '☢️🚀',
-            'Satan2 غیر هسته‌ای': '🚀', 'Satan2 هسته‌ای': '☢️🚀',
-            'DF-41 هسته‌ای': '☢️🚀', 'Tomahawk غیر هسته‌ای': '🚀',
-            'Tomahawk هسته‌ای': '☢️🚀', 'Kalibr غیر هسته‌ای': '🚀',
-            'F-22': '✈️', 'F-35': '✈️', 'Su-57': '✈️', 'J-20': '✈️',
-            'F-15EX': '✈️', 'Su-35S': '✈️'
-        }
+        message = f"""⚠️ توسعه تسلیحات خطرناک!
 
-        weapon_emoji = weapon_emojis.get(weapon_name, '⚔️')
+{country_flag} <b>{country_name}</b> یک {weapon_emoji} <b>{weapon_name}</b> تولید کرد!
 
-        # Determine weapon category and select appropriate template
-        if 'هسته‌ای' in weapon_name:
-            template = random.choice(self.weapon_templates['nuclear'])
-        elif any(name in weapon_name for name in ['Trident', 'Satan2', 'DF-41', 'Tomahawk', 'Kalibr']):
-            template = random.choice(self.weapon_templates['missile'])
-        elif any(name in weapon_name for name in ['F-22', 'F-35', 'Su-57', 'J-20', 'F-15']):
-            template = random.choice(self.weapon_templates['aircraft'])
-        else:
-            template = random.choice(self.weapon_templates['basic'])
-
-        message = template.format(
-            flag=country_flag,
-            country=country_name,
-            emoji=weapon_emoji,
-            weapon=weapon_name
-        )
+🚨 این سلاح تعادل قدرت را تغییر می‌دهد!"""
 
         if quantity > 1:
             message = message.replace(f"یک {weapon_emoji} <b>{weapon_name}</b>", f"<b>{quantity:,} عدد</b> {weapon_emoji} <b>{weapon_name}</b>")
@@ -398,9 +381,20 @@ class NewsChannel:
     async def send_war_news(self, attacker_country, defender_country, result):
         """Send war news to channel"""
         if result['success']:
-            message = f"""⚔️ پیروزی در جنگ!
+            if result.get('conquest_mode'):
+                message = f"""🏴‍☠️ فتح کشور!
 
-🏛 <b>{attacker_country}</b> در حمله به <b>{defender_country}</b> پیروز شد!
+⚔️ <b>{attacker_country}</b> در نبرد با <b>{defender_country}</b> پیروز شد و بخشی از سرزمین‌هایش را فتح کرد!
+
+💥 قدرت حمله: {result['attack_power']:,}
+🛡 قدرت دفاع: {result.get('effective_defense_power', result['defense_power']):,}
+💀 خسارت وارده: {result['damage']:,.0f}
+
+🏆 فاتح: {attacker_country}"""
+            else:
+                message = f"""⚔️ پیروزی در جنگ!
+
+🏛 <b>{attacker_country}</b> در نبرد با <b>{defender_country}</b> پیروز شد!
 
 💥 قدرت حمله: {result['attack_power']:,}
 🛡 قدرت دفاع: {result['defense_power']:,}
@@ -408,10 +402,22 @@ class NewsChannel:
 
 🏆 برنده: {attacker_country}"""
 
+            # نمایش منابع غارت شده
             if result.get('stolen_resources'):
                 message += "\n\n💰 منابع غارت شده:"
                 for resource, amount in result['stolen_resources'].items():
-                    message += f"\n• {resource}: {amount:,}"
+                    resource_config = Config.RESOURCES.get(resource, {})
+                    resource_name = resource_config.get('name', resource)
+                    resource_emoji = resource_config.get('emoji', '📦')
+                    message += f"\n{resource_emoji} {resource_name}: {amount:,}"
+
+            # نمایش معادن فتح شده
+            if result.get('conquered_buildings'):
+                message += "\n\n🏭 معادن فتح شده:"
+                for building_type, count in result['conquered_buildings'].items():
+                    building_config = Config.BUILDINGS.get(building_type, {})
+                    building_name = building_config.get('name', building_type)
+                    message += f"\n⛏ {building_name}: {count:,} عدد"
 
         else:
             message = f"""🛡 دفاع موفق!
@@ -429,7 +435,9 @@ class NewsChannel:
                     if loss_type == 'soldiers':
                         message += f"\n• سربازان: {amount:,}"
                     else:
-                        message += f"\n• {loss_type}: {amount:,}"
+                        weapon_config = Config.WEAPONS.get(loss_type, {})
+                        weapon_name = weapon_config.get('name', loss_type)
+                        message += f"\n• {weapon_name}: {amount:,}"
 
         await self.send_text_message(message)
 
