@@ -24,8 +24,7 @@ class AllianceSystem:
                     name TEXT NOT NULL,
                     leader_id INTEGER NOT NULL,
                     description TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (leader_id) REFERENCES players (user_id)
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
 
@@ -36,9 +35,7 @@ class AllianceSystem:
                     player_id INTEGER NOT NULL,
                     role TEXT DEFAULT 'member',
                     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    PRIMARY KEY (alliance_id, player_id),
-                    FOREIGN KEY (alliance_id) REFERENCES alliances (id),
-                    FOREIGN KEY (player_id) REFERENCES players (user_id)
+                    PRIMARY KEY (alliance_id, player_id)
                 )
             ''')
 
@@ -50,10 +47,7 @@ class AllianceSystem:
                     inviter_id INTEGER NOT NULL,
                     invitee_id INTEGER NOT NULL,
                     status TEXT DEFAULT 'pending',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (alliance_id) REFERENCES alliances (id),
-                    FOREIGN KEY (inviter_id) REFERENCES players (user_id),
-                    FOREIGN KEY (invitee_id) REFERENCES players (user_id)
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
 
@@ -71,7 +65,7 @@ class AllianceSystem:
             # Create alliance
             cursor.execute('''
                 INSERT INTO alliances (name, leader_id, description)
-                VALUES (?, ?, ?)
+                VALUES (%s, %s, %s)
             ''', (alliance_name, leader_id, description))
 
             alliance_id = cursor.lastrowid
@@ -79,7 +73,7 @@ class AllianceSystem:
             # Add leader as member
             cursor.execute('''
                 INSERT INTO alliance_members (alliance_id, player_id, role)
-                VALUES (?, ?, 'leader')
+                VALUES (%s, %s, 'leader')
             ''', (alliance_id, leader_id))
 
             conn.commit()
@@ -114,7 +108,7 @@ class AllianceSystem:
             cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 INSERT INTO alliance_invitations (alliance_id, inviter_id, invitee_id)
-                VALUES (?, ?, ?)
+                VALUES (%s, %s, %s)
             ''', (inviter_alliance['alliance_id'], inviter_id, invitee_id))
             conn.commit()
 
@@ -141,14 +135,14 @@ class AllianceSystem:
                 # Add to alliance
                 cursor.execute('''
                     INSERT INTO alliance_members (alliance_id, player_id)
-                    VALUES (?, ?)
+                    VALUES (%s, %s)
                 ''', (invitation['alliance_id'], player_id))
 
                 # Update invitation status
                 cursor.execute('''
                     UPDATE alliance_invitations 
                     SET status = 'accepted' 
-                    WHERE id = ?
+                    WHERE id = %s
                 ''', (invitation_id,))
 
                 conn.commit()
@@ -162,7 +156,7 @@ class AllianceSystem:
                 cursor.execute('''
                     UPDATE alliance_invitations 
                     SET status = 'rejected' 
-                    WHERE id = ?
+                    WHERE id = %s
                 ''', (invitation_id,))
 
                 conn.commit()
@@ -181,7 +175,7 @@ class AllianceSystem:
                        am.role, a.leader_id, a.description
                 FROM alliances a
                 JOIN alliance_members am ON a.id = am.alliance_id
-                WHERE am.player_id = ?
+                WHERE am.player_id = %s
             ''', (player_id,))
 
             result = cursor.fetchone()
@@ -195,7 +189,7 @@ class AllianceSystem:
                 SELECT p.user_id, p.country_name, p.username, am.role, am.joined_at
                 FROM alliance_members am
                 JOIN players p ON am.player_id = p.user_id
-                WHERE am.alliance_id = ?
+                WHERE am.alliance_id = %s
                 ORDER BY am.role DESC, am.joined_at
             ''', (alliance_id,))
 
@@ -211,7 +205,7 @@ class AllianceSystem:
                 FROM alliance_invitations ai
                 JOIN alliances a ON ai.alliance_id = a.id
                 JOIN players p ON ai.inviter_id = p.user_id
-                WHERE ai.invitee_id = ? AND ai.status = 'pending'
+                WHERE ai.invitee_id = %s AND ai.status = 'pending'
                 ORDER BY ai.created_at DESC
             ''', (player_id,))
 
@@ -223,7 +217,7 @@ class AllianceSystem:
             cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 SELECT id FROM alliance_invitations
-                WHERE alliance_id = ? AND invitee_id = ? AND status = 'pending'
+                WHERE alliance_id = %s AND invitee_id = %s AND status = 'pending'
             ''', (alliance_id, invitee_id))
 
             return cursor.fetchone() is not None
@@ -236,7 +230,7 @@ class AllianceSystem:
                 SELECT ai.*, a.name as alliance_name
                 FROM alliance_invitations ai
                 JOIN alliances a ON ai.alliance_id = a.id
-                WHERE ai.id = ?
+                WHERE ai.id = %s
             ''', (invitation_id,))
 
             result = cursor.fetchone()
@@ -262,7 +256,7 @@ class AllianceSystem:
             cursor = conn.cursor(dictionary=True)
             cursor.execute('''
                 DELETE FROM alliance_members 
-                WHERE alliance_id = ? AND player_id = ?
+                WHERE alliance_id = %s AND player_id = %s
             ''', (alliance['alliance_id'], player_id))
             conn.commit()
 
@@ -277,13 +271,13 @@ class AllianceSystem:
             cursor = conn.cursor(dictionary=True)
 
             # Remove all members
-            cursor.execute('DELETE FROM alliance_members WHERE alliance_id = ?', (alliance_id,))
+            cursor.execute('DELETE FROM alliance_members WHERE alliance_id = %s', (alliance_id,))
 
             # Remove all invitations
-            cursor.execute('DELETE FROM alliance_invitations WHERE alliance_id = ?', (alliance_id,))
+            cursor.execute('DELETE FROM alliance_invitations WHERE alliance_id = %s', (alliance_id,))
 
             # Remove alliance
-            cursor.execute('DELETE FROM alliances WHERE id = ?', (alliance_id,))
+            cursor.execute('DELETE FROM alliances WHERE id = %s', (alliance_id,))
 
             conn.commit()
 
@@ -300,7 +294,7 @@ class AllianceSystem:
         """Get player details"""
         with self.db.get_connection() as conn:
             cursor = conn.cursor(dictionary=True)
-            cursor.execute('SELECT user_id, country_name FROM players WHERE user_id = ?', (player_id,))
+            cursor.execute('SELECT user_id, country_name FROM players WHERE user_id = %s', (player_id,))
             result = cursor.fetchone()
             return dict(result) if result else None
 
@@ -524,10 +518,10 @@ class AllianceSystem:
         """Get the ID of the last pending invitation for a player."""
         with self.db.get_connection() as conn:
             cursor = conn.cursor(dictionary=True)
-            query = "SELECT id FROM alliance_invitations WHERE invitee_id = ? AND status = 'pending'"
+            query = "SELECT id FROM alliance_invitations WHERE invitee_id = %s AND status = 'pending'"
             params = [invitee_id]
             if alliance_id is not None:
-                query += " AND alliance_id = ?"
+                query += " AND alliance_id = %s"
                 params.append(alliance_id)
             query += " ORDER BY created_at DESC LIMIT 1"
             cursor.execute(query, tuple(params))
