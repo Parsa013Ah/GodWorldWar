@@ -18,7 +18,7 @@ class Marketplace:
             # Market listings table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS market_listings (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id INT PRIMARY KEY AUTO_INCREMENT,
                     seller_id INTEGER NOT NULL,
                     item_type TEXT NOT NULL,
                     item_category TEXT NOT NULL,
@@ -27,15 +27,14 @@ class Marketplace:
                     total_price INTEGER NOT NULL,
                     security_level INTEGER DEFAULT 50,
                     status TEXT DEFAULT 'active',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (seller_id) REFERENCES players (user_id)
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
 
             # Market transactions table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS market_transactions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id INT PRIMARY KEY AUTO_INCREMENT,
                     listing_id INTEGER NOT NULL,
                     buyer_id INTEGER NOT NULL,
                     seller_id INTEGER NOT NULL,
@@ -44,10 +43,7 @@ class Marketplace:
                     total_paid INTEGER NOT NULL,
                     status TEXT DEFAULT 'pending',
                     transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    delivery_date TIMESTAMP,
-                    FOREIGN KEY (listing_id) REFERENCES market_listings (id),
-                    FOREIGN KEY (buyer_id) REFERENCES players (user_id),
-                    FOREIGN KEY (seller_id) REFERENCES players (user_id)
+                    delivery_date TIMESTAMP NULL
                 )
             ''')
 
