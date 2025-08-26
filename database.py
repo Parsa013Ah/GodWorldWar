@@ -1,7 +1,5 @@
 
-import psycopg2
-import psycopg2.extras
-import os
+import sqlite3
 import logging
 from datetime import datetime
 import json
@@ -11,18 +9,16 @@ logger = logging.getLogger(__name__)
 
 class Database:
     def __init__(self):
-        self.database_url = os.getenv('DATABASE_URL')
-        if not self.database_url:
-            raise ValueError("DATABASE_URL environment variable not set")
+        self.db_path = 'dragonrp.db'
 
     def get_connection(self):
         """Get database connection"""
         try:
-            conn = psycopg2.connect(self.database_url)
-            conn.autocommit = True
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row  # This makes results behave like dictionaries
             return conn
-        except psycopg2.Error as e:
-            logger.error(f"Error connecting to PostgreSQL: {e}")
+        except sqlite3.Error as e:
+            logger.error(f"Error connecting to SQLite: {e}")
             raise
 
     def initialize(self):
@@ -33,65 +29,65 @@ class Database:
             # Players table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS players (
-                    user_id BIGINT PRIMARY KEY,
-                    username VARCHAR(255) NOT NULL,
-                    country_code VARCHAR(10) UNIQUE NOT NULL,
-                    country_name VARCHAR(255) NOT NULL,
-                    money BIGINT DEFAULT 100000,
-                    population BIGINT DEFAULT 1000000,
-                    soldiers BIGINT DEFAULT 0,
+                    user_id INTEGER PRIMARY KEY,
+                    username TEXT NOT NULL,
+                    country_code TEXT UNIQUE NOT NULL,
+                    country_name TEXT NOT NULL,
+                    money INTEGER DEFAULT 100000,
+                    population INTEGER DEFAULT 1000000,
+                    soldiers INTEGER DEFAULT 0,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                    last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
             ''')
 
             # Resources table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS resources (
-                    user_id BIGINT PRIMARY KEY,
-                    iron BIGINT DEFAULT 0,
-                    copper BIGINT DEFAULT 0,
-                    oil BIGINT DEFAULT 0,
-                    gas BIGINT DEFAULT 0,
-                    aluminum BIGINT DEFAULT 0,
-                    gold BIGINT DEFAULT 0,
-                    uranium BIGINT DEFAULT 0,
-                    lithium BIGINT DEFAULT 0,
-                    coal BIGINT DEFAULT 0,
-                    silver BIGINT DEFAULT 0,
-                    fuel BIGINT DEFAULT 0,
-                    nitro BIGINT DEFAULT 0,
-                    sulfur BIGINT DEFAULT 0,
-                    titanium BIGINT DEFAULT 0,
+                    user_id INTEGER PRIMARY KEY,
+                    iron INTEGER DEFAULT 0,
+                    copper INTEGER DEFAULT 0,
+                    oil INTEGER DEFAULT 0,
+                    gas INTEGER DEFAULT 0,
+                    aluminum INTEGER DEFAULT 0,
+                    gold INTEGER DEFAULT 0,
+                    uranium INTEGER DEFAULT 0,
+                    lithium INTEGER DEFAULT 0,
+                    coal INTEGER DEFAULT 0,
+                    silver INTEGER DEFAULT 0,
+                    fuel INTEGER DEFAULT 0,
+                    nitro INTEGER DEFAULT 0,
+                    sulfur INTEGER DEFAULT 0,
+                    titanium INTEGER DEFAULT 0,
                     FOREIGN KEY (user_id) REFERENCES players (user_id) ON DELETE CASCADE
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                )
             ''')
 
             # Buildings table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS buildings (
-                    user_id BIGINT PRIMARY KEY,
-                    iron_mine BIGINT DEFAULT 0,
-                    copper_mine BIGINT DEFAULT 0,
-                    oil_mine BIGINT DEFAULT 0,
-                    gas_mine BIGINT DEFAULT 0,
-                    aluminum_mine BIGINT DEFAULT 0,
-                    gold_mine BIGINT DEFAULT 0,
-                    uranium_mine BIGINT DEFAULT 0,
-                    lithium_mine BIGINT DEFAULT 0,
-                    coal_mine BIGINT DEFAULT 0,
-                    silver_mine BIGINT DEFAULT 0,
-                    nitro_mine BIGINT DEFAULT 0,
-                    sulfur_mine BIGINT DEFAULT 0,
-                    titanium_mine BIGINT DEFAULT 0,
-                    weapon_factory BIGINT DEFAULT 0,
-                    refinery BIGINT DEFAULT 0,
-                    power_plant BIGINT DEFAULT 0,
-                    wheat_farm BIGINT DEFAULT 0,
-                    military_base BIGINT DEFAULT 0,
-                    housing BIGINT DEFAULT 0,
+                    user_id INTEGER PRIMARY KEY,
+                    iron_mine INTEGER DEFAULT 0,
+                    copper_mine INTEGER DEFAULT 0,
+                    oil_mine INTEGER DEFAULT 0,
+                    gas_mine INTEGER DEFAULT 0,
+                    aluminum_mine INTEGER DEFAULT 0,
+                    gold_mine INTEGER DEFAULT 0,
+                    uranium_mine INTEGER DEFAULT 0,
+                    lithium_mine INTEGER DEFAULT 0,
+                    coal_mine INTEGER DEFAULT 0,
+                    silver_mine INTEGER DEFAULT 0,
+                    nitro_mine INTEGER DEFAULT 0,
+                    sulfur_mine INTEGER DEFAULT 0,
+                    titanium_mine INTEGER DEFAULT 0,
+                    weapon_factory INTEGER DEFAULT 0,
+                    refinery INTEGER DEFAULT 0,
+                    power_plant INTEGER DEFAULT 0,
+                    wheat_farm INTEGER DEFAULT 0,
+                    military_base INTEGER DEFAULT 0,
+                    housing INTEGER DEFAULT 0,
                     FOREIGN KEY (user_id) REFERENCES players (user_id) ON DELETE CASCADE
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                )
             ''')
 
             # Weapons table
@@ -164,18 +160,18 @@ class Database:
             # Wars table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS wars (
-                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                    attacker_id BIGINT NOT NULL,
-                    defender_id BIGINT NOT NULL,
-                    attack_power BIGINT NOT NULL,
-                    defense_power BIGINT NOT NULL,
-                    result VARCHAR(50) NOT NULL,
-                    damage_dealt BIGINT DEFAULT 0,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    attacker_id INTEGER NOT NULL,
+                    defender_id INTEGER NOT NULL,
+                    attack_power INTEGER NOT NULL,
+                    defense_power INTEGER NOT NULL,
+                    result TEXT NOT NULL,
+                    damage_dealt INTEGER DEFAULT 0,
                     resources_stolen TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (attacker_id) REFERENCES players (user_id) ON DELETE CASCADE,
                     FOREIGN KEY (defender_id) REFERENCES players (user_id) ON DELETE CASCADE
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                )
             ''')
 
             # Convoys table
@@ -321,7 +317,7 @@ class Database:
                 logger.info(f"Player created: {username} - {country_name}")
                 return True
 
-        except mysql.connector.IntegrityError:
+        except sqlite3.IntegrityError:
             logger.error(f"Country {country_code} already taken")
             return False
         except Exception as e:
