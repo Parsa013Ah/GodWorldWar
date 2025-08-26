@@ -507,6 +507,8 @@ class Database:
 
     def add_weapon(self, user_id, weapon_type, quantity=1):
         """Add weapons to player"""
+        logger.info(f"add_weapon called: user_id={user_id}, weapon_type={weapon_type}, quantity={quantity}")
+        
         # Map weapon names to database column names
         weapon_column_map = {
             'rifle': 'rifle',
@@ -570,14 +572,46 @@ class Database:
         }
 
         column_name = weapon_column_map.get(weapon_type, weapon_type)
+        logger.info(f"Mapped weapon_type '{weapon_type}' to column '{column_name}'")
 
         with self.get_connection() as conn:
             cursor = conn.cursor()
+            
+            # Check if user exists in weapons table
+            cursor.execute('SELECT COUNT(*) FROM weapons WHERE user_id = ?', (user_id,))
+            user_exists = cursor.fetchone()[0] > 0
+            logger.info(f"User {user_id} exists in weapons table: {user_exists}")
+            
+            if not user_exists:
+                logger.info(f"Creating weapons entry for user {user_id}")
+                # Create a new weapons entry for this user
+                cursor.execute('INSERT INTO weapons (user_id) VALUES (?)', (user_id,))
+            
+            # Check current value before update
+            cursor.execute(f'SELECT {column_name} FROM weapons WHERE user_id = ?', (user_id,))
+            current_value = cursor.fetchone()
+            if current_value:
+                current_value = current_value[0] or 0
+            else:
+                current_value = 0
+            logger.info(f"Current {column_name} value for user {user_id}: {current_value}")
+            
+            # Update weapons
             cursor.execute(f'''
                 UPDATE weapons 
                 SET {column_name} = {column_name} + ? 
                 WHERE user_id = ?
             ''', (quantity, user_id))
+            
+            # Check after update
+            cursor.execute(f'SELECT {column_name} FROM weapons WHERE user_id = ?', (user_id,))
+            new_value = cursor.fetchone()
+            if new_value:
+                new_value = new_value[0] or 0
+            else:
+                new_value = 0
+            logger.info(f"New {column_name} value for user {user_id}: {new_value}")
+            
             conn.commit()
             cursor.close()
 

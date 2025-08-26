@@ -143,9 +143,15 @@ class Marketplace:
         # Add items to buyer (will be delivered based on security)
         delivery_success = self.process_delivery(buyer_id, listing, quantity_to_buy, transaction_id)
 
+        # Create better message based on delivery result
+        if delivery_success['success']:
+            main_message = f'✅ خرید موفق! {delivery_success["message"]}'
+        else:
+            main_message = f'⚠️ خرید انجام شد اما {delivery_success["message"]}'
+
         return {
             'success': True,
-            'message': 'خرید انجام شد! در صورت موفقیت تحویل، اقلام به شما تحویل داده می‌شود.',
+            'message': main_message,
             'transaction_id': transaction_id,
             'delivery_status': delivery_success,
             'is_first_purchase': is_first_purchase
@@ -156,10 +162,13 @@ class Marketplace:
         security_level = listing['security_level']
 
         # Higher security = higher delivery success chance
-        base_success_chance = min(security_level + 20, 90)
+        # Minimum 70% success rate, maximum 95%
+        base_success_chance = min(max(security_level + 30, 70), 95)
 
         import random
-        if random.randint(1, 100) <= base_success_chance:
+        delivery_roll = random.randint(1, 100)
+        
+        if delivery_roll <= base_success_chance:
             # Successful delivery
             self.add_to_inventory(buyer_id, listing['item_category'], listing['item_type'], quantity)
 
@@ -173,9 +182,16 @@ class Marketplace:
                 ''', (transaction_id,))
                 conn.commit()
 
-            return {'success': True, 'message': 'کالا با موفقیت تحویل شد!'}
+            return {'success': True, 'message': '✅ کالا با موفقیت تحویل شد!'}
         else:
-            # Failed delivery - money lost, items lost
+            # Failed delivery - refund partial money, items lost
+            # Refund 50% of purchase price
+            listing_price = quantity * listing['price_per_unit']
+            refund_amount = listing_price // 2
+            
+            buyer = self.db.get_player(buyer_id)
+            self.db.update_player_money(buyer_id, buyer['money'] + refund_amount)
+            
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
@@ -185,7 +201,7 @@ class Marketplace:
                 ''', (transaction_id,))
                 conn.commit()
 
-            return {'success': False, 'message': 'محموله در راه دزدیده شد!'}
+            return {'success': False, 'message': f'❌ محموله در راه دزدیده شد! ${refund_amount:,} بازپرداخت شد.'}
 
     def calculate_seller_security(self, seller_id):
         """Calculate seller security level"""
@@ -201,6 +217,37 @@ class Marketplace:
         # Convert to percentage (max 95%)
         security_level = min(30 + (security_points / 10), 95)
         return int(security_level)
+
+    def get_buyer_transactions(self, buyer_id, limit=10):
+        """Get recent transactions for a buyer"""
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT mt.*, p.country_name as seller_country
+                FROM market_transactions mt
+                JOIN players p ON mt.seller_id = p.user_id
+                WHERE mt.buyer_id = ?
+                ORDER BY mt.transaction_date DESC
+                LIMIT ?
+            ''', (buyer_id, limit))
+            
+            transactions = []
+            for row in cursor.fetchall():
+                transactions.append({
+                    'id': row[0],
+                    'listing_id': row[1],
+                    'buyer_id': row[2],
+                    'seller_id': row[3],
+                    'item_type': row[4],
+                    'quantity': row[5],
+                    'total_paid': row[6],
+                    'status': row[7],
+                    'transaction_date': row[8],
+                    'delivery_date': row[9],
+                    'seller_country': row[10]
+                })
+            
+            return transactions
 
     def verify_seller_inventory(self, seller_id, category, item_type, quantity):
         """Verify seller has required inventory"""

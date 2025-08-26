@@ -159,7 +159,14 @@ class GameLogic:
         self.db.update_player_money(user_id, new_money)
 
         # Add produced weapons
+        logger.info(f"Adding {quantity} {weapon_type} to user {user_id}")
+        weapons_before = self.db.get_player_weapons(user_id)
+        logger.info(f"Weapons before: {weapon_type}={weapons_before.get(weapon_type, 0)}")
+        
         self.db.add_weapon(user_id, weapon_type, quantity)
+        
+        weapons_after = self.db.get_player_weapons(user_id)
+        logger.info(f"Weapons after: {weapon_type}={weapons_after.get(weapon_type, 0)}")
 
         return {
             'success': True,

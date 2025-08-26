@@ -1579,6 +1579,8 @@ class DragonRPBot:
             await self.show_sell_categories(query, context)
         elif action == "my_listings":
             await self.show_my_listings(query, context)
+        elif action == "history":
+            await self.show_purchase_history(query, context)
         elif action.startswith("cat_"):
             category = action.replace("cat_", "")
             await self.show_market_listings(query, context, category)
@@ -1645,11 +1647,21 @@ class DragonRPBot:
                     resource_config = Config.RESOURCES.get(item_type, {})
                     item_emoji = resource_config.get('emoji', '📦')
 
+                # Calculate delivery success chance
+                delivery_chance = min(max(security_level + 30, 70), 95)
+                
+                if delivery_chance >= 90:
+                    delivery_status = "🟢 بالا"
+                elif delivery_chance >= 80:
+                    delivery_status = "🟡 متوسط"
+                else:
+                    delivery_status = "🔴 پایین"
+
                 menu_text += f"""
 {item_emoji} {item_type} x{quantity:,}
 💰 ${price_per_unit:,} واحد (کل: ${total_price:,})
 فروشنده: {seller_country}
-🛡 امنیت: {security_level}%"""
+🛡 امنیت: {security_level}% | شانس تحویل: {delivery_status} ({delivery_chance}%)"""
 
                 # Create safe button text and callback data
                 button_text = f"{item_emoji} خرید {item_type} - ${total_price:,}"
@@ -1667,6 +1679,60 @@ class DragonRPBot:
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await query.edit_message_text(menu_text, reply_markup=reply_markup)
+
+    async def show_purchase_history(self, query, context):
+        """Show user's purchase history"""
+        user_id = query.from_user.id
+        player = self.db.get_player(user_id)
+        
+        transactions = self.marketplace.get_buyer_transactions(user_id, 10)
+        
+        if not transactions:
+            await query.edit_message_text(
+                f"""📊 تاریخچه خرید - {player['country_name']}
+                
+❌ شما هنوز هیچ خریدی انجام نداده‌اید!
+
+💡 از بخش "خرید کالا" اولین خرید خود را انجام دهید.""",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 بازگشت", callback_data="marketplace")]])
+            )
+            return
+        
+        menu_text = f"""📊 تاریخچه خرید - {player['country_name']}
+
+💰 پول شما: ${player['money']:,}
+
+📦 آخرین خریدهای شما:"""
+
+        for transaction in transactions:
+            status_emoji = {
+                'delivered': '✅', 
+                'failed': '❌', 
+                'pending': '⏳'
+            }.get(transaction['status'], '❓')
+            
+            status_text = {
+                'delivered': 'تحویل شد',
+                'failed': 'ناموفق',
+                'pending': 'در انتظار'
+            }.get(transaction['status'], 'نامشخص')
+
+            item_emoji = '📦'
+            if transaction['item_type'] in ['rifle', 'tank', 'fighter_jet', 'drone', 'missile', 'warship']:
+                item_emoji = {
+                    'rifle': '🔫', 'tank': '🚗', 'fighter_jet': '✈️',
+                    'drone': '🚁', 'missile': '🚀', 'warship': '🚢'
+                }.get(transaction['item_type'], '⚔️')
+
+            menu_text += f"""
+
+{status_emoji} {item_emoji} {transaction['item_type']} x{transaction['quantity']:,}
+💰 ${transaction['total_paid']:,} از {transaction['seller_country']}
+📅 {transaction['transaction_date'][:16]} - {status_text}"""
+
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        keyboard = [[InlineKeyboardButton("🔙 بازگشت به فروشگاه", callback_data="marketplace")]]
+        await query.edit_message_text(menu_text, reply_markup=InlineKeyboardMarkup(keyboard))
 
     async def show_sell_categories(self, query, context):
         """Show selling categories"""
@@ -2369,6 +2435,8 @@ oil 300
 
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle text messages"""
+        if not update.effective_user:
+            return
         user_id = update.effective_user.id
 
         # Handle manual transfer input

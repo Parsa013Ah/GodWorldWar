@@ -8,6 +8,20 @@ DragonRP is a strategic Telegram bot game where players take control of countrie
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (August 26, 2025)
+
+### Bug Fixes and Improvements:
+1. **Fixed marketplace delivery system**: Improved weapon delivery success rates from 50% minimum to 70% minimum, with partial refunds (50%) for failed deliveries
+2. **Enhanced marketplace transparency**: Added delivery success chance indicators (🟢🟡🔴) in weapon listings
+3. **Added purchase history feature**: Players can now view their transaction history to see why weapons may not have been delivered
+4. **Fixed AttributeError**: Resolved 'NoneType' error in handle_message function
+5. **Added comprehensive logging**: Enhanced weapon production debugging to track the exact flow of weapon additions to player inventory
+
+### Current Issue Being Diagnosed:
+- User reports weapons not being added after production despite success messages
+- Added detailed logging to track weapon production flow and identify root cause
+- Investigating potential database transaction issues or weapon table structure problems
+
 ## System Architecture
 
 ### Core Architecture Pattern
