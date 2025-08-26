@@ -846,10 +846,20 @@ class DragonRPBot:
         # Get player weapons
         player_weapons = self.db.get_player_weapons(user_id)
         
+        # Check for range extenders
+        has_tanker = player_weapons.get('tanker_aircraft', 0) > 0
+        has_carrier = player_weapons.get('aircraft_carrier_transport', 0) > 0
+        
         # Get weapons that can attack this target based on distance
-        available_weapons = Config.get_available_weapons_for_attack(
-            player['country_code'], target['country_code'], player_weapons
+        available_weapon_types = Config.get_available_weapons_for_attack(
+            player['country_code'], target['country_code'], player_weapons, has_tanker, has_carrier
         )
+
+        # Convert list to dictionary with quantities
+        available_weapons = {}
+        for weapon_type in available_weapon_types:
+            if weapon_type in player_weapons and player_weapons[weapon_type] > 0:
+                available_weapons[weapon_type] = player_weapons[weapon_type]
 
         if not available_weapons:
             distance_type = Config.get_country_distance_type(player['country_code'], target['country_code'])
@@ -858,9 +868,15 @@ class DragonRPBot:
             if distance_type == 'neighbor':
                 message = f"❌ تسلیحات کافی برای حمله به {target['country_name']} ندارید!"
             elif distance_type == 'regional':
-                message = f"❌ برای حمله به {target['country_name']} نیاز به جت یا موشک دارید!"
+                if has_tanker or has_carrier:
+                    message = f"❌ حتی با سوخت‌رسان/ناوبر، جت‌های شما برد کافی ندارند"
+                else:
+                    message = f"❌ برای حمله به {target['country_name']} نیاز به جت یا موشک دارید!"
             else:
-                message = f"❌ برای حمله به {target['country_name']} فقط موشک‌های دوربرد استفاده کنید!"
+                if has_tanker or has_carrier:
+                    message = f"❌ حتی با سوخت‌رسان/ناوبر، فاصله خیلی زیاد است"
+                else:
+                    message = f"❌ برای حمله به {target['country_name']} فقط موشک‌های دوربرد استفاده کنید!"
             
             await query.edit_message_text(message, reply_markup=keyboard)
             return
@@ -870,12 +886,20 @@ class DragonRPBot:
         
         menu_text = f"⚔️ انتخاب تسلیحات برای حمله به {target['country_name']}\n\n"
         
+        range_bonus_text = ""
+        if has_carrier and has_tanker:
+            range_bonus_text = " (با ناوبر و سوخت‌رسان)"
+        elif has_carrier:
+            range_bonus_text = " (با ناوبر)"
+        elif has_tanker:
+            range_bonus_text = " (با سوخت‌رسان)"
+        
         if distance_type == 'neighbor':
-            menu_text += "🔫 همسایه - همه سلاح‌ها قابل استفاده:\n"
+            menu_text += f"🔫 همسایه - همه سلاح‌ها قابل استفاده{range_bonus_text}:\n"
         elif distance_type == 'regional':
-            menu_text += "✈️ منطقه‌ای - جت‌ها و موشک‌ها:\n"
+            menu_text += f"✈️ منطقه‌ای - جت‌ها و موشک‌ها{range_bonus_text}:\n"
         else:
-            menu_text += "🚀 بین‌قاره‌ای - فقط موشک‌های دوربرد:\n"
+            menu_text += f"🚀 بین‌قاره‌ای - فقط موشک‌های دوربرد{range_bonus_text}:\n"
         
         # List available weapons
         for weapon_type, quantity in available_weapons.items():
