@@ -1,5 +1,6 @@
 
 import mysql.connector
+import sqlite3
 import logging
 from datetime import datetime
 import json
@@ -20,20 +21,35 @@ class Database:
             'charset': 'utf8mb4',
             'autocommit': True
         }
+        self.use_mysql = True
+        self.sqlite_db_path = 'dragonrp.db'
 
     def get_connection(self):
         """Get database connection"""
+        if self.use_mysql:
+            try:
+                conn = mysql.connector.connect(**self.connection_config)
+                return conn
+            except mysql.connector.Error as e:
+                logger.warning(f"MySQL connection failed, falling back to SQLite: {e}")
+                self.use_mysql = False
+        
+        # Fallback to SQLite
         try:
-            conn = mysql.connector.connect(**self.connection_config)
+            conn = sqlite3.connect(self.sqlite_db_path)
+            conn.row_factory = sqlite3.Row
             return conn
-        except mysql.connector.Error as e:
-            logger.error(f"Error connecting to MariaDB: {e}")
+        except sqlite3.Error as e:
+            logger.error(f"Error connecting to SQLite: {e}")
             raise
 
     def initialize(self):
         """Initialize database tables"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            if self.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
 
             # Players table
             cursor.execute('''
@@ -164,39 +180,72 @@ class Database:
             ''')
 
             # Wars table
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS wars (
-                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                    attacker_id INTEGER NOT NULL,
-                    defender_id INTEGER NOT NULL,
-                    attack_power BIGINT NOT NULL,
-                    defense_power BIGINT NOT NULL,
-                    result VARCHAR(50) NOT NULL,
-                    damage_dealt BIGINT DEFAULT 0,
-                    resources_stolen TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
+            if self.use_mysql:
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS wars (
+                        id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                        attacker_id INTEGER NOT NULL,
+                        defender_id INTEGER NOT NULL,
+                        attack_power BIGINT NOT NULL,
+                        defense_power BIGINT NOT NULL,
+                        result VARCHAR(50) NOT NULL,
+                        damage_dealt BIGINT DEFAULT 0,
+                        resources_stolen TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
+            else:
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS wars (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        attacker_id INTEGER NOT NULL,
+                        defender_id INTEGER NOT NULL,
+                        attack_power INTEGER NOT NULL,
+                        defense_power INTEGER NOT NULL,
+                        result TEXT NOT NULL,
+                        damage_dealt INTEGER DEFAULT 0,
+                        resources_stolen TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
 
             # Convoys table
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS convoys (
-                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                    sender_id INTEGER NOT NULL,
-                    receiver_id INTEGER NOT NULL,
-                    resources TEXT NOT NULL,
-                    departure_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    arrival_time TIMESTAMP NOT NULL,
-                    status VARCHAR(50) DEFAULT 'in_transit',
-                    security_level INTEGER DEFAULT 50,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
+            if self.use_mysql:
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS convoys (
+                        id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                        sender_id INTEGER NOT NULL,
+                        receiver_id INTEGER NOT NULL,
+                        resources TEXT NOT NULL,
+                        departure_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        arrival_time TIMESTAMP NOT NULL,
+                        status VARCHAR(50) DEFAULT 'in_transit',
+                        security_level INTEGER DEFAULT 50,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
+            else:
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS convoys (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        sender_id INTEGER NOT NULL,
+                        receiver_id INTEGER NOT NULL,
+                        resources TEXT NOT NULL,
+                        departure_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        arrival_time TIMESTAMP NOT NULL,
+                        status TEXT DEFAULT 'in_transit',
+                        security_level INTEGER DEFAULT 50,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
 
             # Pending attacks table
-            cursor.execute('''
+            auto_increment = "AUTO_INCREMENT" if self.use_mysql else "AUTOINCREMENT"
+            id_type = "BIGINT" if self.use_mysql else "INTEGER"
+            
+            cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS pending_attacks (
-                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                    id {id_type} PRIMARY KEY {auto_increment},
                     attacker_id INTEGER NOT NULL,
                     defender_id INTEGER NOT NULL,
                     attack_type TEXT DEFAULT 'mixed',
@@ -209,9 +258,9 @@ class Database:
             ''')
 
             # Admin logs table
-            cursor.execute('''
+            cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS admin_logs (
-                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                    id {id_type} PRIMARY KEY {auto_increment},
                     admin_id INTEGER NOT NULL,
                     action TEXT NOT NULL,
                     target_id INTEGER,
@@ -221,9 +270,9 @@ class Database:
             ''')
 
             # Marketplace listings
-            cursor.execute("""
+            cursor.execute(f"""
             CREATE TABLE IF NOT EXISTS marketplace_listings (
-                id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                id {id_type} PRIMARY KEY {auto_increment},
                 seller_id INTEGER NOT NULL,
                 item_name TEXT NOT NULL,
                 item_type TEXT NOT NULL,
@@ -236,9 +285,9 @@ class Database:
             """)
 
             # Market transactions table
-            cursor.execute('''
+            cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS market_transactions (
-                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                    id {id_type} PRIMARY KEY {auto_increment},
                     listing_id INTEGER NOT NULL,
                     buyer_id INTEGER NOT NULL,
                     seller_id INTEGER NOT NULL,
@@ -252,9 +301,9 @@ class Database:
             ''')
 
             # Purchase tracking table for preventing duplicate news
-            cursor.execute('''
+            cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS purchase_tracking (
-                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                    id {id_type} PRIMARY KEY {auto_increment},
                     buyer_id INTEGER NOT NULL,
                     item_type TEXT NOT NULL,
                     first_purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -263,9 +312,9 @@ class Database:
             ''')
 
             # Build tracking table for preventing duplicate news
-            cursor.execute('''
+            cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS build_tracking (
-                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                    id {id_type} PRIMARY KEY {auto_increment},
                     builder_id INTEGER NOT NULL,
                     item_type TEXT NOT NULL,
                     first_build_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -311,7 +360,7 @@ class Database:
                 logger.info(f"Player created: {username} - {country_name}")
                 return True
 
-        except sqlite3.IntegrityError:
+        except (sqlite3.IntegrityError, mysql.connector.IntegrityError):
             logger.error(f"Country {country_code} already taken")
             return False
         except Exception as e:
@@ -321,9 +370,15 @@ class Database:
     def get_player(self, user_id):
         """Get player information"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('SELECT * FROM players WHERE user_id = %s', (user_id,))
-            result = cursor.fetchone()
+            if self.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+                cursor.execute('SELECT * FROM players WHERE user_id = %s', (user_id,))
+                result = cursor.fetchone()
+            else:
+                cursor = conn.cursor()
+                cursor.execute('SELECT * FROM players WHERE user_id = ?', (user_id,))
+                row = cursor.fetchone()
+                result = dict(row) if row else None
             cursor.close()
             return result
 
