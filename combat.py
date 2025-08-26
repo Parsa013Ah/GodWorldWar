@@ -280,35 +280,105 @@ class CombatSystem:
         defender = self.db.get_player(defender_id)
         defender_resources = self.db.get_player_resources(defender_id)
         defender_weapons = self.db.get_player_weapons(defender_id)
+        defender_buildings = self.db.get_player_buildings(defender_id)
 
-        # Calculate losses
+        # Calculate attack and defense power for percentage calculations
+        attack_power = self.calculate_attack_power(attacker_id)
+        defense_power = self.calculate_defense_power(defender_id)
+        
+        # Calculate power ratio for determining loot and destruction percentages
+        if defense_power > 0:
+            power_ratio = attack_power / defense_power
+        else:
+            power_ratio = float('inf')  # No defense means maximum damage
+
+        # Calculate resource loot percentage (10% to 75%)
+        if power_ratio <= 0.5:
+            loot_percentage = 0.10  # Weak attack vs strong defense
+        elif power_ratio <= 1.0:
+            loot_percentage = 0.15
+        elif power_ratio <= 1.5:
+            loot_percentage = 0.25
+        elif power_ratio <= 2.0:
+            loot_percentage = 0.35
+        elif power_ratio <= 3.0:
+            loot_percentage = 0.45
+        elif power_ratio <= 5.0:
+            loot_percentage = 0.55
+        elif power_ratio <= 10.0:
+            loot_percentage = 0.65
+        else:
+            # Very powerful attack (like 10+ Trident II nuclear missiles)
+            loot_percentage = 0.75
+
+        # Calculate building destruction percentage (5% to 60%)
+        if power_ratio <= 0.5:
+            destruction_percentage = 0.05
+        elif power_ratio <= 1.0:
+            destruction_percentage = 0.08
+        elif power_ratio <= 1.5:
+            destruction_percentage = 0.12
+        elif power_ratio <= 2.0:
+            destruction_percentage = 0.18
+        elif power_ratio <= 3.0:
+            destruction_percentage = 0.25
+        elif power_ratio <= 5.0:
+            destruction_percentage = 0.35
+        elif power_ratio <= 10.0:
+            destruction_percentage = 0.45
+        else:
+            # Very powerful attack
+            destruction_percentage = 0.60
+
+        # Apply soldier losses
         soldier_losses = min(defender['soldiers'], int(damage * 100))
-        weapon_loss_chance = 0.2
-
-        # Defender weapon losses
+        
+        # Enhanced weapon losses based on power ratio
+        weapon_loss_chance = min(0.4, 0.1 + (power_ratio * 0.05))
         for weapon_type, count in defender_weapons.items():
             if count > 0 and random.random() < weapon_loss_chance:
-                losses = min(count, max(1, int(count * 0.1)))
+                loss_percentage = min(0.3, 0.05 + (power_ratio * 0.03))
+                losses = min(count, max(1, int(count * loss_percentage)))
                 result['defender_losses'][weapon_type] = losses
                 # Remove weapons from defender
                 new_count = count - losses
                 self.db.update_weapon_count(defender_id, weapon_type, new_count)
 
-        # Steal resources (only 15% of defender's resources)
+        # Steal resources based on calculated percentage
         for resource_type, amount in defender_resources.items():
             if resource_type != 'user_id' and amount > 0:
-                # Calculate 15% of defender's resources
-                steal_amount = int(amount * 0.15)
+                steal_amount = int(amount * loot_percentage)
                 if steal_amount > 0:
                     result['stolen_resources'][resource_type] = steal_amount
                     # Transfer resources
                     self.db.add_resources(attacker_id, resource_type, steal_amount)
                     self.db.consume_resources(defender_id, {resource_type: steal_amount})
 
+        # Destroy buildings (mines and refineries)
+        result['destroyed_buildings'] = {}
+        destructible_buildings = ['iron_mine', 'copper_mine', 'oil_mine', 'gas_mine', 
+                                'aluminum_mine', 'gold_mine', 'uranium_mine', 'lithium_mine',
+                                'coal_mine', 'silver_mine', 'nitro_mine', 'sulfur_mine', 
+                                'titanium_mine', 'refinery']
+        
+        for building_type in destructible_buildings:
+            building_count = defender_buildings.get(building_type, 0)
+            if building_count > 0:
+                destroyed_count = max(1, int(building_count * destruction_percentage))
+                destroyed_count = min(destroyed_count, building_count)
+                
+                if destroyed_count > 0:
+                    result['destroyed_buildings'][building_type] = destroyed_count
+                    new_count = building_count - destroyed_count
+                    self.db.update_building_count(defender_id, building_type, new_count)
+
         # Update defender soldiers
         new_soldiers = max(0, defender['soldiers'] - soldier_losses)
         self.db.update_player_soldiers(defender_id, new_soldiers)
         result['defender_losses']['soldiers'] = soldier_losses
+        result['loot_percentage'] = loot_percentage * 100
+        result['destruction_percentage'] = destruction_percentage * 100
+        result['power_ratio'] = power_ratio
 
     def _apply_failed_attack(self, attacker_id, damage, result):
         """Apply consequences of failed attack"""
@@ -388,11 +458,31 @@ class CombatSystem:
 """
 
         if result['success']:
+            # Show power ratio and percentages
+            if 'power_ratio' in result:
+                if result['power_ratio'] == float('inf'):
+                    report += f"\n📊 نسبت قدرت: بی‌نهایت (بدون دفاع)\n"
+                else:
+                    report += f"\n📊 نسبت قدرت: {result['power_ratio']:.2f}:1\n"
+            
+            if 'loot_percentage' in result:
+                report += f"💰 درصد غارت: {result['loot_percentage']:.0f}%\n"
+            
+            if 'destruction_percentage' in result:
+                report += f"💥 درصد تخریب: {result['destruction_percentage']:.0f}%\n"
+
             if result['stolen_resources']:
                 report += "\n💰 منابع غارت شده:\n"
+                total_value = 0
                 for resource, amount in result['stolen_resources'].items():
                     resource_name = Config.RESOURCES.get(resource, {}).get('name', resource)
                     report += f"• {resource_name}: {amount:,}\n"
+
+            if result.get('destroyed_buildings'):
+                report += "\n🏭 ساختمان‌های تخریب شده:\n"
+                for building_type, count in result['destroyed_buildings'].items():
+                    building_name = Config.BUILDINGS.get(building_type, {}).get('name', building_type)
+                    report += f"• {building_name}: {count:,}\n"
 
             if result['defender_losses']:
                 report += "\n💀 تلفات مدافع:\n"
