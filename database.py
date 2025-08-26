@@ -1,1080 +1,713 @@
-
-import mysql.connector
-import sqlite3
 import logging
 from datetime import datetime
-import json
-import os
 from config import Config
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes
+import mysql.connector
 
 logger = logging.getLogger(__name__)
 
-class Database:
-    def __init__(self):
-        # Use environment variable or fallback to your MariaDB config
-        self.connection_config = {
-            'host': os.getenv('DB_HOST', 'localhost'),
-            'database': os.getenv('DB_NAME', 'ggame'),
-            'user': os.getenv('DB_USER', 'Parsa'),
-            'password': os.getenv('DB_PASS', '^c*6%@5697Af%n*306U%9Z^&9'),
-            'port': int(os.getenv('DB_PORT', 3306)),
-            'charset': 'utf8mb4',
-            'autocommit': True
-        }
-        self.use_mysql = True
-        self.sqlite_db_path = 'dragonrp.db'
+class AllianceSystem:
+    def __init__(self, database):
+        self.db = database
+        self.setup_alliance_tables()
 
-    def get_connection(self):
-        """Get database connection"""
-        if self.use_mysql:
-            try:
-                conn = mysql.connector.connect(**self.connection_config)
-                return conn
-            except mysql.connector.Error as e:
-                logger.warning(f"MySQL connection failed, falling back to SQLite: {e}")
-                self.use_mysql = False
-        
-        # Fallback to SQLite
-        try:
-            conn = sqlite3.connect(self.sqlite_db_path)
-            conn.row_factory = sqlite3.Row
-            return conn
-        except sqlite3.Error as e:
-            logger.error(f"Error connecting to SQLite: {e}")
-            raise
-
-    def initialize(self):
-        """Initialize database tables"""
-        with self.get_connection() as conn:
-            if self.use_mysql:
+    def setup_alliance_tables(self):
+        """Setup alliance tables in database"""
+        with self.db.get_connection() as conn:
+            if self.db.use_mysql:
                 cursor = conn.cursor(dictionary=True)
             else:
                 cursor = conn.cursor()
 
-            # Players table
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS players (
-                    user_id INTEGER PRIMARY KEY,
-                    username TEXT NOT NULL,
-                    country_code TEXT UNIQUE NOT NULL,
-                    country_name TEXT NOT NULL,
-                    money INTEGER DEFAULT 100000,
-                    population INTEGER DEFAULT 1000000,
-                    soldiers INTEGER DEFAULT 0,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-
-            # Resources table
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS resources (
-                    user_id INTEGER PRIMARY KEY,
-                    iron INTEGER DEFAULT 0,
-                    copper INTEGER DEFAULT 0,
-                    oil INTEGER DEFAULT 0,
-                    gas INTEGER DEFAULT 0,
-                    aluminum INTEGER DEFAULT 0,
-                    gold INTEGER DEFAULT 0,
-                    uranium INTEGER DEFAULT 0,
-                    lithium INTEGER DEFAULT 0,
-                    coal INTEGER DEFAULT 0,
-                    silver INTEGER DEFAULT 0,
-                    fuel INTEGER DEFAULT 0,
-                    nitro INTEGER DEFAULT 0,
-                    sulfur INTEGER DEFAULT 0,
-                    titanium INTEGER DEFAULT 0
-                )
-            ''')
-
-            # Buildings table
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS buildings (
-                    user_id INTEGER PRIMARY KEY,
-                    iron_mine INTEGER DEFAULT 0,
-                    copper_mine INTEGER DEFAULT 0,
-                    oil_mine INTEGER DEFAULT 0,
-                    gas_mine INTEGER DEFAULT 0,
-                    aluminum_mine INTEGER DEFAULT 0,
-                    gold_mine INTEGER DEFAULT 0,
-                    uranium_mine INTEGER DEFAULT 0,
-                    lithium_mine INTEGER DEFAULT 0,
-                    coal_mine INTEGER DEFAULT 0,
-                    silver_mine INTEGER DEFAULT 0,
-                    nitro_mine INTEGER DEFAULT 0,
-                    sulfur_mine INTEGER DEFAULT 0,
-                    titanium_mine INTEGER DEFAULT 0,
-                    weapon_factory INTEGER DEFAULT 0,
-                    refinery INTEGER DEFAULT 0,
-                    power_plant INTEGER DEFAULT 0,
-                    wheat_farm INTEGER DEFAULT 0,
-                    military_base INTEGER DEFAULT 0,
-                    housing INTEGER DEFAULT 0
-                )
-            ''')
-
-            # Weapons table
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS weapons (
-                    user_id INTEGER PRIMARY KEY,
-                    rifle INTEGER DEFAULT 0,
-                    tank INTEGER DEFAULT 0,
-                    fighter_jet INTEGER DEFAULT 0,
-                    jet INTEGER DEFAULT 0,
-                    drone INTEGER DEFAULT 0,
-                    warship INTEGER DEFAULT 0,
-                    submarine INTEGER DEFAULT 0,
-                    destroyer INTEGER DEFAULT 0,
-                    aircraft_carrier INTEGER DEFAULT 0,
-                    air_defense INTEGER DEFAULT 0,
-                    missile_shield INTEGER DEFAULT 0,
-                    cyber_shield INTEGER DEFAULT 0,
-                    simple_bomb INTEGER DEFAULT 0,
-                    nuclear_bomb INTEGER DEFAULT 0,
-                    simple_missile INTEGER DEFAULT 0,
-                    ballistic_missile INTEGER DEFAULT 0,
-                    nuclear_missile INTEGER DEFAULT 0,
-                    trident2_conventional INTEGER DEFAULT 0,
-                    trident2_nuclear INTEGER DEFAULT 0,
-                    satan2_conventional INTEGER DEFAULT 0,
-                    satan2_nuclear INTEGER DEFAULT 0,
-                    df41_nuclear INTEGER DEFAULT 0,
-                    tomahawk_conventional INTEGER DEFAULT 0,
-                    tomahawk_nuclear INTEGER DEFAULT 0,
-                    kalibr_conventional INTEGER DEFAULT 0,
-                    f22 INTEGER DEFAULT 0,
-                    f35 INTEGER DEFAULT 0,
-                    su57 INTEGER DEFAULT 0,
-                    j20 INTEGER DEFAULT 0,
-                    f15ex INTEGER DEFAULT 0,
-                    su35s INTEGER DEFAULT 0,
-                    helicopter INTEGER DEFAULT 0,
-                    strategic_bomber INTEGER DEFAULT 0,
-                    armored_truck INTEGER DEFAULT 0,
-                    cargo_helicopter INTEGER DEFAULT 0,
-                    cargo_plane INTEGER DEFAULT 0,
-                    escort_frigate INTEGER DEFAULT 0,
-                    logistics_drone INTEGER DEFAULT 0,
-                    heavy_transport INTEGER DEFAULT 0,
-                    supply_ship INTEGER DEFAULT 0,
-                    stealth_transport INTEGER DEFAULT 0,
-                    kf51_panther INTEGER DEFAULT 0,
-                    abrams_x INTEGER DEFAULT 0,
-                    m1e3_abrams INTEGER DEFAULT 0,
-                    t90ms_proryv INTEGER DEFAULT 0,
-                    m1a2_abrams_sepv3 INTEGER DEFAULT 0,
-                    s500_defense INTEGER DEFAULT 0,
-                    thaad_defense INTEGER DEFAULT 0,
-                    s400_defense INTEGER DEFAULT 0,
-                    iron_dome INTEGER DEFAULT 0,
-                    slq32_ew INTEGER DEFAULT 0,
-                    phalanx_ciws INTEGER DEFAULT 0,
-                    aircraft_carrier_full INTEGER DEFAULT 0,
-                    nuclear_submarine INTEGER DEFAULT 0,
-                    patrol_ship INTEGER DEFAULT 0,
-                    patrol_boat INTEGER DEFAULT 0,
-                    amphibious_ship INTEGER DEFAULT 0,
-                    tanker_aircraft INTEGER DEFAULT 0,
-                    aircraft_carrier_transport INTEGER DEFAULT 0
-                )
-            ''')
-
-            # Wars table
-            if self.use_mysql:
+            # Alliances table
+            if self.db.use_mysql:
                 cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS wars (
-                        id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                        attacker_id INTEGER NOT NULL,
-                        defender_id INTEGER NOT NULL,
-                        attack_power BIGINT NOT NULL,
-                        defense_power BIGINT NOT NULL,
-                        result VARCHAR(50) NOT NULL,
-                        damage_dealt BIGINT DEFAULT 0,
-                        resources_stolen TEXT,
+                    CREATE TABLE IF NOT EXISTS alliances (
+                        id INT PRIMARY KEY AUTO_INCREMENT,
+                        name TEXT NOT NULL,
+                        leader_id INTEGER NOT NULL,
+                        description TEXT,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 ''')
             else:
                 cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS wars (
+                    CREATE TABLE IF NOT EXISTS alliances (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        attacker_id INTEGER NOT NULL,
-                        defender_id INTEGER NOT NULL,
-                        attack_power INTEGER NOT NULL,
-                        defense_power INTEGER NOT NULL,
-                        result TEXT NOT NULL,
-                        damage_dealt INTEGER DEFAULT 0,
-                        resources_stolen TEXT,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        name TEXT NOT NULL,
+                        leader_id INTEGER NOT NULL,
+                        description TEXT,
+                        created_at TEXT DEFAULT CURRENT_TIMESTAMP
                     )
                 ''')
 
-            # Convoys table
-            if self.use_mysql:
+            # Alliance members table
+            if self.db.use_mysql:
                 cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS convoys (
-                        id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                        sender_id INTEGER NOT NULL,
-                        receiver_id INTEGER NOT NULL,
-                        resources TEXT NOT NULL,
-                        departure_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        arrival_time TIMESTAMP NOT NULL,
-                        status VARCHAR(50) DEFAULT 'in_transit',
-                        security_level INTEGER DEFAULT 50,
+                    CREATE TABLE IF NOT EXISTS alliance_members (
+                        alliance_id INTEGER NOT NULL,
+                        player_id INTEGER NOT NULL,
+                        role TEXT DEFAULT 'member',
+                        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (alliance_id, player_id)
+                    )
+                ''')
+            else:
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS alliance_members (
+                        alliance_id INTEGER NOT NULL,
+                        player_id INTEGER NOT NULL,
+                        role TEXT DEFAULT 'member',
+                        joined_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (alliance_id, player_id)
+                    )
+                ''')
+
+            # Alliance invitations table
+            if self.db.use_mysql:
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS alliance_invitations (
+                        id INT PRIMARY KEY AUTO_INCREMENT,
+                        alliance_id INTEGER NOT NULL,
+                        inviter_id INTEGER NOT NULL,
+                        invitee_id INTEGER NOT NULL,
+                        status TEXT DEFAULT 'pending',
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 ''')
             else:
                 cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS convoys (
+                    CREATE TABLE IF NOT EXISTS alliance_invitations (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        sender_id INTEGER NOT NULL,
-                        receiver_id INTEGER NOT NULL,
-                        resources TEXT NOT NULL,
-                        departure_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        arrival_time TIMESTAMP NOT NULL,
-                        status TEXT DEFAULT 'in_transit',
-                        security_level INTEGER DEFAULT 50,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        alliance_id INTEGER NOT NULL,
+                        inviter_id INTEGER NOT NULL,
+                        invitee_id INTEGER NOT NULL,
+                        status TEXT DEFAULT 'pending',
+                        created_at TEXT DEFAULT CURRENT_TIMESTAMP
                     )
                 ''')
-
-            # Pending attacks table
-            auto_increment = "AUTO_INCREMENT" if self.use_mysql else "AUTOINCREMENT"
-            id_type = "BIGINT" if self.use_mysql else "INTEGER"
-            
-            cursor.execute(f'''
-                CREATE TABLE IF NOT EXISTS pending_attacks (
-                    id {id_type} PRIMARY KEY {auto_increment},
-                    attacker_id INTEGER NOT NULL,
-                    defender_id INTEGER NOT NULL,
-                    attack_type TEXT DEFAULT 'mixed',
-                    conquest_mode INTEGER DEFAULT 0,
-                    travel_time INTEGER NOT NULL,
-                    departure_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    attack_time TIMESTAMP NOT NULL,
-                    status TEXT DEFAULT 'traveling'
-                )
-            ''')
-
-            # Admin logs table
-            cursor.execute(f'''
-                CREATE TABLE IF NOT EXISTS admin_logs (
-                    id {id_type} PRIMARY KEY {auto_increment},
-                    admin_id INTEGER NOT NULL,
-                    action TEXT NOT NULL,
-                    target_id INTEGER,
-                    details TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-
-            # Marketplace listings
-            cursor.execute(f"""
-            CREATE TABLE IF NOT EXISTS marketplace_listings (
-                id {id_type} PRIMARY KEY {auto_increment},
-                seller_id INTEGER NOT NULL,
-                item_name TEXT NOT NULL,
-                item_type TEXT NOT NULL,
-                item_id TEXT NOT NULL,
-                quantity INTEGER NOT NULL,
-                price INTEGER NOT NULL,
-                status TEXT DEFAULT 'active',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            """)
-
-            # Market transactions table
-            cursor.execute(f'''
-                CREATE TABLE IF NOT EXISTS market_transactions (
-                    id {id_type} PRIMARY KEY {auto_increment},
-                    listing_id INTEGER NOT NULL,
-                    buyer_id INTEGER NOT NULL,
-                    seller_id INTEGER NOT NULL,
-                    item_type TEXT NOT NULL,
-                    quantity INTEGER NOT NULL,
-                    total_paid INTEGER NOT NULL,
-                    status TEXT DEFAULT 'pending',
-                    transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    delivery_date TIMESTAMP NULL
-                )
-            ''')
-
-            # Purchase tracking table for preventing duplicate news
-            cursor.execute(f'''
-                CREATE TABLE IF NOT EXISTS purchase_tracking (
-                    id {id_type} PRIMARY KEY {auto_increment},
-                    buyer_id INTEGER NOT NULL,
-                    item_type TEXT NOT NULL,
-                    first_purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE (buyer_id, item_type)
-                )
-            ''')
-
-            # Build tracking table for preventing duplicate news
-            cursor.execute(f'''
-                CREATE TABLE IF NOT EXISTS build_tracking (
-                    id {id_type} PRIMARY KEY {auto_increment},
-                    builder_id INTEGER NOT NULL,
-                    item_type TEXT NOT NULL,
-                    first_build_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE (builder_id, item_type)
-                )
-            ''')
 
             conn.commit()
-            cursor.close()
-            logger.info("MariaDB database initialized successfully")
 
-    def create_player(self, user_id, username, country_code):
-        """Create a new player"""
-        try:
-            with self.get_connection() as conn:
+    def create_alliance(self, leader_id, alliance_name, description=""):
+        """Create new alliance"""
+        # Check if player is already in an alliance
+        if self.get_player_alliance(leader_id):
+            return {'success': False, 'message': 'شما قبلاً عضو یک اتحاد هستید!'}
+
+        with self.db.get_connection() as conn:
+            if self.db.use_mysql:
                 cursor = conn.cursor(dictionary=True)
-
-                country_name = Config.COUNTRIES.get(country_code, country_code)
-
-                # Insert player
-                cursor.execute('''
-                    INSERT INTO players (user_id, username, country_code, country_name)
-                    VALUES (%s, %s, %s, %s)
-                ''', (user_id, username, country_code, country_name))
-
-                # Initialize resources
-                cursor.execute('''
-                    INSERT INTO resources (user_id) VALUES (%s)
-                ''', (user_id,))
-
-                # Initialize buildings
-                cursor.execute('''
-                    INSERT INTO buildings (user_id) VALUES (%s)
-                ''', (user_id,))
-
-                # Initialize weapons
-                cursor.execute('''
-                    INSERT INTO weapons (user_id) VALUES (%s)
-                ''', (user_id,))
-
-                conn.commit()
-                cursor.close()
-                logger.info(f"Player created: {username} - {country_name}")
-                return True
-
-        except (sqlite3.IntegrityError, mysql.connector.IntegrityError):
-            logger.error(f"Country {country_code} already taken")
-            return False
-        except Exception as e:
-            logger.error(f"Error creating player: {e}")
-            return False
-
-    def get_player(self, user_id):
-        """Get player information"""
-        with self.get_connection() as conn:
-            if self.use_mysql:
-                cursor = conn.cursor(dictionary=True)
-                cursor.execute('SELECT * FROM players WHERE user_id = %s', (user_id,))
-                result = cursor.fetchone()
             else:
                 cursor = conn.cursor()
-                cursor.execute('SELECT * FROM players WHERE user_id = ?', (user_id,))
-                row = cursor.fetchone()
-                result = dict(row) if row else None
-            cursor.close()
-            return result
+
+            # Check if alliance name already exists
+            if self.db.use_mysql:
+                cursor.execute('SELECT id FROM alliances WHERE name = %s', (alliance_name,))
+            else:
+                cursor.execute('SELECT id FROM alliances WHERE name = ?', (alliance_name,))
+
+            if cursor.fetchone():
+                return {'success': False, 'message': 'نام اتحاد قبلاً وجود دارد!'}
+
+            # Create alliance
+            if self.db.use_mysql:
+                cursor.execute('''
+                    INSERT INTO alliances (name, leader_id, description, created_at)
+                    VALUES (%s, %s, %s, NOW())
+                ''', (alliance_name, leader_id, description))
+            else:
+                cursor.execute('''
+                    INSERT INTO alliances (name, leader_id, description, created_at)
+                    VALUES (?, ?, ?, datetime('now'))
+                ''', (alliance_name, leader_id, description))
+
+            alliance_id = cursor.lastrowid
+
+            # Add leader as member
+            if self.db.use_mysql:
+                cursor.execute('''
+                    INSERT INTO alliance_members (alliance_id, player_id, role, joined_at)
+                    VALUES (%s, %s, 'leader', NOW())
+                ''', (alliance_id, leader_id))
+            else:
+                cursor.execute('''
+                    INSERT INTO alliance_members (alliance_id, player_id, role, joined_at)
+                    VALUES (?, ?, 'leader', datetime('now'))
+                ''', (alliance_id, leader_id))
+
+            conn.commit()
+
+            return {
+                'success': True,
+                'message': f'اتحاد "{alliance_name}" با موفقیت تشکیل شد!',
+                'alliance_id': alliance_id
+            }
+
+    def invite_to_alliance(self, inviter_id, invitee_id):
+        """Invite player to alliance"""
+        inviter_alliance = self.get_player_alliance(inviter_id)
+
+        if not inviter_alliance:
+            return {'success': False, 'message': 'شما عضو هیچ اتحادی نیستید!'}
+
+        # Check if inviter has permission (leader or officer)
+        if inviter_alliance['role'] not in ['leader', 'officer']:
+            return {'success': False, 'message': 'شما اجازه دعوت کردن ندارید!'}
+
+        # Check if invitee is already in an alliance
+        if self.get_player_alliance(invitee_id):
+            return {'success': False, 'message': 'این بازیکن قبلاً عضو یک اتحاد است!'}
+
+        # Check for existing invitation
+        existing = self.get_pending_invitation(inviter_alliance['alliance_id'], invitee_id)
+        if existing:
+            return {'success': False, 'message': 'دعوت‌نامه قبلاً ارسال شده!'}
+
+        with self.db.get_connection() as conn:
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+            if self.db.use_mysql:
+                cursor.execute('''
+                    INSERT INTO alliance_invitations (alliance_id, inviter_id, invitee_id)
+                    VALUES (%s, %s, %s)
+                ''', (inviter_alliance['alliance_id'], inviter_id, invitee_id))
+            else:
+                cursor.execute('''
+                    INSERT INTO alliance_invitations (alliance_id, inviter_id, invitee_id)
+                    VALUES (?, ?, ?)
+                ''', (inviter_alliance['alliance_id'], inviter_id, invitee_id))
+            conn.commit()
+
+        return {
+            'success': True,
+            'message': 'دعوت‌نامه ارسال شد!',
+            'alliance_name': inviter_alliance['alliance_name']
+        }
+
+    def respond_to_invitation(self, player_id, invitation_id, response):
+        """Respond to alliance invitation"""
+        invitation = self.get_invitation(invitation_id)
+
+        if not invitation or invitation['invitee_id'] != player_id:
+            return {'success': False, 'message': 'دعوت‌نامه یافت نشد!'}
+
+        if invitation['status'] != 'pending':
+            return {'success': False, 'message': 'این دعوت‌نامه قبلاً پاسخ داده شده!'}
+
+        with self.db.get_connection() as conn:
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+
+            if response == 'accept':
+                # Add to alliance
+                if self.db.use_mysql:
+                    cursor.execute('''
+                        INSERT INTO alliance_members (alliance_id, player_id, joined_at)
+                        VALUES (%s, %s, NOW())
+                    ''', (invitation['alliance_id'], player_id))
+                else:
+                    cursor.execute('''
+                        INSERT INTO alliance_members (alliance_id, player_id, joined_at)
+                        VALUES (?, ?, datetime('now'))
+                    ''', (invitation['alliance_id'], player_id))
+
+                # Update invitation status
+                if self.db.use_mysql:
+                    cursor.execute('''
+                        UPDATE alliance_invitations 
+                        SET status = 'accepted' 
+                        WHERE id = %s
+                    ''', (invitation_id,))
+                else:
+                    cursor.execute('''
+                        UPDATE alliance_invitations 
+                        SET status = 'accepted' 
+                        WHERE id = ?
+                    ''', (invitation_id,))
+
+                conn.commit()
+
+                return {
+                    'success': True,
+                    'message': f'شما با موفقیت به اتحاد "{invitation["alliance_name"]}" پیوستید!'
+                }
+            else:
+                # Reject invitation
+                if self.db.use_mysql:
+                    cursor.execute('''
+                        UPDATE alliance_invitations 
+                        SET status = 'rejected' 
+                        WHERE id = %s
+                    ''', (invitation_id,))
+                else:
+                    cursor.execute('''
+                        UPDATE alliance_invitations 
+                        SET status = 'rejected' 
+                        WHERE id = ?
+                    ''', (invitation_id,))
+
+                conn.commit()
+
+                return {
+                    'success': True,
+                    'message': 'دعوت‌نامه رد شد.'
+                }
+
+    def get_player_alliance(self, player_id):
+        """Get player's current alliance"""
+        with self.db.get_connection() as conn:
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+            if self.db.use_mysql:
+                cursor.execute('''
+                    SELECT a.id as alliance_id, a.name as alliance_name, 
+                           am.role, a.leader_id, a.description
+                    FROM alliances a
+                    JOIN alliance_members am ON a.id = am.alliance_id
+                    WHERE am.player_id = %s
+                ''', (player_id,))
+            else:
+                cursor.execute('''
+                    SELECT a.id as alliance_id, a.name as alliance_name, 
+                           am.role, a.leader_id, a.description
+                    FROM alliances a
+                    JOIN alliance_members am ON a.id = am.alliance_id
+                    WHERE am.player_id = ?
+                ''', (player_id,))
+
+            result = cursor.fetchone()
+            return dict(result) if result else None
+
+    def get_alliance_members(self, alliance_id):
+        """Get alliance members"""
+        with self.db.get_connection() as conn:
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+            if self.db.use_mysql:
+                cursor.execute('''
+                    SELECT p.user_id, p.country_name, p.username, am.role, am.joined_at
+                    FROM alliance_members am
+                    JOIN players p ON am.player_id = p.user_id
+                    WHERE am.alliance_id = %s
+                    ORDER BY am.role DESC, am.joined_at
+                ''', (alliance_id,))
+            else:
+                cursor.execute('''
+                    SELECT p.user_id, p.country_name, p.username, am.role, am.joined_at
+                    FROM alliance_members am
+                    JOIN players p ON am.player_id = p.user_id
+                    WHERE am.alliance_id = ?
+                    ORDER BY am.role DESC, am.joined_at
+                ''', (alliance_id,))
+
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_pending_invitations(self, player_id):
+        """Get pending invitations for player"""
+        with self.db.get_connection() as conn:
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+            if self.db.use_mysql:
+                cursor.execute('''
+                    SELECT ai.id, a.name as alliance_name, p.country_name as inviter_country,
+                           ai.created_at
+                    FROM alliance_invitations ai
+                    JOIN alliances a ON ai.alliance_id = a.id
+                    JOIN players p ON ai.inviter_id = p.user_id
+                    WHERE ai.invitee_id = %s AND ai.status = 'pending'
+                    ORDER BY ai.created_at DESC
+                ''', (player_id,))
+            else:
+                cursor.execute('''
+                    SELECT ai.id, a.name as alliance_name, p.country_name as inviter_country,
+                           ai.created_at
+                    FROM alliance_invitations ai
+                    JOIN alliances a ON ai.alliance_id = a.id
+                    JOIN players p ON ai.inviter_id = p.user_id
+                    WHERE ai.invitee_id = ? AND ai.status = 'pending'
+                    ORDER BY ai.created_at DESC
+                ''', (player_id,))
+
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_pending_invitation(self, alliance_id, invitee_id):
+        """Check for existing pending invitation"""
+        with self.db.get_connection() as conn:
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+            if self.db.use_mysql:
+                cursor.execute('''
+                    SELECT id FROM alliance_invitations
+                    WHERE alliance_id = %s AND invitee_id = %s AND status = 'pending'
+                ''', (alliance_id, invitee_id))
+            else:
+                cursor.execute('''
+                    SELECT id FROM alliance_invitations
+                    WHERE alliance_id = ? AND invitee_id = ? AND status = 'pending'
+                ''', (alliance_id, invitee_id))
+
+            return cursor.fetchone() is not None
+
+    def get_invitation(self, invitation_id):
+        """Get invitation details"""
+        with self.db.get_connection() as conn:
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+            if self.db.use_mysql:
+                cursor.execute('''
+                    SELECT ai.*, a.name as alliance_name
+                    FROM alliance_invitations ai
+                    JOIN alliances a ON ai.alliance_id = a.id
+                    WHERE ai.id = %s
+                ''', (invitation_id,))
+            else:
+                cursor.execute('''
+                    SELECT ai.*, a.name as alliance_name
+                    FROM alliance_invitations ai
+                    JOIN alliances a ON ai.alliance_id = a.id
+                    WHERE ai.id = ?
+                ''', (invitation_id,))
+
+            result = cursor.fetchone()
+            return dict(result) if result else None
+
+    def leave_alliance(self, player_id):
+        """Leave alliance"""
+        alliance = self.get_player_alliance(player_id)
+
+        if not alliance:
+            return {'success': False, 'message': 'شما عضو هیچ اتحادی نیستید!'}
+
+        if alliance['role'] == 'leader':
+            # Check if there are other members
+            members = self.get_alliance_members(alliance['alliance_id'])
+            if len(members) > 1:
+                return {'success': False, 'message': 'رهبر اتحاد نمی‌تواند اتحاد را ترک کند تا اعضای دیگر موجود باشند!'}
+            else:
+                # Disband alliance
+                return self.disband_alliance(alliance['alliance_id'])
+
+        with self.db.get_connection() as conn:
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+            if self.db.use_mysql:
+                cursor.execute('''
+                    DELETE FROM alliance_members 
+                    WHERE alliance_id = %s AND player_id = %s
+                ''', (alliance['alliance_id'], player_id))
+            else:
+                cursor.execute('''
+                    DELETE FROM alliance_members 
+                    WHERE alliance_id = ? AND player_id = ?
+                ''', (alliance['alliance_id'], player_id))
+            conn.commit()
+
+        return {
+            'success': True,
+            'message': f'شما اتحاد "{alliance["alliance_name"]}" را ترک کردید.'
+        }
+
+    def disband_alliance(self, alliance_id):
+        """Disband alliance"""
+        with self.db.get_connection() as conn:
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+
+            # Remove all members
+            if self.db.use_mysql:
+                cursor.execute('DELETE FROM alliance_members WHERE alliance_id = %s', (alliance_id,))
+            else:
+                cursor.execute('DELETE FROM alliance_members WHERE alliance_id = ?', (alliance_id,))
+
+            # Remove all invitations
+            if self.db.use_mysql:
+                cursor.execute('DELETE FROM alliance_invitations WHERE alliance_id = %s', (alliance_id,))
+            else:
+                cursor.execute('DELETE FROM alliance_invitations WHERE alliance_id = ?', (alliance_id,))
+
+            # Remove alliance
+            if self.db.use_mysql:
+                cursor.execute('DELETE FROM alliances WHERE id = %s', (alliance_id,))
+            else:
+                cursor.execute('DELETE FROM alliances WHERE id = ?', (alliance_id,))
+
+            conn.commit()
+
+        return {'success': True, 'message': 'اتحاد منحل شد.'}
 
     def get_all_players(self):
         """Get all players"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('SELECT * FROM players ORDER BY country_name')
-            result = cursor.fetchall()
-            cursor.close()
-            return result
-
-    def set_player_building(self, user_id, building_type, count):
-        """Set player building count to specific value"""
-        try:
-            with self.get_connection() as conn:
+        with self.db.get_connection() as conn:
+            if self.db.use_mysql:
                 cursor = conn.cursor(dictionary=True)
-                query = f'''
-                    UPDATE buildings 
-                    SET {building_type} = %s
-                    WHERE user_id = %s
-                '''
-                cursor.execute(query, (count, user_id))
-                conn.commit()
-                cursor.close()
-                logger.info(f"Set {building_type} to {count} for player {user_id}")
-                return True
-        except Exception as e:
-            logger.error(f"Error setting building count: {e}")
-            return False
-
-    def update_player_income(self, user_id, new_money, new_population, new_soldiers):
-        """Update player money, population, and soldiers (for income cycle)"""
-        try:
-            with self.get_connection() as conn:
-                cursor = conn.cursor(dictionary=True)
-                cursor.execute('''
-                    UPDATE players 
-                    SET money = %s, population = %s, soldiers = %s
-                    WHERE user_id = %s
-                ''', (new_money, new_population, new_soldiers, user_id))
-                conn.commit()
-                cursor.close()
-                logger.info(f"Updated income for player {user_id}: ${new_money:,}, population: {new_population:,}, soldiers: {new_soldiers:,}")
-                return True
-        except Exception as e:
-            logger.error(f"Error updating player income: {e}")
-            return False
-
-    def get_all_countries(self):
-        """Get all countries with players"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('SELECT user_id, username, country_name, country_code FROM players ORDER BY country_name')
-            result = cursor.fetchall()
-            cursor.close()
-            return result
-
-    def is_country_taken(self, country_code):
-        """Check if country is already taken"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('SELECT 1 FROM players WHERE country_code = %s', (country_code,))
-            result = cursor.fetchone()
-            cursor.close()
-            return result is not None
-
-    def get_player_resources(self, user_id):
-        """Get player resources"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('SELECT * FROM resources WHERE user_id = %s', (user_id,))
-            result = cursor.fetchone()
-            cursor.close()
-            return result if result else {}
-
-    def get_player_buildings(self, user_id):
-        """Get player buildings"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('SELECT * FROM buildings WHERE user_id = %s', (user_id,))
-            result = cursor.fetchone()
-            cursor.close()
-            return result if result else {}
-
-    def get_player_weapons(self, user_id):
-        """Get player weapons"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('SELECT * FROM weapons WHERE user_id = %s', (user_id,))
-            result = cursor.fetchone()
-            cursor.close()
-            if result:
-                logger.info(f"get_player_weapons for user {user_id}: rifle={result.get('rifle', 0)}")
-                return result
             else:
-                logger.warning(f"No weapons found for user {user_id}")
-                return {}
+                cursor = conn.cursor()
+            cursor.execute('SELECT user_id, country_name FROM players')
+            return [dict(row) for row in cursor.fetchall()]
 
-    def update_player_money(self, user_id, new_amount):
-        """Update player money"""
-        try:
-            with self.get_connection() as conn:
+    def get_player(self, player_id):
+        """Get player details"""
+        with self.db.get_connection() as conn:
+            if self.db.use_mysql:
                 cursor = conn.cursor(dictionary=True)
-                cursor.execute("""
-                    UPDATE players SET money = %s WHERE user_id = %s
-                """, (new_amount, user_id))
-                conn.commit()
-                cursor.close()
-                logger.info(f"Updated player {user_id} money to {new_amount}")
-                return True
+            else:
+                cursor = conn.cursor()
+            if self.db.use_mysql:
+                cursor.execute('SELECT user_id, country_name FROM players WHERE user_id = %s', (player_id,))
+            else:
+                cursor.execute('SELECT user_id, country_name FROM players WHERE user_id = ?', (player_id,))
+            result = cursor.fetchone()
+            return dict(result) if result else None
+
+    async def handle_statement_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle statement text input"""
+        try:
+            user_id = update.effective_user.id
+            text = update.message.text
+
+            if not text or len(text.strip()) == 0:
+                await update.message.reply_text("❌ متن بیانیه نمی‌تواند خالی باشد!")
+                return
+
+            if len(text) > 500:
+                await update.message.reply_text("❌ متن بیانیه نمی‌تواند بیش از 500 کاراکتر باشد!")
+                return
+
+            # Get alliance
+            alliance = self.db.get_player_alliance(user_id)
+            if not alliance:
+                await update.message.reply_text("❌ شما عضو هیچ اتحادی نیستید!")
+                return
+
+            # Check if user is leader
+            if alliance['leader_id'] != user_id:
+                await update.message.reply_text("❌ فقط رهبر اتحاد می‌تواند بیانیه ارسال کند!")
+                return
+
+            # Send statement to all alliance members
+            members = self.db.get_alliance_members(alliance['id'])
+            sent_count = 0
+
+            statement_text = f"""📢 بیانیه اتحاد {alliance['name']}
+
+{text}
+
+🕐 {datetime.now().strftime('%Y-%m-%d %H:%M')}
+👤 رهبر اتحاد"""
+
+            for member in members:
+                try:
+                    await context.bot.send_message(
+                        chat_id=member['user_id'], 
+                        text=statement_text
+                    )
+                    sent_count += 1
+                except Exception as e:
+                    logger.error(f"Failed to send statement to {member['user_id']}: {e}")
+
+            await update.message.reply_text(
+                f"✅ بیانیه به {sent_count} عضو ارسال شد!"
+            )
+
         except Exception as e:
-            logger.error(f"Error updating player money: {e}")
-            return False
+            logger.error(f"Error in handle_statement_text: {e}")
+            await update.message.reply_text("❌ خطا در ارسال بیانیه!")
 
-    def update_player_population(self, user_id, new_population):
-        """Update player population"""
-        try:
-            with self.get_connection() as conn:
-                cursor = conn.cursor(dictionary=True)
-                cursor.execute(
-                    "UPDATE players SET population = %s WHERE user_id = %s",
-                    (new_population, user_id)
+    async def handle_alliance_query(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle alliance related queries"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        await query.answer()
+
+        if query.data == "alliance_menu":
+            alliance = self.db.get_player_alliance(user_id)
+            if not alliance:
+                await query.edit_message_text("❌ شما عضو هیچ اتحادی نیستید!")
+                return
+
+            keyboard = [
+                [InlineKeyboardButton("اعضای اتحاد", callback_data="alliance_members")],
+                [InlineKeyboardButton("دعوت به اتحاد", callback_data="alliance_invite_list")],
+                [InlineKeyboardButton("درخواست‌های ورود", callback_data="alliance_requests")],
+                [InlineKeyboardButton("بیانیه اتحاد", callback_data="alliance_statement")],
+                [InlineKeyboardButton("ترک اتحاد", callback_data="leave_alliance")],
+            ]
+            if alliance['role'] == 'leader':
+                keyboard.append([InlineKeyboardButton("انحلال اتحاد", callback_data="disband_alliance")])
+
+            await query.edit_message_text(
+                f"🏛 منوی اتحاد: {alliance['name']}\n\n"
+                f"توضیحات: {alliance.get('description', 'بدون توضیحات')}\n"
+                f"رهبر: {alliance.get('leader_name', 'نامشخص')}\n"
+                f"نقش شما: {alliance['role']}",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+        elif query.data == "alliance_members":
+            alliance = self.db.get_player_alliance(user_id)
+            if not alliance:
+                await query.edit_message_text("❌ شما عضو هیچ اتحادی نیستید!")
+                return
+
+            members = self.db.get_alliance_members(alliance['id'])
+            if not members:
+                await query.edit_message_text("❌ هیچ عضوی در اتحاد یافت نشد!")
+                return
+
+            member_list = "👥 اعضای اتحاد:\n\n"
+            for member in members:
+                member_list += f"- {member['country_name']} ({member['role']})\n"
+
+            await query.edit_message_text(member_list, reply_markup=self.keyboards.back_to_alliance_keyboard())
+
+        elif query.data == "alliance_invite_list":
+            alliance = self.db.get_player_alliance(user_id)
+            if not alliance:
+                await query.edit_message_text("❌ شما عضو هیچ اتحادی نیستید!")
+                return
+
+            if alliance['leader_id'] != user_id:
+                await query.edit_message_text("❌ فقط رهبر اتحاد می‌تواند دعوت‌نامه ارسال کند!")
+                return
+
+            # Get all players not in alliance
+            all_players = self.db.get_all_players()
+            available_players = []
+
+            for player in all_players:
+                if not self.db.get_player_alliance(player['user_id']) and player['user_id'] != user_id:
+                    available_players.append(player)
+
+            if not available_players:
+                await query.edit_message_text(
+                    "❌ هیچ کشوری برای دعوت یافت نشد!",
+                    reply_markup=self.keyboards.alliance_invite_keyboard()
                 )
-                conn.commit()
-                cursor.close()
-                return True
-        except Exception as e:
-            logger.error(f"Error updating player population: {e}")
-            return False
+                return
 
-    def update_player_soldiers(self, user_id, new_soldiers):
-        """Update player's soldiers count"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                UPDATE players 
-                SET soldiers = %s
-                WHERE user_id = %s
-            ''', (new_soldiers, user_id))
-            conn.commit()
-            cursor.close()
-
-    def update_resource(self, user_id, resource_type, new_amount):
-        """Update specific resource amount"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            query = f'''
-                UPDATE resources 
-                SET {resource_type} = %s
-                WHERE user_id = %s
-            '''
-            cursor.execute(query, (new_amount, user_id))
-            conn.commit()
-            cursor.close()
-
-    def update_building_count(self, user_id, building_type, new_count):
-        """Update building count"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            query = f'''
-                UPDATE buildings 
-                SET {building_type} = %s
-                WHERE user_id = %s
-            '''
-            cursor.execute(query, (new_count, user_id))
-            conn.commit()
-            cursor.close()
-
-    def add_building(self, user_id, building_type):
-        """Add a building to player"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            query = f'''
-                UPDATE buildings 
-                SET {building_type} = {building_type} + 1 
-                WHERE user_id = %s
-            '''
-            cursor.execute(query, (user_id,))
-            conn.commit()
-            cursor.close()
-
-    def add_weapon(self, user_id, weapon_type, quantity=1):
-        """Add weapons to player"""
-        logger.info(f"add_weapon called: user_id={user_id}, weapon_type={weapon_type}, quantity={quantity}")
-        
-        # Map weapon names to database column names
-        weapon_column_map = {
-            'rifle': 'rifle',
-            'tank': 'tank',
-            'fighter': 'fighter_jet',
-            'fighter_jet': 'fighter_jet',
-            'helicopter': 'helicopter',
-            'jet': 'jet',
-            'drone': 'drone',
-            'strategic_bomber': 'strategic_bomber',
-            'warship': 'warship',
-            'submarine': 'submarine',
-            'destroyer': 'destroyer',
-            'aircraft_carrier': 'aircraft_carrier',
-            'aircraft_carrier_full': 'aircraft_carrier_full',
-            'nuclear_submarine': 'nuclear_submarine',
-            'patrol_ship': 'patrol_ship',
-            'patrol_boat': 'patrol_boat',
-            'amphibious_ship': 'amphibious_ship',
-            'air_defense': 'air_defense',
-            'missile_shield': 'missile_shield',
-            'cyber_shield': 'cyber_shield',
-            's500_defense': 's500_defense',
-            'thaad_defense': 'thaad_defense',
-            's400_defense': 's400_defense',
-            'iron_dome': 'iron_dome',
-            'slq32_ew': 'slq32_ew',
-            'phalanx_ciws': 'phalanx_ciws',
-            'simple_bomb': 'simple_bomb',
-            'nuclear_bomb': 'nuclear_bomb',
-            'simple_missile': 'simple_missile',
-            'ballistic_missile': 'ballistic_missile',
-            'nuclear_missile': 'nuclear_missile',
-            'trident2_conventional': 'trident2_conventional',
-            'trident2_nuclear': 'trident2_nuclear',
-            'satan2_conventional': 'satan2_conventional',
-            'satan2_nuclear': 'satan2_nuclear',
-            'df41_nuclear': 'df41_nuclear',
-            'tomahawk_conventional': 'tomahawk_conventional',
-            'tomahawk_nuclear': 'tomahawk_nuclear',
-            'kalibr_conventional': 'kalibr_conventional',
-            'f22': 'f22',
-            'f35': 'f35',
-            'su57': 'su57',
-            'j20': 'j20',
-            'f15ex': 'f15ex',
-            'su35s': 'su35s',
-            'kf51_panther': 'kf51_panther',
-            'abrams_x': 'abrams_x',
-            'm1e3_abrams': 'm1e3_abrams',
-            't90ms_proryv': 't90ms_proryv',
-            'm1a2_abrams_sepv3': 'm1a2_abrams_sepv3',
-            'armored_truck': 'armored_truck',
-            'cargo_helicopter': 'cargo_helicopter',
-            'cargo_plane': 'cargo_plane',
-            'escort_frigate': 'escort_frigate',
-            'logistics_drone': 'logistics_drone',
-            'heavy_transport': 'heavy_transport',
-            'supply_ship': 'supply_ship',
-            'stealth_transport': 'stealth_transport',
-            'tanker_aircraft': 'tanker_aircraft',
-            'aircraft_carrier_transport': 'aircraft_carrier_transport'
-        }
-
-        column_name = weapon_column_map.get(weapon_type, weapon_type)
-        logger.info(f"Mapped weapon_type '{weapon_type}' to column '{column_name}'")
-
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            
-            # Check if user exists in weapons table
-            cursor.execute('SELECT COUNT(*) FROM weapons WHERE user_id = %s', (user_id,))
-            user_exists = cursor.fetchone()[0] > 0
-            logger.info(f"User {user_id} exists in weapons table: {user_exists}")
-            
-            if not user_exists:
-                logger.info(f"Creating weapons entry for user {user_id}")
-                # Create a new weapons entry for this user
-                cursor.execute('INSERT INTO weapons (user_id) VALUES (%s)', (user_id,))
-            
-            # Check current value before update
-            cursor.execute(f'SELECT {column_name} FROM weapons WHERE user_id = %s', (user_id,))
-            current_value = cursor.fetchone()
-            if current_value:
-                current_value = current_value[0] or 0
-            else:
-                current_value = 0
-            logger.info(f"Current {column_name} value for user {user_id}: {current_value}")
-            
-            # Update weapons
-            cursor.execute(f'''
-                UPDATE weapons 
-                SET {column_name} = {column_name} + %s 
-                WHERE user_id = %s
-            ''', (quantity, user_id))
-            
-            # Check after update
-            cursor.execute(f'SELECT {column_name} FROM weapons WHERE user_id = %s', (user_id,))
-            new_value = cursor.fetchone()
-            if new_value:
-                new_value = new_value[0] or 0
-            else:
-                new_value = 0
-            logger.info(f"New {column_name} value for user {user_id}: {new_value}")
-            
-            conn.commit()
-            cursor.close()
-
-    def add_resources(self, user_id, resource_type, quantity):
-        """Add resources to player"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            query = f'''
-                UPDATE resources 
-                SET {resource_type} = {resource_type} + %s 
-                WHERE user_id = %s
-            '''
-            cursor.execute(query, (quantity, user_id))
-            conn.commit()
-            cursor.close()
-
-    def subtract_resources(self, user_id, resource_type, quantity):
-        """Subtract resources from player"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            query = f'''
-                UPDATE resources 
-                SET {resource_type} = {resource_type} - %s 
-                WHERE user_id = %s
-            '''
-            cursor.execute(query, (quantity, user_id))
-            conn.commit()
-            cursor.close()
-
-    def consume_resources(self, user_id, resources_needed):
-        """Consume resources from player"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-
-            # Check if player has enough resources
-            current_resources = self.get_player_resources(user_id)
-            for resource, amount in resources_needed.items():
-                if current_resources.get(resource, 0) < amount:
-                    cursor.close()
-                    return False
-
-            # Consume resources
-            for resource, amount in resources_needed.items():
-                query = f'''
-                    UPDATE resources 
-                    SET {resource} = {resource} - %s 
-                    WHERE user_id = %s
-                '''
-                cursor.execute(query, (amount, user_id))
-
-            conn.commit()
-            cursor.close()
-            return True
-
-    def log_admin_action(self, admin_id, action, target_id=None, details=None):
-        """Log admin action"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                INSERT INTO admin_logs (admin_id, action, target_id, details)
-                VALUES (%s, %s, %s, %s)
-            ''', (admin_id, action, target_id, details))
-            conn.commit()
-            cursor.close()
-
-    def get_admin_logs(self, limit=50):
-        """Get admin logs"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                SELECT * FROM admin_logs 
-                ORDER BY created_at DESC 
-                LIMIT %s
-            ''', (limit,))
-            result = cursor.fetchall()
-            cursor.close()
-            return result
-
-    def delete_player(self, user_id):
-        """Delete player and all related data"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-
-            # Delete from all tables (CASCADE will handle related data)
-            cursor.execute('DELETE FROM players WHERE user_id = %s', (user_id,))
-
-            conn.commit()
-            cursor.close()
-            return True
-
-    def update_weapon_count(self, user_id, weapon_type, new_count):
-        """Update weapon count"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            query = f'''
-                UPDATE weapons 
-                SET {weapon_type} = %s 
-                WHERE user_id = %s
-            '''
-            cursor.execute(query, (new_count, user_id))
-            conn.commit()
-            cursor.close()
-
-    def get_weapon_count(self, user_id, weapon_type):
-        """Get specific weapon count"""
-        weapons = self.get_player_weapons(user_id)
-        return weapons.get(weapon_type, 0)
-
-    def get_active_convoys(self):
-        """Get all active convoys in transit"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                SELECT c.*, 
-                       s.country_name as sender_country,
-                       r.country_name as receiver_country
-                FROM convoys c
-                JOIN players s ON c.sender_id = s.user_id
-                JOIN players r ON c.receiver_id = r.user_id
-                WHERE c.status = 'in_transit'
-                AND c.arrival_time > NOW()
-                ORDER BY c.created_at DESC
-            ''')
-            results = cursor.fetchall()
-            cursor.close()
-            return results if results else []
-
-    def create_convoy(self, sender_id, receiver_id, resources, travel_minutes=30, security_level=50):
-        """Create a new convoy"""
-        import json
-        from datetime import datetime, timedelta
-
-        arrival_time = datetime.now() + timedelta(minutes=travel_minutes)
-
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                INSERT INTO convoys (sender_id, receiver_id, resources, arrival_time, security_level, status, created_at)
-                VALUES (%s, %s, %s, %s, %s, 'in_transit', NOW())
-            ''', (sender_id, receiver_id, json.dumps(resources), arrival_time, security_level))
-
-            convoy_id = cursor.lastrowid
-            conn.commit()
-            cursor.close()
-            return convoy_id
-
-    def get_convoy(self, convoy_id):
-        """Get convoy details"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('SELECT * FROM convoys WHERE id = %s', (convoy_id,))
-            result = cursor.fetchone()
-            cursor.close()
-            return result
-
-    def update_convoy_status(self, convoy_id, new_status):
-        """Update convoy status"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('UPDATE convoys SET status = %s WHERE id = %s', (new_status, convoy_id))
-            conn.commit()
-            cursor.close()
-
-    def update_convoy_arrival(self, convoy_id, new_arrival_time, new_status):
-        """Update convoy arrival time and status"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                UPDATE convoys 
-                SET arrival_time = %s, status = %s 
-                WHERE id = %s
-            ''', (new_arrival_time, new_status, convoy_id))
-            conn.commit()
-            cursor.close()
-
-    def update_convoy_security(self, convoy_id, new_security_level):
-        """Update convoy security level"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                UPDATE convoys 
-                SET security_level = %s 
-                WHERE id = %s
-            ''', (new_security_level, convoy_id))
-            conn.commit()
-            cursor.close()
-
-    def get_arrived_convoys(self):
-        """Get all convoys that have arrived at their destination"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                SELECT c.*, 
-                       s.country_name as sender_country,
-                       r.country_name as receiver_country
-                FROM convoys c
-                JOIN players s ON c.sender_id = s.user_id
-                JOIN players r ON c.receiver_id = r.user_id
-                WHERE c.status = 'in_transit'
-                AND c.arrival_time <= NOW()
-                ORDER BY c.arrival_time ASC
-            ''')
-            results = cursor.fetchall()
-            cursor.close()
-            return results if results else []
-
-    def create_pending_attack(self, attack_data):
-        """Create a new pending attack"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                INSERT INTO pending_attacks (attacker_id, defender_id, attack_type, conquest_mode, travel_time, attack_time, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ''', (
-                attack_data['attacker_id'],
-                attack_data['defender_id'], 
-                attack_data['attack_type'],
-                1 if attack_data.get('conquest_mode', False) else 0,
-                attack_data['travel_time'],
-                attack_data['attack_time'],
-                attack_data['status']
-            ))
-            attack_id = cursor.lastrowid
-            conn.commit()
-            cursor.close()
-            return attack_id
-
-    def get_pending_attack(self, attack_id):
-        """Get pending attack details"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('SELECT * FROM pending_attacks WHERE id = %s', (attack_id,))
-            result = cursor.fetchone()
-            cursor.close()
-            return result
-
-    def get_player_pending_attacks(self, player_id):
-        """Get all pending attacks for a player"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                SELECT * FROM pending_attacks 
-                WHERE attacker_id = %s AND status IN ('traveling', 'pending')
-            ''', (player_id,))
-            results = cursor.fetchall()
-            cursor.close()
-            return results
-
-    def get_pending_attacks_due(self):
-        """Get all pending attacks that are due for execution"""
-        from datetime import datetime
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            current_time = datetime.now()
-            cursor.execute('''
-                SELECT * FROM pending_attacks 
-                WHERE attack_time <= %s AND status = 'traveling'
-            ''', (current_time,))
-            result = cursor.fetchall()
-            cursor.close()
-            return result
-
-    def update_pending_attack_status(self, attack_id, new_status):
-        """Update pending attack status"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('UPDATE pending_attacks SET status = %s WHERE id = %s', (new_status, attack_id))
-            conn.commit()
-            cursor.close()
-
-    def reset_all_data(self):
-        """Reset all game data (admin function)"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-
-            # Drop and recreate all game tables
-            tables = ['market_transactions', 'marketplace_listings', 'purchase_tracking', 'build_tracking',
-                     'pending_attacks', 'convoys', 'wars', 'weapons', 'buildings', 'resources', 'players']
-            for table in tables:
-                cursor.execute(f'DROP TABLE IF EXISTS {table}')
-
-            conn.commit()
-            cursor.close()
-
-        # Reinitialize database
-        self.initialize()
-        return True
-
-    def check_first_purchase(self, user_id, item_type):
-        """Check if this is user's first purchase of this item type"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute(
-                'SELECT id FROM purchase_tracking WHERE buyer_id = %s AND item_type = %s',
-                (user_id, item_type)
+            await query.edit_message_text(
+                "👥 کشوری را برای دعوت انتخاب کنید:",
+                reply_markup=self.keyboards.alliance_invite_keyboard(available_players)
             )
-            result = cursor.fetchone()
-            cursor.close()
-            return result is None
 
-    def record_first_purchase(self, user_id, item_type):
-        """Record first purchase of an item type"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                INSERT IGNORE INTO purchase_tracking (buyer_id, item_type)
-                VALUES (%s, %s)
-            ''', (user_id, item_type))
-            conn.commit()
-            cursor.close()
+        elif query.data.startswith("alliance_invite_"):
+            try:
+                target_id = int(query.data.split("_")[-1])
+                alliance = self.db.get_player_alliance(user_id)
 
-    def check_first_build(self, user_id, item_type):
-        """Check if this is user's first build of this item type"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute(
-                'SELECT id FROM build_tracking WHERE builder_id = %s AND item_type = %s',
-                (user_id, item_type)
-            )
-            result = cursor.fetchone()
-            cursor.close()
-            return result is None
+                if not alliance or alliance['leader_id'] != user_id:
+                    await query.edit_message_text("❌ شما مجاز به ارسال دعوت‌نامه نیستید!")
+                    return
 
-    def record_first_build(self, user_id, item_type):
-        """Record first build of an item type"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                INSERT IGNORE INTO build_tracking (builder_id, item_type)
-                VALUES (%s, %s)
-            ''', (user_id, item_type))
-            conn.commit()
-            cursor.close()
+                # Check if target already in alliance
+                if self.db.get_player_alliance(target_id):
+                    await query.edit_message_text("❌ این کشور قبلاً عضو اتحادی است!")
+                    return
 
-    def give_infinite_resources_to_all_players(self):
-        """Give infinite money and resources to all players for testing"""
-        try:
-            with self.get_connection() as conn:
+                # Send invitation
+                target_player = self.db.get_player(target_id)
+                if not target_player:
+                    await query.edit_message_text("❌ کشور یافت نشد!")
+                    return
+
+                sender_player = self.db.get_player(user_id)
+
+                invite_text = f"""📨 دعوت‌نامه اتحاد
+
+🏛 اتحاد: {alliance['name']}
+👤 دعوت‌کننده: {sender_player['country_name']}
+
+آیا می‌خواهید به این اتحاد بپیوندید؟"""
+
+                invite_keyboard = [
+                    [
+                        InlineKeyboardButton("✅ پذیرش", callback_data=f"accept_alliance_{alliance['id']}"),
+                        InlineKeyboardButton("❌ رد", callback_data="reject_alliance")
+                    ]
+                ]
+
+                try:
+                    await context.bot.send_message(
+                        chat_id=target_id,
+                        text=invite_text,
+                        reply_markup=InlineKeyboardMarkup(invite_keyboard)
+                    )
+                    await query.edit_message_text(
+                        f"✅ دعوت‌نامه به {target_player['country_name']} ارسال شد!"
+                    )
+                except:
+                    await query.edit_message_text("❌ خطا در ارسال دعوت‌نامه!")
+
+            except ValueError:
+                await query.edit_message_text("❌ ID نامعتبر!")
+
+        elif query.data == "leave_alliance":
+            result = self.leave_alliance(user_id)
+            await query.edit_message_text(result['message'])
+            if result['success']:
+                # Optionally, redirect to main menu or show a confirmation
+                pass # Or handle redirect to main menu
+
+        elif query.data == "disband_alliance":
+            alliance = self.db.get_player_alliance(user_id)
+            if not alliance or alliance['role'] != 'leader':
+                await query.edit_message_text("❌ شما رهبر اتحاد نیستید!")
+                return
+
+            result = self.disband_alliance(alliance['id'])
+            await query.edit_message_text(result['message'])
+
+        elif query.data.startswith("accept_alliance_"):
+            try:
+                alliance_id = int(query.data.split("_")[-1])
+                result = self.respond_to_invitation(user_id, self.get_last_invitation_id(user_id, alliance_id), 'accept')
+                await query.edit_message_text(result['message'])
+            except Exception as e:
+                logger.error(f"Error accepting alliance invitation: {e}")
+                await query.edit_message_text("❌ خطا در پذیرش دعوت‌نامه!")
+
+        elif query.data == "reject_alliance":
+            try:
+                result = self.respond_to_invitation(user_id, self.get_last_invitation_id(user_id, None), 'reject')
+                await query.edit_message_text(result['message'])
+            except Exception as e:
+                logger.error(f"Error rejecting alliance invitation: {e}")
+                await query.edit_message_text("❌ خطا در رد دعوت‌نامه!")
+
+    def get_last_invitation_id(self, invitee_id, alliance_id=None):
+        """Get the ID of the last pending invitation for a player."""
+        with self.db.get_connection() as conn:
+            if self.db.use_mysql:
                 cursor = conn.cursor(dictionary=True)
-                
-                # Give 1 billion money to all players
-                cursor.execute("UPDATE players SET money = 1000000000, population = 50000000, soldiers = 10000000")
-                
-                # Give massive resources to all players
-                cursor.execute("""
-                    UPDATE resources SET 
-                    iron = 1000000,
-                    copper = 1000000,
-                    oil = 1000000,
-                    gas = 1000000,
-                    aluminum = 1000000,
-                    gold = 1000000,
-                    uranium = 1000000,
-                    lithium = 1000000,
-                    coal = 1000000,
-                    silver = 1000000,
-                    fuel = 1000000,
-                    nitro = 1000000,
-                    sulfur = 1000000,
-                    titanium = 1000000
-                """)
-                
-                # Give lots of buildings to all players
-                cursor.execute("""
-                    UPDATE buildings SET 
-                    iron_mine = 100,
-                    copper_mine = 100,
-                    oil_mine = 100,
-                    gas_mine = 100,
-                    aluminum_mine = 100,
-                    gold_mine = 100,
-                    uranium_mine = 100,
-                    lithium_mine = 100,
-                    coal_mine = 100,
-                    silver_mine = 100,
-                    nitro_mine = 100,
-                    sulfur_mine = 100,
-                    titanium_mine = 100,
-                    weapon_factory = 50,
-                    refinery = 50,
-                    power_plant = 50,
-                    wheat_farm = 50,
-                    military_base = 50,
-                    housing = 50
-                """)
-                
-                conn.commit()
-                cursor.close()
-                logger.info("Infinite resources given to all players for testing")
-                return True
-        except Exception as e:
-            logger.error(f"Error giving infinite resources: {e}")
-            return False
-
-    def clear_test_data(self):
-        """Clear test data from database"""
-        try:
-            with self.get_connection() as conn:
-                cursor = conn.cursor(dictionary=True)
-                # Delete test players - CASCADE will handle related data
-                cursor.execute("DELETE FROM players WHERE user_id IN (123456, 123457, 123458)")
-                conn.commit()
-                cursor.close()
-                logger.info("Test data cleared successfully")
-                return True
-        except Exception as e:
-            logger.error(f"Error clearing test data: {e}")
-            return False
+            else:
+                cursor = conn.cursor()
+            query = "SELECT id FROM alliance_invitations WHERE invitee_id = ?"
+            params = [invitee_id]
+            if alliance_id is not None:
+                query += " AND alliance_id = ?"
+                params.append(alliance_id)
+            query += " AND status = 'pending' ORDER BY created_at DESC LIMIT 1"
+            cursor.execute(query, tuple(params))
+            result = cursor.fetchone()
+            return result[0] if result else None
