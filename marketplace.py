@@ -13,12 +13,19 @@ class Marketplace:
     def setup_marketplace_tables(self):
         """Setup marketplace tables"""
         with self.db.get_connection() as conn:
-            cursor = conn.cursor()
+            if self.db.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
+
+            # Use appropriate syntax based on database type
+            auto_increment = "AUTO_INCREMENT" if self.db.use_mysql else "AUTOINCREMENT"
+            id_type = "INT" if self.db.use_mysql else "INTEGER"
 
             # Market listings table
-            cursor.execute('''
+            cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS market_listings (
-                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    id {id_type} PRIMARY KEY {auto_increment},
                     seller_id INTEGER NOT NULL,
                     item_type TEXT NOT NULL,
                     item_category TEXT NOT NULL,
@@ -32,9 +39,9 @@ class Marketplace:
             ''')
 
             # Market transactions table
-            cursor.execute('''
+            cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS market_transactions (
-                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    id {id_type} PRIMARY KEY {auto_increment},
                     listing_id INTEGER NOT NULL,
                     buyer_id INTEGER NOT NULL,
                     seller_id INTEGER NOT NULL,
@@ -48,6 +55,7 @@ class Marketplace:
             ''')
 
             conn.commit()
+            cursor.close()
 
     def create_listing(self, seller_id, item_type, item_category, quantity, price_per_unit):
         """Create new market listing"""
@@ -163,7 +171,7 @@ class Marketplace:
 
         import random
         delivery_roll = random.randint(1, 100)
-        
+
         if delivery_roll <= base_success_chance:
             # Successful delivery
             self.add_to_inventory(buyer_id, listing['item_category'], listing['item_type'], quantity)
@@ -184,10 +192,10 @@ class Marketplace:
             # Refund 50% of purchase price
             listing_price = quantity * listing['price_per_unit']
             refund_amount = listing_price // 2
-            
+
             buyer = self.db.get_player(buyer_id)
             self.db.update_player_money(buyer_id, buyer['money'] + refund_amount)
-            
+
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
@@ -226,7 +234,7 @@ class Marketplace:
                 ORDER BY mt.transaction_date DESC
                 LIMIT ?
             ''', (buyer_id, limit))
-            
+
             transactions = []
             for row in cursor.fetchall():
                 transactions.append({
@@ -242,7 +250,7 @@ class Marketplace:
                     'delivery_date': row[9],
                     'seller_country': row[10]
                 })
-            
+
             return transactions
 
     def verify_seller_inventory(self, seller_id, category, item_type, quantity):
@@ -297,11 +305,11 @@ class Marketplace:
                 'titanium': 60,
                 'fuel': 0
             }
-            
+
             # Add purchased quantity plus 6-hour production bonus
             bonus_production = resource_production_rates.get(item_type, 0)
             total_quantity = quantity + bonus_production
-            
+
             self.db.add_resources(buyer_id, item_type, total_quantity)
         elif category == 'weapon':
             self.db.add_weapon(buyer_id, item_type, quantity)
@@ -407,4 +415,3 @@ class Marketplace:
             ''', (category,))
             results = cursor.fetchall()
             return [dict(row) for row in results]
-
