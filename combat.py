@@ -27,9 +27,13 @@ class CombatSystem:
         # Get player weapons
         weapons = self.db.get_player_weapons(attacker_id)
         
-        # Get available weapons for this distance
+        # Check for range extenders
+        has_tanker = weapons.get('tanker_aircraft', 0) > 0
+        has_carrier = weapons.get('aircraft_carrier_transport', 0) > 0
+        
+        # Get available weapons for this distance (with range extension if applicable)
         available_weapons = Config.get_available_weapons_for_attack(
-            attacker_country, defender_country, weapons
+            attacker_country, defender_country, weapons, has_tanker, has_carrier
         )
         
         if not available_weapons:
@@ -37,11 +41,25 @@ class CombatSystem:
             if distance_type == 'neighbor':
                 return False, "تسلیحات کافی برای حمله به همسایه ندارید"
             elif distance_type == 'regional':
-                return False, "برای حمله منطقه‌ای نیاز به جت یا موشک دارید"
+                if has_tanker or has_carrier:
+                    return False, "حتی با سوخت‌رسان/ناوبر، جت‌های شما برد کافی ندارند"
+                else:
+                    return False, "برای حمله منطقه‌ای نیاز به جت یا موشک دارید"
             else:
-                return False, "برای حمله بین‌قاره‌ای فقط موشک‌های دوربرد استفاده کنید"
+                if has_tanker or has_carrier:
+                    return False, "حتی با سوخت‌رسان/ناوبر، فاصله خیلی زیاد است"
+                else:
+                    return False, "برای حمله بین‌قاره‌ای فقط موشک‌های دوربرد استفاده کنید"
         
-        return True, f"حمله مجاز - {len(available_weapons)} نوع سلاح در دسترس"
+        range_bonus_text = ""
+        if has_carrier and has_tanker:
+            range_bonus_text = " (با ناوبر و سوخت‌رسان)"
+        elif has_carrier:
+            range_bonus_text = " (با ناوبر)"
+        elif has_tanker:
+            range_bonus_text = " (با سوخت‌رسان)"
+            
+        return True, f"حمله مجاز - {len(available_weapons)} نوع سلاح در دسترس{range_bonus_text}"
 
     def are_neighbors(self, country1, country2):
         """Check if two countries are neighbors"""

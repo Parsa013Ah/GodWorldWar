@@ -198,14 +198,42 @@ class Config:
     },
     'stealth_transport': {
         'name': 'ترابری پنهان‌کار',
-        'cost': 300000,
+        'cost': 240000,
         'category': 'transport',
-        'power': 20,
-        'defense': 80,
-        'transport_capacity': 3000,
-        'security_bonus': 70,
-        'emoji': '🥷'
-    }
+        'power': 0,
+        'defense': 40,
+        'transport_capacity': 5000,
+        'security_bonus': 35,
+        'emoji': '✈️'
+    },
+    'tanker_aircraft': {
+        'name': 'هواپیمای سوخت‌رسان',
+        'cost': 5800000,
+        'power': 1000,
+        'range': 4000,
+        'speed': 450,
+        'armor': 300,
+        'resources': {'aluminum': 60, 'iron': 40, 'copper': 20, 'titanium': 8},
+        'category': 'transport',
+        'description': 'هواپیمای سوخت‌رسان که برد جت‌ها را افزایش می‌دهد',
+        'requirements': ['weapon_factory', 'power_plant', 'refinery'],
+        'production_time': 250,
+        'emoji': '✈️'
+    },
+    'aircraft_carrier_transport': {
+        'name': 'ناو هواپیمابر (حمل‌ونقل)',
+        'cost': 12500000,
+        'power': 8000,
+        'range': 5000,
+        'speed': 30,
+        'armor': 6000,
+        'resources': {'iron': 200, 'aluminum': 100, 'titanium': 25, 'uranium': 15, 'copper': 80},
+        'category': 'transport',
+        'description': 'ناو هواپیمابر که جت‌ها را به مناطق دوردست می‌برد',
+        'requirements': ['weapon_factory', 'power_plant', 'refinery'],
+        'production_time': 400,
+        'emoji': '🚢'
+    },
     }
 
     # Resources configuration
@@ -303,17 +331,17 @@ class Config:
         """Get distance type between two countries"""
         if cls.are_countries_neighbors(country1, country2):
             return 'neighbor'
-        
+
         # Find regions for both countries
         region1 = None
         region2 = None
-        
+
         for region, countries in cls.COUNTRY_DISTANCE_CATEGORY.items():
             if country1 in countries:
                 region1 = region
             if country2 in countries:
                 region2 = region
-        
+
         if region1 == region2:
             return 'regional'
         else:
@@ -323,35 +351,73 @@ class Config:
     def are_countries_neighbors(cls, country1, country2):
         """Check if two countries are neighbors"""
         return country2 in cls.COUNTRY_NEIGHBORS.get(country1, [])
-    
+
     @classmethod
     def can_attack_with_weapon(cls, weapon_type, country1, country2):
         """Check if a weapon can attack from country1 to country2"""
         distance_type = cls.get_country_distance_type(country1, country2)
-        
+
         # همسایه - همه سلاح‌ها
         if distance_type == 'neighbor':
             return True
-        
+
         # منطقه‌ای - فقط جت‌ها و موشک‌ها
         elif distance_type == 'regional':
             return weapon_type in cls.WEAPON_RANGES['regional'] + cls.WEAPON_RANGES['intercontinental']
-        
+
         # بین قاره‌ای - فقط موشک‌های دوربرد
         elif distance_type == 'intercontinental':
             return weapon_type in cls.WEAPON_RANGES['intercontinental']
-        
+
         return False
-    
+
     @classmethod
-    def get_available_weapons_for_attack(cls, attacker_country, target_country, player_weapons):
-        """Get weapons that can attack from attacker to target country"""
-        available_weapons = {}
-        
-        for weapon_type, quantity in player_weapons.items():
-            if quantity > 0 and cls.can_attack_with_weapon(weapon_type, attacker_country, target_country):
-                available_weapons[weapon_type] = quantity
-        
+    def get_available_weapons_for_attack(cls, attacker_country, defender_country, weapons, has_tanker=False, has_carrier=False):
+        """Get weapons available for attack based on distance and range extenders"""
+        distance_type = Config.get_country_distance_type(attacker_country, defender_country)
+        available_weapons = []
+
+        # Calculate range bonus from extenders
+        range_bonus = 0
+        if has_carrier:
+            range_bonus = max(range_bonus, 3000)  # ناوبر 3000 کیلومتر اضافه می‌کنه
+        if has_tanker:
+            range_bonus = max(range_bonus, 2000)  # سوخت‌رسان 2000 کیلومتر اضافه می‌کنه
+        if has_carrier and has_tanker:
+            range_bonus = 4000  # ترکیب هردو 4000 کیلومتر
+
+        for weapon_type, count in weapons.items():
+            if weapon_type == 'user_id' or count <= 0:
+                continue
+
+            if weapon_type not in Config.WEAPONS:
+                continue
+
+            weapon_info = Config.WEAPONS[weapon_type]
+            base_range = weapon_info.get('range', 0)
+            weapon_category = weapon_info.get('category', '')
+
+            # Skip transport weapons for attack (but carrier transport has attack power)
+            if weapon_category == 'transport' and weapon_type != 'aircraft_carrier_transport':
+                continue
+
+            # Calculate effective range for jets
+            effective_range = base_range
+            if weapon_category == 'air' and range_bonus > 0:
+                effective_range = base_range + range_bonus
+
+            if distance_type == 'neighbor':
+                # All weapons work for neighbors
+                available_weapons.append(weapon_type)
+            elif distance_type == 'regional':
+                # Jets and missiles for regional, with range extension
+                if weapon_category in ['air', 'missile'] or effective_range >= 1500:
+                    available_weapons.append(weapon_type)
+            else:  # intercontinental
+                # Long-range missiles and extended-range jets
+                if effective_range >= 3000:
+                    available_weapons.append(weapon_type)
+
         return available_weapons
 
     # Bot configuration

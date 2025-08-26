@@ -127,5 +127,39 @@ TRANSPORT_EQUIPMENT = {
         'convoy_security': 90,
         'speed_bonus': 60,
         'stealth': True
+    },
+    'tanker_aircraft': {
+        'name': 'هواپیمای سوخت‌رسان',
+        'cost': 5800000,
+        'power': 1000,
+        'range': 4000,
+        'speed': 450,
+        'armor': 300,
+        'resources': {'aluminum': 60, 'iron': 40, 'copper': 20, 'titanium': 8},
+        'category': 'transport',
+        'description': 'هواپیمای سوخت‌رسان که برد جت‌ها را افزایش می‌دهد',
+        'requirements': ['weapon_factory', 'power_plant', 'refinery'],
+        'production_time': 250,
+        'convoy_security': 50,
+        'range_extender': True,
+        'jet_range_bonus': 2000  # افزایش 2000 کیلومتر برد برای جت‌ها
+    },
+    'aircraft_carrier_transport': {
+        'name': 'ناو هواپیمابر (حمل‌ونقل)',
+        'cost': 12500000,
+        'power': 8000,
+        'range': 5000,
+        'speed': 30,
+        'armor': 6000,
+        'resources': {'iron': 200, 'aluminum': 100, 'titanium': 25, 'uranium': 15, 'copper': 80},
+        'category': 'transport',
+        'description': 'ناو هواپیمابر که جت‌ها را به مناطق دوردست می‌برد',
+        'requirements': ['weapon_factory', 'power_plant', 'refinery'],
+        'production_time': 400,
+        'convoy_security': 95,
+        'range_extender': True,
+        'jet_range_bonus': 3000,  # افزایش 3000 کیلومتر برد برای جت‌ها
+        'naval': True,
+        'mobile_airbase': True
     }
 }
