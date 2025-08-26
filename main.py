@@ -439,16 +439,16 @@ class DragonRPBot:
 
         # Count total weapons for summary
         weapon_counts = {}
-        basic_weapons = ['rifle', 'tank', 'fighter_jet', 'drone', 'missile', 'warship']
-        defense_weapons = ['air_defense', 'missile_shield', 'cyber_shield']
+        basic_weapons = ['missile', 'warship']
+        defense_weapons = []
         bombs = ['simple_bomb', 'nuclear_bomb']
         missiles = ['simple_missile', 'ballistic_missile', 'nuclear_missile', 'trident2_conventional', 'trident2_nuclear', 'satan2_conventional', 'satan2_nuclear', 'df41_nuclear', 'tomahawk_conventional', 'tomahawk_nuclear', 'kalibr_conventional']
-        jets = ['jet', 'f22', 'f35', 'su57', 'j20', 'f15ex', 'su35s']
+        jets = ['f22', 'f35', 'su57', 'j20', 'f15ex', 'su35s']
         naval = ['submarine', 'destroyer', 'aircraft_carrier', 'patrol_ship', 'patrol_boat', 'amphibious_ship', 'aircraft_carrier_full', 'nuclear_submarine']
         transport = ['armored_truck', 'cargo_helicopter', 'cargo_plane', 'escort_frigate', 'logistics_drone', 'heavy_transport', 'supply_ship', 'stealth_transport']
         tanks = ['kf51_panther', 'abrams_x', 'm1e3_abrams', 't90ms_proryv', 'm1a2_abrams_sepv3']
         advanced_defense = ['s500_defense', 'thaad_defense', 's400_defense', 'iron_dome', 'slq32_ew', 'phalanx_ciws']
-        other = ['helicopter', 'strategic_bomber']
+        other = []
 
         weapon_counts['basic'] = sum(weapons.get(w, 0) for w in basic_weapons)
         weapon_counts['defense'] = sum(weapons.get(w, 0) for w in defense_weapons + advanced_defense)
@@ -477,9 +477,8 @@ class DragonRPBot:
 🚁 سایر: {weapon_counts['other']:,}
 
 📊 جزئیات اصلی:
-🔫 تفنگ: {weapons.get('rifle', 0):,}
-🚗 تانک: {weapons.get('tank', 0):,}
-✈️ جنگنده: {weapons.get('fighter_jet', 0):,}
+🚀 موشک: {weapons.get('missile', 0):,}
+🚢 کشتی جنگی: {weapons.get('warship', 0):,}
 💣 بمب هسته‌ای: {weapons.get('nuclear_bomb', 0):,}
 🚀 موشک بالستیک: {weapons.get('ballistic_missile', 0):,}
 🚀 Trident 2 هسته‌ای: {weapons.get('trident2_nuclear', 0):,}
@@ -1606,9 +1605,6 @@ class DragonRPBot:
 💪 قدرت دفاع کل: {defense_power:,}
 
 🛡 سیستم‌های دفاعی:
-🛡 پدافند هوایی: {weapons.get('air_defense', 0)}
-🚀 سپر موشکی: {weapons.get('missile_shield', 0)}
-💻 سپر سایبری: {weapons.get('cyber_shield', 0)}
 🛡 پدافند S-500: {weapons.get('s500_defense', 0)}
 🛡 پدافند THAAD: {weapons.get('thaad_defense', 0)}
 🛡 پدافند S-400: {weapons.get('s400_defense', 0)}
@@ -1637,14 +1633,11 @@ class DragonRPBot:
 💪 قدرت کل: {total_power:,}
 
 🔫 تسلیحات:
-🔫 تفنگ: {weapons.get('rifle', 0)}
-🚗 تانک: {weapons.get('tank', 0)}
-✈️ جنگنده: {weapons.get('fighter_jet', 0)}
-🚁 پهپاد: {weapons.get('drone', 0)}
 🚀 موشک: {weapons.get('missile', 0)}
 🚢 کشتی جنگی: {weapons.get('warship', 0)}
-🛡 پدافند هوایی: {weapons.get('air_defense', 0)}
-🚀 سپر موشکی: {weapons.get('missile_shield', 0)}"""
+🛡 پدافند S-500: {weapons.get('s500_defense', 0)}
+🛡 پدافند THAAD: {weapons.get('thaad_defense', 0)}
+🛡 پدافند S-400: {weapons.get('s400_defense', 0)}"""
 
         keyboard = self.keyboards.back_to_military_keyboard()
         await query.edit_message_text(power_text, reply_markup=keyboard)

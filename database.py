@@ -864,6 +864,18 @@ class Database:
             cursor.close()
             return result
 
+    def get_player_pending_attacks(self, player_id):
+        """Get all pending attacks for a player"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute('''
+                SELECT * FROM pending_attacks 
+                WHERE attacker_id = %s AND status IN ('traveling', 'pending')
+            ''', (player_id,))
+            results = cursor.fetchall()
+            cursor.close()
+            return results
+
     def get_pending_attacks_due(self):
         """Get all pending attacks that are due for execution"""
         from datetime import datetime

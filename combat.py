@@ -161,8 +161,7 @@ class CombatSystem:
                         continue
                         
                     # Skip specific defensive weapons
-                    if weapon_type in ['air_defense', 'missile_shield', 'cyber_shield', 
-                                      's500_defense', 'thaad_defense', 's400_defense',
+                    if weapon_type in ['s500_defense', 'thaad_defense', 's400_defense',
                                       'iron_dome', 'slq32_ew', 'phalanx_ciws']:
                         continue
                     
@@ -177,8 +176,7 @@ class CombatSystem:
         defense_power = 0
 
         # Defense weapons
-        defense_weapons = ['air_defense', 'missile_shield', 'cyber_shield', 's500_defense',
-                          'thaad_defense', 's400_defense', 'iron_dome', 'slq32_ew', 'phalanx_ciws']
+        defense_weapons = ['s500_defense', 'thaad_defense', 's400_defense', 'iron_dome', 'slq32_ew', 'phalanx_ciws']
 
         for weapon_type in defense_weapons:
             count = weapons.get(weapon_type, 0)
@@ -214,6 +212,11 @@ class CombatSystem:
         can_attack, reason = self.can_attack_country(attacker_id, defender_id)
         if not can_attack:
             return {'success': False, 'message': reason}
+
+        # Check if player already has a pending attack
+        existing_attacks = self.db.get_player_pending_attacks(attacker_id)
+        if existing_attacks:
+            return {'success': False, 'message': 'شما قبلاً حمله‌ای در حال انجام دارید! باید منتظر تکمیل آن بمانید.'}
 
         attacker = self.db.get_player(attacker_id)
         defender = self.db.get_player(defender_id)
