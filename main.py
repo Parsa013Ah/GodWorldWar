@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 class DragonRPBot:
     def __init__(self):
-        self.token = os.getenv("TELEGRAM_BOT_TOKEN", "7315307921:AAHZGyLUDCR4XudiqdQCRtjYqjeODfdwChE")
+        self.token = os.getenv("TELEGRAM_BOT_TOKEN", "")
         
         # Initialize Database
         self.db = Database()
