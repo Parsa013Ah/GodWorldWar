@@ -1,4 +1,3 @@
-
 import mysql.connector
 import sqlite3
 import logging
@@ -33,7 +32,7 @@ class Database:
             except mysql.connector.Error as e:
                 logger.warning(f"MySQL connection failed, falling back to SQLite: {e}")
                 self.use_mysql = False
-        
+
         # Fallback to SQLite
         try:
             conn = sqlite3.connect(self.sqlite_db_path)
@@ -48,7 +47,7 @@ class Database:
         # Handle schema migration for MySQL
         if self.use_mysql:
             self.migrate_user_id_schema()
-            
+
         with self.get_connection() as conn:
             if self.use_mysql:
                 cursor = conn.cursor(dictionary=True)
@@ -226,6 +225,7 @@ class Database:
                         arrival_time TIMESTAMP NOT NULL,
                         status VARCHAR(50) DEFAULT 'in_transit',
                         security_level INTEGER DEFAULT 50,
+                        thief_id BIGINT NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 ''')
@@ -240,14 +240,49 @@ class Database:
                         arrival_time TIMESTAMP NOT NULL,
                         status TEXT DEFAULT 'in_transit',
                         security_level INTEGER DEFAULT 50,
+                        thief_id INTEGER NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 ''')
 
-            # Pending attacks table
+            # Alliance tables
             auto_increment = "AUTO_INCREMENT" if self.use_mysql else "AUTOINCREMENT"
             id_type = "BIGINT" if self.use_mysql else "INTEGER"
-            
+
+            cursor.execute(f'''
+                CREATE TABLE IF NOT EXISTS alliances (
+                    id {id_type} PRIMARY KEY {auto_increment},
+                    name TEXT NOT NULL UNIQUE,
+                    description TEXT,
+                    leader_id {"BIGINT" if self.use_mysql else "INTEGER"} NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+
+            cursor.execute(f'''
+                CREATE TABLE IF NOT EXISTS alliance_members (
+                    id {id_type} PRIMARY KEY {auto_increment},
+                    alliance_id {"BIGINT" if self.use_mysql else "INTEGER"} NOT NULL,
+                    user_id {"BIGINT" if self.use_mysql else "INTEGER"} NOT NULL,
+                    role TEXT DEFAULT 'member',
+                    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id)
+                )
+            ''')
+
+            cursor.execute(f'''
+                CREATE TABLE IF NOT EXISTS alliance_invitations (
+                    id {id_type} PRIMARY KEY {auto_increment},
+                    alliance_id {"BIGINT" if self.use_mysql else "INTEGER"} NOT NULL,
+                    user_id {"BIGINT" if self.use_mysql else "INTEGER"} NOT NULL,
+                    inviter_id {"BIGINT" if self.use_mysql else "INTEGER"} NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(alliance_id, user_id)
+                )
+            ''')
+
+            # Pending attacks table
+
             cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS pending_attacks (
                     id {id_type} PRIMARY KEY {auto_increment},
@@ -327,6 +362,17 @@ class Database:
                 )
             ''')
 
+            # Banned users table
+            cursor.execute(f'''
+                CREATE TABLE IF NOT EXISTS banned_users (
+                    user_id {user_id_type} PRIMARY KEY,
+                    username TEXT,
+                    banned_by {user_id_type},
+                    ban_reason TEXT,
+                    banned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+
             conn.commit()
             cursor.close()
             logger.info("MariaDB database initialized successfully")
@@ -335,7 +381,10 @@ class Database:
         """Create a new player"""
         try:
             with self.get_connection() as conn:
-                cursor = conn.cursor(dictionary=True)
+                if self.use_mysql:
+                    cursor = conn.cursor(dictionary=True)
+                else:
+                    cursor = conn.cursor()
 
                 country_name = Config.COUNTRIES.get(country_code, country_code)
 
@@ -390,9 +439,14 @@ class Database:
     def get_all_players(self):
         """Get all players"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('SELECT * FROM players ORDER BY country_name')
-            result = cursor.fetchall()
+            if self.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+                cursor.execute('SELECT * FROM players ORDER BY country_name')
+                result = cursor.fetchall()
+            else:
+                cursor = conn.cursor()
+                cursor.execute('SELECT * FROM players ORDER BY country_name')
+                result = [dict(row) for row in cursor.fetchall()]
             cursor.close()
             return result
 
@@ -400,13 +454,22 @@ class Database:
         """Set player building count to specific value"""
         try:
             with self.get_connection() as conn:
-                cursor = conn.cursor(dictionary=True)
-                query = f'''
-                    UPDATE buildings 
-                    SET {building_type} = %s
-                    WHERE user_id = %s
-                '''
-                cursor.execute(query, (count, user_id))
+                if self.use_mysql:
+                    cursor = conn.cursor(dictionary=True)
+                    query = f'''
+                        UPDATE buildings 
+                        SET {building_type} = %s
+                        WHERE user_id = %s
+                    '''
+                    cursor.execute(query, (count, user_id))
+                else:
+                    cursor = conn.cursor()
+                    query = f'''
+                        UPDATE buildings 
+                        SET {building_type} = ?
+                        WHERE user_id = ?
+                    '''
+                    cursor.execute(query, (count, user_id))
                 conn.commit()
                 cursor.close()
                 logger.info(f"Set {building_type} to {count} for player {user_id}")
@@ -419,12 +482,20 @@ class Database:
         """Update player money, population, and soldiers (for income cycle)"""
         try:
             with self.get_connection() as conn:
-                cursor = conn.cursor(dictionary=True)
-                cursor.execute('''
-                    UPDATE players 
-                    SET money = %s, population = %s, soldiers = %s
-                    WHERE user_id = %s
-                ''', (new_money, new_population, new_soldiers, user_id))
+                if self.use_mysql:
+                    cursor = conn.cursor(dictionary=True)
+                    cursor.execute('''
+                        UPDATE players 
+                        SET money = %s, population = %s, soldiers = %s
+                        WHERE user_id = %s
+                    ''', (new_money, new_population, new_soldiers, user_id))
+                else:
+                    cursor = conn.cursor()
+                    cursor.execute('''
+                        UPDATE players 
+                        SET money = ?, population = ?, soldiers = ?
+                        WHERE user_id = ?
+                    ''', (new_money, new_population, new_soldiers, user_id))
                 conn.commit()
                 cursor.close()
                 logger.info(f"Updated income for player {user_id}: ${new_money:,}, population: {new_population:,}, soldiers: {new_soldiers:,}")
@@ -436,17 +507,26 @@ class Database:
     def get_all_countries(self):
         """Get all countries with players"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('SELECT user_id, username, country_name, country_code FROM players ORDER BY country_name')
-            result = cursor.fetchall()
+            if self.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+                cursor.execute('SELECT user_id, username, country_name, country_code FROM players ORDER BY country_name')
+                result = cursor.fetchall()
+            else:
+                cursor = conn.cursor()
+                cursor.execute('SELECT user_id, username, country_name, country_code FROM players ORDER BY country_name')
+                result = [dict(row) for row in cursor.fetchall()]
             cursor.close()
             return result
 
     def is_country_taken(self, country_code):
         """Check if country is already taken"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('SELECT 1 FROM players WHERE country_code = %s', (country_code,))
+            if self.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+                cursor.execute('SELECT 1 FROM players WHERE country_code = %s', (country_code,))
+            else:
+                cursor = conn.cursor()
+                cursor.execute('SELECT 1 FROM players WHERE country_code = ?', (country_code,))
             result = cursor.fetchone()
             cursor.close()
             return result is not None
@@ -454,27 +534,45 @@ class Database:
     def get_player_resources(self, user_id):
         """Get player resources"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('SELECT * FROM resources WHERE user_id = %s', (user_id,))
-            result = cursor.fetchone()
+            if self.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+                cursor.execute('SELECT * FROM resources WHERE user_id = %s', (user_id,))
+                result = cursor.fetchone()
+            else:
+                cursor = conn.cursor()
+                cursor.execute('SELECT * FROM resources WHERE user_id = ?', (user_id,))
+                row = cursor.fetchone()
+                result = dict(row) if row else {}
             cursor.close()
             return result if result else {}
 
     def get_player_buildings(self, user_id):
         """Get player buildings"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('SELECT * FROM buildings WHERE user_id = %s', (user_id,))
-            result = cursor.fetchone()
+            if self.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+                cursor.execute('SELECT * FROM buildings WHERE user_id = %s', (user_id,))
+                result = cursor.fetchone()
+            else:
+                cursor = conn.cursor()
+                cursor.execute('SELECT * FROM buildings WHERE user_id = ?', (user_id,))
+                row = cursor.fetchone()
+                result = dict(row) if row else {}
             cursor.close()
             return result if result else {}
 
     def get_player_weapons(self, user_id):
         """Get player weapons"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('SELECT * FROM weapons WHERE user_id = %s', (user_id,))
-            result = cursor.fetchone()
+            if self.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+                cursor.execute('SELECT * FROM weapons WHERE user_id = %s', (user_id,))
+                result = cursor.fetchone()
+            else:
+                cursor = conn.cursor()
+                cursor.execute('SELECT * FROM weapons WHERE user_id = ?', (user_id,))
+                row = cursor.fetchone()
+                result = dict(row) if row else None
             cursor.close()
             if result:
                 logger.info(f"get_player_weapons for user {user_id}: rifle={result.get('rifle', 0)}")
@@ -487,10 +585,16 @@ class Database:
         """Update player money"""
         try:
             with self.get_connection() as conn:
-                cursor = conn.cursor(dictionary=True)
-                cursor.execute("""
-                    UPDATE players SET money = %s WHERE user_id = %s
-                """, (new_amount, user_id))
+                if self.use_mysql:
+                    cursor = conn.cursor(dictionary=True)
+                    cursor.execute("""
+                        UPDATE players SET money = %s WHERE user_id = %s
+                    """, (new_amount, user_id))
+                else:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        UPDATE players SET money = ? WHERE user_id = ?
+                    """, (new_amount, user_id))
                 conn.commit()
                 cursor.close()
                 logger.info(f"Updated player {user_id} money to {new_amount}")
@@ -503,11 +607,18 @@ class Database:
         """Update player population"""
         try:
             with self.get_connection() as conn:
-                cursor = conn.cursor(dictionary=True)
-                cursor.execute(
-                    "UPDATE players SET population = %s WHERE user_id = %s",
-                    (new_population, user_id)
-                )
+                if self.use_mysql:
+                    cursor = conn.cursor(dictionary=True)
+                    cursor.execute(
+                        "UPDATE players SET population = %s WHERE user_id = %s",
+                        (new_population, user_id)
+                    )
+                else:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "UPDATE players SET population = ? WHERE user_id = ?",
+                        (new_population, user_id)
+                    )
                 conn.commit()
                 cursor.close()
                 return True
@@ -518,58 +629,93 @@ class Database:
     def update_player_soldiers(self, user_id, new_soldiers):
         """Update player's soldiers count"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('''
-                UPDATE players 
-                SET soldiers = %s
-                WHERE user_id = %s
-            ''', (new_soldiers, user_id))
+            if self.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+                cursor.execute('''
+                    UPDATE players 
+                    SET soldiers = %s
+                    WHERE user_id = %s
+                ''', (new_soldiers, user_id))
+            else:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    UPDATE players 
+                    SET soldiers = ?
+                    WHERE user_id = ?
+                ''', (new_soldiers, user_id))
             conn.commit()
             cursor.close()
 
     def update_resource(self, user_id, resource_type, new_amount):
         """Update specific resource amount"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            query = f'''
-                UPDATE resources 
-                SET {resource_type} = %s
-                WHERE user_id = %s
-            '''
-            cursor.execute(query, (new_amount, user_id))
+            if self.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+                query = f'''
+                    UPDATE resources 
+                    SET {resource_type} = %s
+                    WHERE user_id = %s
+                '''
+                cursor.execute(query, (new_amount, user_id))
+            else:
+                cursor = conn.cursor()
+                query = f'''
+                    UPDATE resources 
+                    SET {resource_type} = ?
+                    WHERE user_id = ?
+                '''
+                cursor.execute(query, (new_amount, user_id))
             conn.commit()
             cursor.close()
 
     def update_building_count(self, user_id, building_type, new_count):
         """Update building count"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            query = f'''
-                UPDATE buildings 
-                SET {building_type} = %s
-                WHERE user_id = %s
-            '''
-            cursor.execute(query, (new_count, user_id))
+            if self.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+                query = f'''
+                    UPDATE buildings 
+                    SET {building_type} = %s
+                    WHERE user_id = %s
+                '''
+                cursor.execute(query, (new_count, user_id))
+            else:
+                cursor = conn.cursor()
+                query = f'''
+                    UPDATE buildings 
+                    SET {building_type} = ?
+                    WHERE user_id = ?
+                '''
+                cursor.execute(query, (new_count, user_id))
             conn.commit()
             cursor.close()
 
     def add_building(self, user_id, building_type):
         """Add a building to player"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            query = f'''
-                UPDATE buildings 
-                SET {building_type} = {building_type} + 1 
-                WHERE user_id = %s
-            '''
-            cursor.execute(query, (user_id,))
+            if self.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+                query = f'''
+                    UPDATE buildings 
+                    SET {building_type} = {building_type} + 1 
+                    WHERE user_id = %s
+                '''
+                cursor.execute(query, (user_id,))
+            else:
+                cursor = conn.cursor()
+                query = f'''
+                    UPDATE buildings 
+                    SET {building_type} = {building_type} + 1 
+                    WHERE user_id = ?
+                '''
+                cursor.execute(query, (user_id,))
             conn.commit()
             cursor.close()
 
     def add_weapon(self, user_id, weapon_type, quantity=1):
         """Add weapons to player"""
         logger.info(f"add_weapon called: user_id={user_id}, weapon_type={weapon_type}, quantity={quantity}")
-        
+
         # Map weapon names to database column names
         weapon_column_map = {
             'rifle': 'rifle',
@@ -637,77 +783,145 @@ class Database:
         column_name = weapon_column_map.get(weapon_type, weapon_type)
         logger.info(f"Mapped weapon_type '{weapon_type}' to column '{column_name}'")
 
+        # Validate column name to prevent SQL injection - allow alphanumeric and underscores only
+        if not all(c.isalnum() or c == '_' for c in column_name):
+            logger.error(f"Invalid column name: {column_name}")
+            return
+        # Validate column name to prevent SQL injection - allow alphanumeric and underscores only
+        if not all(c.isalnum() or c == '_' for c in column_name):
+            logger.error(f"Invalid column name: {column_name}")
+            return
+        # Validate column name to prevent SQL injection - allow alphanumeric and underscores only
+        if not all(c.isalnum() or c == '_' for c in column_name):
+            logger.error(f"Invalid column name: {column_name}")
+            return
+        # Validate column name to prevent SQL injection - allow alphanumeric and underscores only
+        if not all(c.isalnum() or c == '_' for c in column_name):
+            logger.error(f"Invalid column name: {column_name}")
+            return
+
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            
-            # Check if user exists in weapons table
-            cursor.execute('SELECT COUNT(*) FROM weapons WHERE user_id = %s', (user_id,))
-            user_exists = cursor.fetchone()[0] > 0
-            logger.info(f"User {user_id} exists in weapons table: {user_exists}")
-            
-            if not user_exists:
-                logger.info(f"Creating weapons entry for user {user_id}")
-                # Create a new weapons entry for this user
-                cursor.execute('INSERT INTO weapons (user_id) VALUES (%s)', (user_id,))
-            
-            # Check current value before update
-            cursor.execute(f'SELECT {column_name} FROM weapons WHERE user_id = %s', (user_id,))
-            current_value = cursor.fetchone()
-            if current_value:
-                current_value = current_value[0] or 0
+            if self.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+                # Check if user exists in weapons table
+                cursor.execute('SELECT COUNT(*) FROM weapons WHERE user_id = %s', (user_id,))
+                user_exists = cursor.fetchone()['COUNT(*)'] > 0
+                logger.info(f"User {user_id} exists in weapons table: {user_exists}")
+
+                if not user_exists:
+                    logger.info(f"Creating weapons entry for user {user_id}")
+                    cursor.execute('INSERT INTO weapons (user_id) VALUES (%s)', (user_id,))
+
+                # Check current value before update
+                query = f'SELECT `{column_name}` FROM weapons WHERE user_id = %s'
+                cursor.execute(query, (user_id,))
+                current_value = cursor.fetchone()
+                if current_value:
+                    current_value = current_value[column_name] or 0
+                else:
+                    current_value = 0
+                logger.info(f"Current {column_name} value for user {user_id}: {current_value}")
+
+                # Update weapons using backticks to escape column name
+                update_query = f'UPDATE weapons SET `{column_name}` = `{column_name}` + %s WHERE user_id = %s'
+                cursor.execute(update_query, (quantity, user_id))
+
+                # Check after update
+                cursor.execute(query, (user_id,))
+                new_value = cursor.fetchone()
+                if new_value:
+                    new_value = new_value[column_name] or 0
+                else:
+                    new_value = 0
+                logger.info(f"New {column_name} value for user {user_id}: {new_value}")
             else:
-                current_value = 0
-            logger.info(f"Current {column_name} value for user {user_id}: {current_value}")
-            
-            # Update weapons
-            cursor.execute(f'''
-                UPDATE weapons 
-                SET {column_name} = {column_name} + %s 
-                WHERE user_id = %s
-            ''', (quantity, user_id))
-            
-            # Check after update
-            cursor.execute(f'SELECT {column_name} FROM weapons WHERE user_id = %s', (user_id,))
-            new_value = cursor.fetchone()
-            if new_value:
-                new_value = new_value[0] or 0
-            else:
-                new_value = 0
-            logger.info(f"New {column_name} value for user {user_id}: {new_value}")
-            
+                cursor = conn.cursor()
+                # Check if user exists in weapons table
+                cursor.execute('SELECT COUNT(*) FROM weapons WHERE user_id = ?', (user_id,))
+                user_exists = cursor.fetchone()[0] > 0
+                logger.info(f"User {user_id} exists in weapons table: {user_exists}")
+
+                if not user_exists:
+                    logger.info(f"Creating weapons entry for user {user_id}")
+                    cursor.execute('INSERT INTO weapons (user_id) VALUES (?)', (user_id,))
+
+                # Check current value before update
+                query = f'SELECT "{column_name}" FROM weapons WHERE user_id = ?'
+                cursor.execute(query, (user_id,))
+                current_row = cursor.fetchone()
+                if current_row:
+                    current_value = current_row[0] or 0
+                else:
+                    current_value = 0
+                logger.info(f"Current {column_name} value for user {user_id}: {current_value}")
+
+                # Update weapons using double quotes to escape column name
+                update_query = f'UPDATE weapons SET "{column_name}" = "{column_name}" + ? WHERE user_id = ?'
+                cursor.execute(update_query, (quantity, user_id))
+
+                # Check after update
+                cursor.execute(query, (user_id,))
+                new_row = cursor.fetchone()
+                if new_row:
+                    new_value = new_row[0] or 0
+                else:
+                    new_value = 0
+                logger.info(f"New {column_name} value for user {user_id}: {new_value}")
+
             conn.commit()
             cursor.close()
 
     def add_resources(self, user_id, resource_type, quantity):
         """Add resources to player"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            query = f'''
-                UPDATE resources 
-                SET {resource_type} = {resource_type} + %s 
-                WHERE user_id = %s
-            '''
-            cursor.execute(query, (quantity, user_id))
+            if self.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+                query = f'''
+                    UPDATE resources 
+                    SET {resource_type} = {resource_type} + %s 
+                    WHERE user_id = %s
+                '''
+                cursor.execute(query, (quantity, user_id))
+            else:
+                cursor = conn.cursor()
+                query = f'''
+                    UPDATE resources 
+                    SET {resource_type} = {resource_type} + ? 
+                    WHERE user_id = ?
+                '''
+                cursor.execute(query, (quantity, user_id))
             conn.commit()
             cursor.close()
 
     def subtract_resources(self, user_id, resource_type, quantity):
         """Subtract resources from player"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            query = f'''
-                UPDATE resources 
-                SET {resource_type} = {resource_type} - %s 
-                WHERE user_id = %s
-            '''
-            cursor.execute(query, (quantity, user_id))
+            if self.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+                query = f'''
+                    UPDATE resources 
+                    SET {resource_type} = {resource_type} - %s 
+                    WHERE user_id = %s
+                '''
+                cursor.execute(query, (quantity, user_id))
+            else:
+                cursor = conn.cursor()
+                query = f'''
+                    UPDATE resources 
+                    SET {resource_type} = {resource_type} - ? 
+                    WHERE user_id = ?
+                '''
+                cursor.execute(query, (quantity, user_id))
             conn.commit()
             cursor.close()
 
     def consume_resources(self, user_id, resources_needed):
         """Consume resources from player"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            if self.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+            else:
+                cursor = conn.cursor()
 
             # Check if player has enough resources
             current_resources = self.get_player_resources(user_id)
@@ -830,11 +1044,21 @@ class Database:
             cursor.close()
             return result
 
-    def update_convoy_status(self, convoy_id, new_status):
-        """Update convoy status"""
+    def update_convoy_status(self, convoy_id, new_status, thief_id=None):
+        """Update convoy status and thief if applicable"""
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute('UPDATE convoys SET status = %s WHERE id = %s', (new_status, convoy_id))
+            if self.use_mysql:
+                cursor = conn.cursor(dictionary=True)
+                if thief_id:
+                    cursor.execute('UPDATE convoys SET status = %s, thief_id = %s WHERE id = %s', (new_status, thief_id, convoy_id))
+                else:
+                    cursor.execute('UPDATE convoys SET status = %s WHERE id = %s', (new_status, convoy_id))
+            else:
+                cursor = conn.cursor()
+                if thief_id:
+                    cursor.execute('UPDATE convoys SET status = ?, thief_id = ? WHERE id = ?', (new_status, thief_id, convoy_id))
+                else:
+                    cursor.execute('UPDATE convoys SET status = ? WHERE id = ?', (new_status, convoy_id))
             conn.commit()
             cursor.close()
 
@@ -1014,10 +1238,10 @@ class Database:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor(dictionary=True)
-                
+
                 # Give 1 billion money to all players
                 cursor.execute("UPDATE players SET money = 1000000000, population = 50000000, soldiers = 10000000")
-                
+
                 # Give massive resources to all players
                 cursor.execute("""
                     UPDATE resources SET 
@@ -1036,7 +1260,7 @@ class Database:
                     sulfur = 1000000,
                     titanium = 1000000
                 """)
-                
+
                 # Give lots of buildings to all players
                 cursor.execute("""
                     UPDATE buildings SET 
@@ -1060,7 +1284,7 @@ class Database:
                     military_base = 50,
                     housing = 50
                 """)
-                
+
                 conn.commit()
                 cursor.close()
                 logger.info("Infinite resources given to all players for testing")
@@ -1073,9 +1297,12 @@ class Database:
         """Clear test data from database"""
         try:
             with self.get_connection() as conn:
-                cursor = conn.cursor(dictionary=True)
-                # Delete test players - CASCADE will handle related data
-                cursor.execute("DELETE FROM players WHERE user_id IN (123456, 123457, 123458)")
+                if self.use_mysql:
+                    cursor = conn.cursor(dictionary=True)
+                    cursor.execute("DELETE FROM players WHERE user_id IN (%s, %s, %s)", (123456, 123457, 123458))
+                else:
+                    cursor = conn.cursor()
+                    cursor.execute("DELETE FROM players WHERE user_id IN (?, ?, ?)", (123456, 123457, 123458))
                 conn.commit()
                 cursor.close()
                 logger.info("Test data cleared successfully")
@@ -1084,42 +1311,120 @@ class Database:
             logger.error(f"Error clearing test data: {e}")
             return False
 
+    def is_user_banned(self, user_id):
+        """Check if user is banned"""
+        try:
+            with self.get_connection() as conn:
+                if self.use_mysql:
+                    cursor = conn.cursor(dictionary=True)
+                    cursor.execute('SELECT 1 FROM banned_users WHERE user_id = %s', (user_id,))
+                else:
+                    cursor = conn.cursor()
+                    cursor.execute('SELECT 1 FROM banned_users WHERE user_id = ?', (user_id,))
+                result = cursor.fetchone()
+                cursor.close()
+                return result is not None
+        except Exception as e:
+            logger.error(f"Error checking if user is banned: {e}")
+            return False
+
+    def ban_user(self, user_id, username, banned_by, reason="سوء استفاده از ربات"):
+        """Ban a user"""
+        try:
+            with self.get_connection() as conn:
+                if self.use_mysql:
+                    cursor = conn.cursor(dictionary=True)
+                    cursor.execute('''
+                        INSERT INTO banned_users (user_id, username, banned_by, ban_reason)
+                        VALUES (%s, %s, %s, %s)
+                    ''', (user_id, username, banned_by, reason))
+                else:
+                    cursor = conn.cursor()
+                    cursor.execute('''
+                        INSERT INTO banned_users (user_id, username, banned_by, ban_reason)
+                        VALUES (?, ?, ?, ?)
+                    ''', (user_id, username, banned_by, reason))
+                conn.commit()
+                cursor.close()
+                logger.info(f"User {user_id} ({username}) banned by {banned_by}")
+                return True
+        except Exception as e:
+            logger.error(f"Error banning user: {e}")
+            return False
+
+    def unban_user(self, user_id):
+        """Unban a user"""
+        try:
+            with self.get_connection() as conn:
+                if self.use_mysql:
+                    cursor = conn.cursor(dictionary=True)
+                    cursor.execute('DELETE FROM banned_users WHERE user_id = %s', (user_id,))
+                else:
+                    cursor = conn.cursor()
+                    cursor.execute('DELETE FROM banned_users WHERE user_id = ?', (user_id,))
+                conn.commit()
+                cursor.close()
+                logger.info(f"User {user_id} unbanned")
+                return True
+        except Exception as e:
+            logger.error(f"Error unbanning user: {e}")
+            return False
+
+    def get_banned_users(self):
+        """Get list of banned users"""
+        try:
+            with self.get_connection() as conn:
+                if self.use_mysql:
+                    cursor = conn.cursor(dictionary=True)
+                    cursor.execute('SELECT * FROM banned_users ORDER BY banned_at DESC')
+                    result = cursor.fetchall()
+                else:
+                    cursor = conn.cursor()
+                    cursor.execute('SELECT * FROM banned_users ORDER BY banned_at DESC')
+                    rows = cursor.fetchall()
+                    result = [dict(row) for row in rows] if rows else []
+                cursor.close()
+                return result
+        except Exception as e:
+            logger.error(f"Error getting banned users: {e}")
+            return []
+
     def migrate_user_id_schema(self):
         """Migrate existing tables to use BIGINT for user_id columns"""
         if not self.use_mysql:
             return True  # SQLite handles large integers automatically
-            
+
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                
+
                 # Check if migration is needed
                 cursor.execute("SHOW COLUMNS FROM players LIKE 'user_id'")
                 result = cursor.fetchone()
                 if result and 'bigint' in result[1].lower():
                     logger.info("Schema already migrated")
                     return True
-                
+
                 logger.info("Starting user_id schema migration...")
-                
+
                 # Drop tables in correct order (respecting foreign key constraints)
                 tables_to_drop = [
                     'build_tracking', 'purchase_tracking', 'market_transactions', 
                     'marketplace_listings', 'admin_logs', 'pending_attacks', 
                     'convoys', 'wars', 'weapons', 'buildings', 'resources', 'players'
                 ]
-                
+
                 for table in tables_to_drop:
                     cursor.execute(f"DROP TABLE IF EXISTS {table}")
-                
+
                 conn.commit()
                 cursor.close()
-                
+
                 # Reinitialize with new schema
                 self.initialize()
                 logger.info("Schema migration completed successfully")
                 return True
-                
+
         except Exception as e:
             logger.error(f"Error during schema migration: {e}")
             return False
